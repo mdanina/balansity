@@ -30,15 +30,15 @@ export default function CheckupInterlude() {
           
           <div className="space-y-6">
             <h1 className="text-4xl font-bold text-foreground">
-              Next, we'll be asking how these emotions and behaviors <span className="font-bold">impact AI</span> and your family.
+              Далее мы спросим, как эти эмоции и поведение <span className="font-bold">влияют на AI</span> и вашу семью.
             </h1>
             
             <p className="text-lg text-muted-foreground">
-              Your child's challenges can impact their development and functioning and your family's quality of life. This is when it is important to get help and support.
+              Трудности вашего ребенка могут повлиять на его развитие и функционирование, а также на качество жизни вашей семьи. Именно тогда важно получить помощь и поддержку.
             </p>
             
             <p className="text-sm text-muted-foreground">
-              31 questions • 3 min
+              31 вопрос • 3 мин
             </p>
           </div>
 
@@ -47,7 +47,7 @@ export default function CheckupInterlude() {
             onClick={() => navigate("/checkup-questions?start=22")}
             className="h-14 w-full text-base font-medium"
           >
-            Next
+            Далее
           </Button>
         </div>
       </div>

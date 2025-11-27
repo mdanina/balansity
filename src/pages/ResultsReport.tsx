@@ -27,10 +27,10 @@ export default function ResultsReport() {
           
           <div className="text-center">
             <h1 className="text-5xl font-bold text-foreground mb-4">
-              Your Results
+              Ваши результаты
             </h1>
             <p className="text-lg text-muted-foreground">
-              Today • Completed by Dan, Mar
+              Сегодня • Заполнено Dan, Mar
             </p>
           </div>
         </div>
@@ -44,20 +44,20 @@ export default function ResultsReport() {
               </svg>
             </div>
             <p className="text-foreground">
-              This summary provides an overview of your results. For a comprehensive analysis,{" "}
+              Это резюме представляет обзор ваших результатов. Для всестороннего анализа,{" "}
               <a href="#" className="font-medium text-primary underline hover:no-underline">
-                Download the full report
+                Скачайте полный отчет
               </a>{" "}
-              at no cost using the code FAMILY.
+              бесплатно, используя код FAMILY.
             </p>
           </div>
         </div>
 
         {/* Summary Section */}
         <div className="mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-4">Summary</h2>
+          <h2 className="text-3xl font-bold text-foreground mb-4">Итоги</h2>
           <p className="text-muted-foreground mb-8">
-            These findings are based on the <span className="font-medium">39 question</span> checkup you completed about your family.
+            Эти результаты основаны на опросе из <span className="font-medium">39 вопросов</span>, который вы заполнили о своей семье.
           </p>
 
           {/* Cards Carousel */}
@@ -73,19 +73,19 @@ export default function ResultsReport() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-foreground">AI</h3>
-                    <p className="text-sm text-muted-foreground">11 years</p>
+                    <p className="text-sm text-muted-foreground">11 лет</p>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div>
-                    <span className="font-medium text-red-600">Concerning</span>
-                    <p className="text-sm text-muted-foreground">Behaviors</p>
-                    <p className="text-sm text-muted-foreground">Social</p>
+                    <span className="font-medium text-red-600">Тревожно</span>
+                    <p className="text-sm text-muted-foreground">Поведение</p>
+                    <p className="text-sm text-muted-foreground">Социальное</p>
                   </div>
                   <div>
-                    <span className="font-medium text-primary">Typical</span>
-                    <p className="text-sm text-muted-foreground">Emotions</p>
-                    <p className="text-sm text-muted-foreground">Activity</p>
+                    <span className="font-medium text-primary">Типично</span>
+                    <p className="text-sm text-muted-foreground">Эмоции</p>
+                    <p className="text-sm text-muted-foreground">Активность</p>
                   </div>
                 </div>
               </div>
@@ -98,16 +98,16 @@ export default function ResultsReport() {
                       <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-foreground">You</h3>
+                  <h3 className="text-xl font-bold text-foreground">Вы</h3>
                 </div>
                 <div className="space-y-2">
                   <div>
-                    <span className="font-medium text-red-600">Concerning</span>
+                    <span className="font-medium text-red-600">Тревожно</span>
                   </div>
                   <div>
-                    <span className="font-medium text-primary">Typical</span>
-                    <p className="text-sm text-muted-foreground">Anxiety</p>
-                    <p className="text-sm text-muted-foreground">Depression</p>
+                    <span className="font-medium text-primary">Типично</span>
+                    <p className="text-sm text-muted-foreground">Тревожность</p>
+                    <p className="text-sm text-muted-foreground">Депрессия</p>
                   </div>
                 </div>
               </div>
@@ -120,17 +120,17 @@ export default function ResultsReport() {
                       <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-foreground">Family</h3>
+                  <h3 className="text-xl font-bold text-foreground">Семья</h3>
                 </div>
                 <div className="space-y-2">
                   <div>
-                    <span className="font-medium text-red-600">Concerning</span>
-                    <p className="text-sm text-muted-foreground">Family Stress</p>
-                    <p className="text-sm text-muted-foreground">Co-Parenting</p>
+                    <span className="font-medium text-red-600">Тревожно</span>
+                    <p className="text-sm text-muted-foreground">Семейный стресс</p>
+                    <p className="text-sm text-muted-foreground">Совместное воспитание</p>
                   </div>
                   <div>
-                    <span className="font-medium text-primary">Typical</span>
-                    <p className="text-sm text-muted-foreground">Me & My Partner</p>
+                    <span className="font-medium text-primary">Типично</span>
+                    <p className="text-sm text-muted-foreground">Я и мой партнер</p>
                   </div>
                 </div>
               </div>
@@ -155,7 +155,7 @@ export default function ResultsReport() {
 
         {/* AI's Mental Health Section */}
         <div className="mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-8">AI's Mental Health</h2>
+          <h2 className="text-3xl font-bold text-foreground mb-8">Ментальное здоровье AI</h2>
           
           {/* Emotional Challenges */}
           <div className="mb-8 rounded-lg border border-border p-6">
@@ -163,12 +163,12 @@ export default function ResultsReport() {
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                 <span className="text-sm font-medium">1</span>
               </div>
-              <h3 className="text-2xl font-bold text-foreground">Emotional Challenges</h3>
+              <h3 className="text-2xl font-bold text-foreground">Эмоциональные трудности</h3>
             </div>
 
             <div className="mb-6">
               <span className="inline-block rounded-full bg-primary/10 px-4 py-1 text-sm font-medium text-primary">
-                Typical
+                Типично
               </span>
               <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
                 <div className="h-full w-2/3 bg-primary"></div>
@@ -180,7 +180,7 @@ export default function ResultsReport() {
               <button className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
                 <div className="flex items-center gap-3">
                   <MessageCircle className="h-5 w-5 text-purple-600" />
-                  <span className="font-medium text-foreground">What does this mean?</span>
+                  <span className="font-medium text-foreground">Что это значит?</span>
                 </div>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </button>
@@ -188,7 +188,7 @@ export default function ResultsReport() {
               <button className="flex w-full items-center justify-between rounded-lg bg-blue-50 p-4 text-left hover:bg-blue-100">
                 <div className="flex items-center gap-3">
                   <Lightbulb className="h-5 w-5 text-blue-600" />
-                  <span className="font-medium text-foreground">What can I do?</span>
+                  <span className="font-medium text-foreground">Что я могу сделать?</span>
                 </div>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </button>
@@ -200,14 +200,14 @@ export default function ResultsReport() {
                 <svg className="h-6 w-6 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" strokeWidth="2"/>
                 </svg>
-                <h4 className="font-medium text-foreground">See the rest of AI's report</h4>
+                <h4 className="font-medium text-foreground">Посмотрите остальную часть отчета AI</h4>
               </div>
               <p className="mb-4 text-sm text-muted-foreground">
-                To see how AI scored on Behavioral Challenges, Activity Challenges and Social Challenges, purchase the full report.
+                Чтобы увидеть, как AI справляется с поведенческими, активностными и социальными трудностями, приобретите полный отчет.
               </p>
               <Button size="lg" className="w-full">
                 <Download className="mr-2 h-5 w-5" />
-                Unlock Full Report With Promo Code: FAMILY
+                Разблокировать полный отчет с промокодом: FAMILY
               </Button>
             </div>
           </div>
@@ -218,12 +218,12 @@ export default function ResultsReport() {
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                 <span className="text-sm font-medium">2</span>
               </div>
-              <h3 className="text-2xl font-bold text-foreground">Behavioral Challenges</h3>
+              <h3 className="text-2xl font-bold text-foreground">Поведенческие трудности</h3>
             </div>
 
             <div className="mb-6">
               <span className="inline-block rounded-full bg-red-100 px-4 py-1 text-sm font-medium text-red-600">
-                Concerning
+                Тревожно
               </span>
               <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
                 <div className="h-full w-4/5 bg-red-500"></div>
@@ -255,7 +255,7 @@ export default function ResultsReport() {
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                 <span className="text-sm font-medium">3</span>
               </div>
-              <h3 className="text-2xl font-bold text-foreground">Activity Challenges</h3>
+              <h3 className="text-2xl font-bold text-foreground">Трудности с активностью</h3>
             </div>
 
             <div className="mb-6">
@@ -277,14 +277,14 @@ export default function ResultsReport() {
             onClick={() => navigate("/dashboard")}
             className="flex-1"
           >
-            Return to Dashboard
+            Вернуться на панель
           </Button>
           <Button
             size="lg"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             className="flex-1"
           >
-            View Full Results
+            Просмотреть полные результаты
           </Button>
         </div>
       </div>

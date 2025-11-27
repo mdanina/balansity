@@ -30,15 +30,15 @@ export default function ParentIntro() {
           
           <div className="space-y-6">
             <h1 className="text-4xl font-bold text-foreground">
-              Now, we're going to focus on <span className="font-bold">you.</span>
+              Теперь мы сосредоточимся на <span className="font-bold">вас.</span>
             </h1>
             
             <p className="text-lg text-muted-foreground">
-              Understanding your mental health is essential to support your entire family's mental health and wellness.
+              Понимание вашего ментального здоровья необходимо для поддержки ментального здоровья и благополучия всей вашей семьи.
             </p>
             
             <p className="text-sm text-muted-foreground">
-              6 questions • 2 min
+              6 вопросов • 2 мин
             </p>
           </div>
 
@@ -47,7 +47,7 @@ export default function ParentIntro() {
             onClick={() => navigate("/parent-questions")}
             className="h-14 w-full text-base font-medium"
           >
-            Next
+            Далее
           </Button>
         </div>
       </div>
