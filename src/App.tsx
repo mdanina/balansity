@@ -9,6 +9,12 @@ import RegionSelect from "./pages/RegionSelect";
 import ComingSoon from "./pages/ComingSoon";
 import Success from "./pages/Success";
 import Profile from "./pages/Profile";
+import FamilySetup from "./pages/FamilySetup";
+import FamilyMembers from "./pages/FamilyMembers";
+import AddFamilyMember from "./pages/AddFamilyMember";
+import Worries from "./pages/Worries";
+import CheckupIntro from "./pages/CheckupIntro";
+import Checkup from "./pages/Checkup";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +33,12 @@ const App = () => (
           <Route path="/coming-soon" element={<ComingSoon />} />
           <Route path="/success" element={<Success />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/family-setup" element={<FamilySetup />} />
+          <Route path="/family-members" element={<FamilyMembers />} />
+          <Route path="/add-family-member" element={<AddFamilyMember />} />
+          <Route path="/worries" element={<Worries />} />
+          <Route path="/checkup-intro" element={<CheckupIntro />} />
+          <Route path="/checkup" element={<Checkup />} />
           <Route path="/dashboard" element={<Dashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
