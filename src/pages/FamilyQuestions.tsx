@@ -1,27 +1,37 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { checkupQuestions, answerOptions, impactAnswerOptions } from "@/data/checkupQuestions";
+import { familyQuestions, wellbeingOptions, relationshipOptions } from "@/data/familyQuestions";
 
 interface Answer {
   questionId: number;
   value: number | null;
 }
 
-export default function CheckupQuestions() {
+export default function FamilyQuestions() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const startIndex = parseInt(searchParams.get("start") || "1") - 1;
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(startIndex);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>(
-    checkupQuestions.map((q) => ({ questionId: q.id, value: null }))
+    familyQuestions.map((q) => ({ questionId: q.id, value: null }))
   );
 
-  const currentQuestion = checkupQuestions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / checkupQuestions.length) * 100;
-  const currentAnswerOptions = currentQuestion.answerType === 'impact' ? impactAnswerOptions : answerOptions;
+  const currentQuestion = familyQuestions[currentQuestionIndex];
+  const progress = ((currentQuestionIndex + 1) / 6) * 100;
+
+  const getAnswerOptions = () => {
+    switch (currentQuestion.answerType) {
+      case 'wellbeing':
+        return wellbeingOptions;
+      case 'relationship':
+        return relationshipOptions;
+      default:
+        return [];
+    }
+  };
+
+  const currentAnswerOptions = getAnswerOptions();
 
   const handleAnswer = (value: number) => {
     const newAnswers = [...answers];
@@ -31,32 +41,24 @@ export default function CheckupQuestions() {
     };
     setAnswers(newAnswers);
 
-    // Автоматически переходим к следующему вопросу
     setTimeout(() => {
-      // Если это вопрос 21, переходим на промежуточный экран
-      if (currentQuestionIndex === 20) {
-        navigate("/checkup-interlude");
-      } else if (currentQuestionIndex < checkupQuestions.length - 1) {
+      if (currentQuestionIndex < familyQuestions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
-        // После последнего вопроса переходим к вопросам о родителе
-        navigate("/parent-intro");
+        navigate("/checkup-results");
       }
     }, 300);
   };
 
   const handleSkip = () => {
-    if (currentQuestionIndex === 20) {
-      navigate("/checkup-interlude");
-    } else if (currentQuestionIndex < checkupQuestions.length - 1) {
+    if (currentQuestionIndex < familyQuestions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      navigate("/parent-intro");
+      navigate("/checkup-results");
     }
   };
 
   useEffect(() => {
-    // Прокручиваем вверх при смене вопроса
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentQuestionIndex]);
 
@@ -69,7 +71,7 @@ export default function CheckupQuestions() {
           <div className="flex items-center gap-4">
             <Progress value={progress} className="flex-1 bg-primary-foreground/20" />
             <span className="text-sm font-medium text-primary-foreground">
-              {currentQuestionIndex + 1} / {checkupQuestions.length}
+              {currentQuestionIndex + 1} / 6
             </span>
           </div>
         </div>
@@ -84,16 +86,6 @@ export default function CheckupQuestions() {
           </div>
 
           <div className="space-y-6">
-            {currentQuestion.answerType === 'impact' ? (
-              <p className="text-center text-muted-foreground">
-                Do any of your child's feelings or behaviors we have asked about here. . .
-              </p>
-            ) : (
-              <p className="text-center text-muted-foreground">
-                Пожалуйста, ответьте на эти вопросы о вашем ребенке за последние шесть месяцев.
-              </p>
-            )}
-
             <h2 className="text-center text-3xl font-bold text-foreground">
               {currentQuestion.text}
             </h2>
@@ -116,7 +108,7 @@ export default function CheckupQuestions() {
                 onClick={handleSkip}
                 className="text-muted-foreground hover:text-foreground"
               >
-                Пропустить
+                Skip
               </Button>
             </div>
           </div>
