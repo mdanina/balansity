@@ -2,6 +2,7 @@ export interface Question {
   id: number;
   text: string;
   category: string;
+  answerType?: 'default' | 'impact';
 }
 
 export const checkupQuestions: Question[] = [
@@ -25,17 +26,17 @@ export const checkupQuestions: Question[] = [
   { id: 18, text: "Мой ребенок часто спорит со взрослыми", category: "Al" },
   { id: 19, text: "Мой ребенок может быть злым и мстительным", category: "Al" },
   { id: 20, text: "Мой ребенок помогает, если кто-то ранен, расстроен или болен", category: "Al" },
-  { id: 21, text: "Мой ребенок делится с другими (едой, игрушками, карандашами и т. д.)", category: "Al" },
-  { id: 22, text: "Мой ребенок охотно помогает другим (родителям, учителям, детям)", category: "Al" },
-  { id: 23, text: "Мой ребенок внимателен к чувствам других людей", category: "Al" },
-  { id: 24, text: "Мой ребенок хорошо относится к другим детям", category: "Al" },
-  { id: 25, text: "Мой ребенок имеет хотя бы одного хорошего друга", category: "Al" },
-  { id: 26, text: "Другие дети в целом любят моего ребенка", category: "Al" },
-  { id: 27, text: "Мой ребенок дразнится или обижается другими детьми", category: "Al" },
-  { id: 28, text: "Мой ребенок больше ладит со взрослыми, чем с другими детьми", category: "Al" },
-  { id: 29, text: "У моего ребенка есть проблемы со сном", category: "Al" },
-  { id: 30, text: "У моего ребенка есть проблемы с едой", category: "Al" },
-  { id: 31, text: "В целом я бы сказал, что здоровье моего ребенка хорошее", category: "Al" },
+  { id: 21, text: "My child is liked by other children", category: "Al" },
+  { id: 22, text: "Distress/upset your child?", category: "Al", answerType: 'impact' },
+  { id: 23, text: "Interfere with home life", category: "Al", answerType: 'impact' },
+  { id: 24, text: "Interfere with friendships", category: "Al", answerType: 'impact' },
+  { id: 25, text: "Interfere with your child's learning/schooling", category: "Al", answerType: 'impact' },
+  { id: 26, text: "Interfere with your child participating in activities", category: "Al", answerType: 'impact' },
+  { id: 27, text: "Limit your family's participation in everyday activities or routines", category: "Al", answerType: 'impact' },
+  { id: 28, text: "Negatively impacts your other children", category: "Al", answerType: 'impact' },
+  { id: 29, text: "Negatively impacts your mental health", category: "Al", answerType: 'impact' },
+  { id: 30, text: "Negatively impacts your partner's mental health", category: "Al", answerType: 'impact' },
+  { id: 31, text: "Add stress to the family as a whole", category: "Al", answerType: 'impact' },
 ];
 
 export const answerOptions = [
@@ -44,4 +45,11 @@ export const answerOptions = [
   { value: 2, label: "Иногда", labelEn: "Sometimes" },
   { value: 3, label: "Часто", labelEn: "Often" },
   { value: 4, label: "Большую часть времени", labelEn: "Most of the time" },
+];
+
+export const impactAnswerOptions = [
+  { value: 0, label: "Not at all" },
+  { value: 1, label: "Only a little" },
+  { value: 2, label: "A medium amount" },
+  { value: 3, label: "A great deal" },
 ];
