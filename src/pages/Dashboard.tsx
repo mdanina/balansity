@@ -1,11 +1,8 @@
-import { useNavigate } from "react-router-dom";
 import { TestimonialSection } from "@/components/TestimonialSection";
 import logoOtters from "@/assets/logo-otters.png";
 import { Button } from "@/components/ui/button";
 
-export default function Index() {
-  const navigate = useNavigate();
-
+export default function Dashboard() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <TestimonialSection />
@@ -19,9 +16,9 @@ export default function Index() {
 
           <div>
             <h1 className="mb-6 text-5xl font-bold leading-tight text-foreground">
-              Получите необходимую помощь простыми шагами
+              Поздравляем с первым шагом!
             </h1>
-            <p className="text-xl text-muted-foreground">
+            <p className="mb-8 text-xl text-muted-foreground">
               Мы вместе с вами на всем пути. Little Otter здесь, чтобы предоставить вам и вашей
               семье комплексный, персонализированный подход к психическому здоровью, независимо
               от того, на каком этапе вы находитесь.
@@ -35,10 +32,11 @@ export default function Index() {
               </div>
               <div>
                 <h3 className="mb-2 text-xl font-semibold text-foreground">
-                  Создайте учетную запись
+                  Расскажите нам о своей семье
                 </h3>
                 <p className="text-muted-foreground">
-                  Расскажите нам о своей семье.
+                  Создайте новую семейную учетную запись и расскажите нам больше о каждом члене
+                  вашей семьи.
                 </p>
               </div>
             </div>
@@ -49,10 +47,11 @@ export default function Index() {
               </div>
               <div>
                 <h3 className="mb-2 text-xl font-semibold text-foreground">
-                  Запланируйте вводный звонок
+                  Пройдите ФМЗП
                 </h3>
                 <p className="text-muted-foreground">
-                  Обсудите потребности вашей семьи с вашим специализированным навигатором по уходу.
+                  Пройдите проприетарную семейную проверку психического здоровья (ФМЗП) Little
+                  Otter и узнайте, что делать или когда беспокоиться.
                 </p>
               </div>
             </div>
@@ -63,20 +62,17 @@ export default function Index() {
               </div>
               <div>
                 <h3 className="mb-2 text-xl font-semibold text-foreground">
-                  Начните лечение
+                  Запланируйте консультацию
                 </h3>
                 <p className="text-muted-foreground">
-                  Получите индивидуальный план ухода и начните работать с нашей командой экспертов.
+                  Запланируйте вводный звонок с одним из членов нашей команды, чтобы просмотреть
+                  ваши результаты и получить индивидуальный план помощи.
                 </p>
               </div>
             </div>
           </div>
 
-          <Button
-            size="lg"
-            onClick={() => navigate("/welcome")}
-            className="h-14 w-full text-base font-medium sm:w-auto sm:px-12"
-          >
+          <Button size="lg" className="h-14 w-full text-base font-medium sm:w-auto sm:px-12">
             Начать
           </Button>
         </div>
