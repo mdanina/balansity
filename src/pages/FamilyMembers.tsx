@@ -1,30 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { StepIndicator } from "@/components/StepIndicator";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
-import { User, Plus } from "lucide-react";
+import { User, Plus, Pencil, Trash2 } from "lucide-react";
 import otterRelaxed from "@/assets/otter-relaxed.png";
-
-interface FamilyMember {
-  id: string;
-  firstName: string;
-  lastName: string;
-  age: number;
-  avatar?: string;
-}
+import { getFamilyMembers, deleteFamilyMember, FamilyMember } from "@/lib/familyStorage";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function FamilyMembers() {
   const navigate = useNavigate();
-  const [members, setMembers] = useState<FamilyMember[]>([
-    {
-      id: "1",
-      firstName: "Мария",
-      lastName: "Данина",
-      age: 39,
-    },
-  ]);
+  const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMembers(getFamilyMembers());
+  }, []);
+
+  const handleDelete = (id: string) => {
+    deleteFamilyMember(id);
+    setMembers(getFamilyMembers());
+    setDeleteId(null);
+    toast.success("Член семьи удален");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,6 +75,22 @@ export default function FamilyMembers() {
                   </p>
                   <p className="text-sm text-muted-foreground">{member.age} лет</p>
                 </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => navigate(`/edit-family-member/${member.id}`)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setDeleteId(member.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
 
@@ -101,6 +126,23 @@ export default function FamilyMembers() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить члена семьи?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Данные члена семьи будут удалены навсегда.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteId && handleDelete(deleteId)}>
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

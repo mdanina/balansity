@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,10 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { addFamilyMember } from "@/lib/familyStorage";
+import { getFamilyMember, updateFamilyMember } from "@/lib/familyStorage";
 
-export default function AddFamilyMember() {
+export default function EditFamilyMember() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -26,10 +27,29 @@ export default function AddFamilyMember() {
   const [referral, setReferral] = useState("");
   const [seekingCare, setSeekingCare] = useState("");
 
+  useEffect(() => {
+    if (id) {
+      const member = getFamilyMember(id);
+      if (member) {
+        setFirstName(member.firstName);
+        setLastName(member.lastName);
+        setDateOfBirth(member.dateOfBirth);
+        setRelationship(member.relationship);
+        setSex(member.sex);
+        setPronouns(member.pronouns || "");
+        setReferral(member.referral || "");
+        setSeekingCare(member.seekingCare);
+      } else {
+        toast.error("Член семьи не найден");
+        navigate("/family-members");
+      }
+    }
+  }, [id, navigate]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (firstName && lastName && dateOfBirth && relationship && sex && seekingCare) {
-      addFamilyMember({
+    if (firstName && lastName && dateOfBirth && relationship && sex && seekingCare && id) {
+      updateFamilyMember(id, {
         firstName,
         lastName,
         dateOfBirth,
@@ -39,7 +59,7 @@ export default function AddFamilyMember() {
         referral,
         seekingCare,
       });
-      toast.success("Член семьи успешно добавлен!");
+      toast.success("Данные члена семьи обновлены!");
       navigate("/family-members");
     }
   };
@@ -52,7 +72,7 @@ export default function AddFamilyMember() {
         <div className="space-y-8">
           <div className="text-center">
             <h1 className="mb-4 text-4xl font-bold text-foreground">
-              Расскажите нам больше о члене семьи
+              Редактировать данные члена семьи
             </h1>
           </div>
 
@@ -124,14 +144,14 @@ export default function AddFamilyMember() {
               </Label>
               <RadioGroup value={sex} onValueChange={setSex} className="grid grid-cols-2 gap-4">
                 <div className="flex items-center space-x-3 rounded-lg border border-input px-4 py-4">
-                  <RadioGroupItem value="male" id="male-add" />
-                  <Label htmlFor="male-add" className="flex-1 cursor-pointer font-normal">
+                  <RadioGroupItem value="male" id="male-edit" />
+                  <Label htmlFor="male-edit" className="flex-1 cursor-pointer font-normal">
                     Мужской
                   </Label>
                 </div>
                 <div className="flex items-center space-x-3 rounded-lg border border-input px-4 py-4">
-                  <RadioGroupItem value="female" id="female-add" />
-                  <Label htmlFor="female-add" className="flex-1 cursor-pointer font-normal">
+                  <RadioGroupItem value="female" id="female-edit" />
+                  <Label htmlFor="female-edit" className="flex-1 cursor-pointer font-normal">
                     Женский
                   </Label>
                 </div>
@@ -177,14 +197,14 @@ export default function AddFamilyMember() {
               </Label>
               <RadioGroup value={seekingCare} onValueChange={setSeekingCare} className="grid grid-cols-2 gap-4">
                 <div className="flex items-center space-x-3 rounded-lg border border-input px-4 py-4">
-                  <RadioGroupItem value="yes" id="seeking-yes" />
-                  <Label htmlFor="seeking-yes" className="flex-1 cursor-pointer font-normal">
+                  <RadioGroupItem value="yes" id="seeking-yes-edit" />
+                  <Label htmlFor="seeking-yes-edit" className="flex-1 cursor-pointer font-normal">
                     Да
                   </Label>
                 </div>
                 <div className="flex items-center space-x-3 rounded-lg border border-input px-4 py-4">
-                  <RadioGroupItem value="no" id="seeking-no" />
-                  <Label htmlFor="seeking-no" className="flex-1 cursor-pointer font-normal">
+                  <RadioGroupItem value="no" id="seeking-no-edit" />
+                  <Label htmlFor="seeking-no-edit" className="flex-1 cursor-pointer font-normal">
                     Нет
                   </Label>
                 </div>
@@ -199,14 +219,14 @@ export default function AddFamilyMember() {
                 onClick={() => navigate("/family-members")}
                 className="h-14 flex-1 text-base font-medium"
               >
-                Назад
+                Отмена
               </Button>
               <Button
                 type="submit"
                 size="lg"
                 className="h-14 flex-1 text-base font-medium"
               >
-                Добавить
+                Сохранить
               </Button>
             </div>
           </form>
