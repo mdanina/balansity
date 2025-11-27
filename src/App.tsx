@@ -22,6 +22,7 @@ import ParentQuestions from "./pages/ParentQuestions";
 import FamilyIntro from "./pages/FamilyIntro";
 import FamilyQuestions from "./pages/FamilyQuestions";
 import CheckupResults from "./pages/CheckupResults";
+import ResultsReport from "./pages/ResultsReport";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
@@ -53,6 +54,7 @@ const App = () => (
           <Route path="/family-intro" element={<FamilyIntro />} />
           <Route path="/family-questions" element={<FamilyQuestions />} />
           <Route path="/checkup-results" element={<CheckupResults />} />
+          <Route path="/results-report" element={<ResultsReport />} />
           <Route path="/dashboard" element={<Dashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

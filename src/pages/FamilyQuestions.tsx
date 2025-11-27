@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { familyQuestions, wellbeingOptions, relationshipOptions } from "@/data/familyQuestions";
+import { familyQuestions, wellbeingOptions, relationshipOptions, frequencyOptions } from "@/data/familyQuestions";
 
 interface Answer {
   questionId: number;
@@ -26,6 +26,8 @@ export default function FamilyQuestions() {
         return wellbeingOptions;
       case 'relationship':
         return relationshipOptions;
+      case 'frequency':
+        return frequencyOptions;
       default:
         return [];
     }
@@ -103,13 +105,23 @@ export default function FamilyQuestions() {
             </div>
 
             <div className="pt-8 text-center">
-              <Button
-                variant="ghost"
-                onClick={handleSkip}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Skip
-              </Button>
+              {currentQuestionIndex < familyQuestions.length - 1 ? (
+                <Button
+                  variant="ghost"
+                  onClick={handleSkip}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Skip
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  onClick={handleSkip}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Finished
+                </Button>
+              )}
             </div>
           </div>
         </div>
