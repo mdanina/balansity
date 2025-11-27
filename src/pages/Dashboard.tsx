@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { User } from "lucide-react";
+import { getFamilyMembers } from "@/lib/familyStorage";
+import { useState, useEffect } from "react";
 
 export default function Dashboard() {
-  const familyMembers = [
-    { name: "Мария Данина", age: "39 yo", avatar: null },
-    { name: "Alice Danina", age: "8 yo", avatar: null },
-  ];
+  const [familyMembers, setFamilyMembers] = useState<Array<{ firstName: string; lastName: string; age: number }>>([]);
+
+  useEffect(() => {
+    setFamilyMembers(getFamilyMembers());
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,8 +108,8 @@ export default function Dashboard() {
                   </div>
                 </Avatar>
                 <div>
-                  <h3 className="text-xl font-bold text-foreground">{member.name}</h3>
-                  <p className="text-muted-foreground">{member.age}</p>
+                  <h3 className="text-xl font-bold text-foreground">{member.firstName} {member.lastName}</h3>
+                  <p className="text-muted-foreground">{member.age} лет</p>
                 </div>
               </Card>
             ))}

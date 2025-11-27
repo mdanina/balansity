@@ -12,6 +12,7 @@ import Profile from "./pages/Profile";
 import FamilySetup from "./pages/FamilySetup";
 import FamilyMembers from "./pages/FamilyMembers";
 import AddFamilyMember from "./pages/AddFamilyMember";
+import EditFamilyMember from "./pages/EditFamilyMember";
 import Worries from "./pages/Worries";
 import CheckupIntro from "./pages/CheckupIntro";
 import Checkup from "./pages/Checkup";
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/family-setup" element={<FamilySetup />} />
           <Route path="/family-members" element={<FamilyMembers />} />
           <Route path="/add-family-member" element={<AddFamilyMember />} />
+          <Route path="/edit-family-member/:id" element={<EditFamilyMember />} />
           <Route path="/worries" element={<Worries />} />
           <Route path="/checkup-intro" element={<CheckupIntro />} />
           <Route path="/checkup" element={<Checkup />} />
