@@ -36,8 +36,8 @@ export default function Dashboard() {
         <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-teal-400/30 to-transparent" />
         
         <div className="container mx-auto relative z-10 max-w-5xl">
-          <h1 className="mb-4 text-4xl font-bold md:text-5xl">Hello there, Мария</h1>
-          <p className="text-xl md:text-2xl opacity-90">How are you feeling today?</p>
+          <h1 className="mb-4 text-4xl font-bold md:text-5xl">Привет, Мария</h1>
+          <p className="text-xl md:text-2xl opacity-90">Как вы себя чувствуете сегодня?</p>
         </div>
       </div>
 
@@ -48,17 +48,17 @@ export default function Dashboard() {
           <div className="flex items-center justify-between gap-8">
             <div className="flex-1">
               <h2 className="mb-3 text-3xl font-bold text-foreground">
-                Welcome to your new Care Den
+                Добро пожаловать в ваш новый Care Den
               </h2>
               <p className="text-lg text-muted-foreground">
-                A bit lost?... Let us help, click the button to watch our intro video.
+                Немного потерялись?... Позвольте нам помочь, нажмите кнопку, чтобы посмотреть наше вступительное видео.
               </p>
             </div>
             <Button 
               size="lg" 
               className="shrink-0 bg-purple-600 hover:bg-purple-700 text-white px-8 py-6 text-lg"
             >
-              Watch Intro Video
+              Смотреть видео
             </Button>
           </div>
         </Card>
@@ -84,15 +84,15 @@ export default function Dashboard() {
                 alt="Family Mental Health Check-up" 
                 className="mb-6 h-40 w-auto object-contain"
               />
-              <h3 className="mb-2 text-2xl font-bold text-foreground">Family Mental Health</h3>
-              <p className="text-lg font-medium text-muted-foreground">Check-up</p>
+              <h3 className="mb-2 text-2xl font-bold text-foreground">Психическое здоровье семьи</h3>
+              <p className="text-lg font-medium text-muted-foreground">Проверка</p>
             </div>
           </Card>
         </div>
 
         {/* Your Family Section */}
         <div>
-          <h2 className="mb-6 text-3xl font-bold text-foreground">Your Family</h2>
+          <h2 className="mb-6 text-3xl font-bold text-foreground">Ваша семья</h2>
           <div className="space-y-4">
             {familyMembers.map((member, index) => (
               <Card 
