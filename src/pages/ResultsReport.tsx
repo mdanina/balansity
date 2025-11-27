@@ -1,11 +1,18 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import leafDecoration from "@/assets/leaf-decoration.png";
-import { ChevronLeft, ChevronRight, Download, MessageCircle, Lightbulb } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, MessageCircle, Lightbulb, Minus, Plus, Save } from "lucide-react";
 
 export default function ResultsReport() {
   const navigate = useNavigate();
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   return (
     <div className="min-h-screen bg-background">
