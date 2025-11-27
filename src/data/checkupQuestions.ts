@@ -36,7 +36,7 @@ export const checkupQuestions: Question[] = [
   { id: 28, text: "Negatively impacts your other children", category: "Al", answerType: 'impact' },
   { id: 29, text: "Negatively impacts your mental health", category: "Al", answerType: 'impact' },
   { id: 30, text: "Negatively impacts your partner's mental health", category: "Al", answerType: 'impact' },
-  { id: 31, text: "Add stress to the family as a whole", category: "Al", answerType: 'impact' },
+  { id: 31, text: "Negatively impacts your relationship with your partner", category: "Al", answerType: 'impact' },
 ];
 
 export const answerOptions = [

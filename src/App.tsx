@@ -17,6 +17,10 @@ import CheckupIntro from "./pages/CheckupIntro";
 import Checkup from "./pages/Checkup";
 import CheckupQuestions from "./pages/CheckupQuestions";
 import CheckupInterlude from "./pages/CheckupInterlude";
+import ParentIntro from "./pages/ParentIntro";
+import ParentQuestions from "./pages/ParentQuestions";
+import FamilyIntro from "./pages/FamilyIntro";
+import FamilyQuestions from "./pages/FamilyQuestions";
 import CheckupResults from "./pages/CheckupResults";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -44,6 +48,10 @@ const App = () => (
           <Route path="/checkup" element={<Checkup />} />
           <Route path="/checkup-questions" element={<CheckupQuestions />} />
           <Route path="/checkup-interlude" element={<CheckupInterlude />} />
+          <Route path="/parent-intro" element={<ParentIntro />} />
+          <Route path="/parent-questions" element={<ParentQuestions />} />
+          <Route path="/family-intro" element={<FamilyIntro />} />
+          <Route path="/family-questions" element={<FamilyQuestions />} />
           <Route path="/checkup-results" element={<CheckupResults />} />
           <Route path="/dashboard" element={<Dashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
