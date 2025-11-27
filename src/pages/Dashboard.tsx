@@ -5,14 +5,33 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { User } from "lucide-react";
-import { getFamilyMembers } from "@/lib/familyStorage";
+import { getFamilyMembers, saveFamilyMembers } from "@/lib/familyStorage";
 import { useState, useEffect } from "react";
 
 export default function Dashboard() {
   const [familyMembers, setFamilyMembers] = useState<Array<{ firstName: string; lastName: string; age: number }>>([]);
 
   useEffect(() => {
-    setFamilyMembers(getFamilyMembers());
+    let members = getFamilyMembers();
+    
+    // Если нет членов семьи, добавляем начальные данные
+    if (members.length === 0) {
+      members = [
+        {
+          id: "1",
+          firstName: "Мария",
+          lastName: "Данина",
+          age: 39,
+          dateOfBirth: "1985-01-01",
+          relationship: "parent",
+          sex: "female",
+          seekingCare: "no"
+        }
+      ];
+      saveFamilyMembers(members);
+    }
+    
+    setFamilyMembers(members);
   }, []);
 
   return (
