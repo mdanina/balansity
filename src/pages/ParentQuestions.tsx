@@ -88,11 +88,11 @@ export default function ParentQuestions() {
           <div className="space-y-6">
             {currentQuestion.answerType === 'sex' ? (
               <p className="text-center text-muted-foreground">
-                Tell us about yourself
+                Расскажите о себе
               </p>
             ) : (
               <p className="text-center text-muted-foreground">
-                During the last two weeks, how often have you been bothered by the following problems:
+                В течение последних двух недель, как часто вас беспокоили следующие проблемы:
               </p>
             )}
 
@@ -118,7 +118,7 @@ export default function ParentQuestions() {
                 onClick={handleSkip}
                 className="text-muted-foreground hover:text-foreground"
               >
-                Skip
+                Пропустить
               </Button>
             </div>
           </div>

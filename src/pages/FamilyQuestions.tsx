@@ -111,7 +111,7 @@ export default function FamilyQuestions() {
                   onClick={handleSkip}
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  Skip
+                  Пропустить
                 </Button>
               ) : (
                 <Button
@@ -119,7 +119,7 @@ export default function FamilyQuestions() {
                   onClick={handleSkip}
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  Finished
+                  Завершить
                 </Button>
               )}
             </div>

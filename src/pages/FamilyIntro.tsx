@@ -30,15 +30,15 @@ export default function FamilyIntro() {
           
           <div className="space-y-6">
             <h1 className="text-4xl font-bold text-foreground">
-              Let's talk about your family.
+              Давайте поговорим о вашей семье.
             </h1>
             
             <p className="text-lg text-muted-foreground">
-              Families come in all shapes and sizes. If any of these questions don't apply to you, please mark them as 'not applicable'.
+              Семьи бывают разных форм и размеров. Если какие-то из этих вопросов к вам не относятся, пожалуйста, отметьте их как «не применимо».
             </p>
             
             <p className="text-sm text-muted-foreground">
-              5 questions • 1 min
+              5 вопросов • 1 мин
             </p>
           </div>
 
@@ -47,7 +47,7 @@ export default function FamilyIntro() {
             onClick={() => navigate("/family-questions")}
             className="h-14 w-full text-base font-medium"
           >
-            Next
+            Далее
           </Button>
         </div>
       </div>
