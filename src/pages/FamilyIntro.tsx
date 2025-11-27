@@ -38,7 +38,7 @@ export default function FamilyIntro() {
             </p>
             
             <p className="text-sm text-muted-foreground">
-              6 questions • 1 min
+              5 questions • 1 min
             </p>
           </div>
 

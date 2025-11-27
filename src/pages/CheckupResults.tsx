@@ -130,7 +130,7 @@ export default function CheckupResults() {
             </Button>
             <Button
               size="lg"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/results-report")}
               className="flex-1 text-base"
             >
               Перейти к результатам
