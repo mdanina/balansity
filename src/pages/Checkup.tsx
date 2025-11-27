@@ -52,7 +52,7 @@ export default function Checkup() {
 
           <Button
             size="lg"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/checkup-questions")}
             className="h-14 w-full text-base font-medium"
           >
             Далее
