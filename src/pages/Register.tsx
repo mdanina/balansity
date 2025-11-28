@@ -1,6 +1,8 @@
 // Страница регистрации
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Header } from '@/components/Header';
@@ -8,15 +10,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { registerSchema, type RegisterInput } from '@/lib/validation/schemas';
+import { handleApiError } from '@/lib/errorHandler';
+import { logger } from '@/lib/logger';
 import logoOtters from '@/assets/logo-otters.png';
 
 export default function Register() {
   const navigate = useNavigate();
   const { signUp, user, loading: authLoading } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
+  });
 
   // Если пользователь уже авторизован, редиректим на dashboard
   useEffect(() => {
@@ -25,79 +34,55 @@ export default function Register() {
     }
   }, [user, authLoading, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (password !== confirmPassword) {
-      toast.error('Пароли не совпадают');
-      return;
-    }
-
-    if (password.length < 6) {
-      toast.error('Пароль должен быть не менее 6 символов');
-      return;
-    }
-
-    setLoading(true);
-
+  const onSubmit = async (data: RegisterInput) => {
     try {
-      const result = await signUp(email, password);
-      const { data, error } = result;
+      const result = await handleApiError(
+        () => signUp(data.email, data.password),
+        'Ошибка при регистрации'
+      );
+      
+      const { data: signUpData, error } = result;
 
-      console.log('Registration result:', { data, error });
+      // Если пользователь создан, даже если есть ошибка (например, email confirmation)
+      if (signUpData?.user) {
+        logger.log('User created successfully');
+        toast.success('Регистрация успешна! Заполните ваш профиль.');
+        navigate('/profile');
+        return;
+      }
 
-      // Если есть ошибка
+      // Если ошибка и пользователь не создан
       if (error) {
-        console.error('Registration error:', error);
-        
-        // Проверяем, создан ли пользователь несмотря на ошибку
-        if (data?.user) {
-          console.log('User created despite error, proceeding...');
-          toast.success('Регистрация успешна! Заполните ваш профиль.');
-          navigate('/profile');
-          return;
-        }
-        
-        // Если ошибка связана с email, но пользователь может быть создан
-        const emailError = error.message?.toLowerCase().includes('email') || 
-                          error.message?.toLowerCase().includes('confirmation') ||
-                          error.message?.toLowerCase().includes('sending');
-        
-        if (emailError) {
-          // Попробуем войти, если пользователь был создан
-          console.log('Email error detected, trying to sign in...');
-          // Попробуем войти через 1 секунду
-          setTimeout(async () => {
-            const signInResult = await supabase.auth.signInWithPassword({ email, password });
+        // Проверяем, не является ли ошибка связанной с email confirmation
+        const isEmailError = 
+          error.message?.toLowerCase().includes('email') ||
+          error.message?.toLowerCase().includes('confirmation');
+
+        if (isEmailError) {
+          // Пытаемся войти сразу - возможно пользователь уже существует
+          try {
+            const signInResult = await supabase.auth.signInWithPassword({
+              email: data.email,
+              password: data.password,
+            });
+
             if (signInResult.data?.user) {
               toast.success('Регистрация успешна! Заполните ваш профиль.');
               navigate('/profile');
-            } else {
-              toast.error('Ошибка при регистрации: ' + (error.message || 'Не удалось создать пользователя'));
-              setLoading(false);
+              return;
             }
-          }, 1000);
-          return;
+          } catch (signInError) {
+            logger.error('Error signing in after registration:', signInError);
+          }
         }
-        
+
         toast.error(error.message || 'Ошибка при регистрации');
-        setLoading(false);
       } else {
-        // Нет ошибки - проверяем данные
-        if (data?.user) {
-          console.log('User created successfully');
-          toast.success('Регистрация успешна! Заполните ваш профиль.');
-          navigate('/profile');
-        } else {
-          console.error('No user in response');
-          toast.error('Ошибка при создании пользователя');
-          setLoading(false);
-        }
+        toast.error('Не удалось создать пользователя');
       }
-    } catch (err: any) {
-      console.error('Registration exception:', err);
-      toast.error(err.message || 'Неожиданная ошибка при регистрации');
-      setLoading(false);
+    } catch (err: unknown) {
+      logger.error('Registration exception:', err);
+      // Ошибка уже обработана в handleApiError
     }
   };
 
@@ -118,18 +103,20 @@ export default function Register() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                {...register('email')}
                 placeholder="your@email.com"
                 className="h-12"
+                aria-invalid={errors.email ? 'true' : 'false'}
               />
+              {errors.email && (
+                <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -137,13 +124,14 @@ export default function Register() {
               <Input
                 id="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                {...register('password')}
                 placeholder="••••••••"
-                minLength={6}
                 className="h-12"
+                aria-invalid={errors.password ? 'true' : 'false'}
               />
+              {errors.password && (
+                <p className="text-sm text-destructive mt-1">{errors.password.message}</p>
+              )}
               <p className="text-xs text-muted-foreground">
                 Минимум 6 символов
               </p>
@@ -154,21 +142,23 @@ export default function Register() {
               <Input
                 id="confirmPassword"
                 type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
+                {...register('confirmPassword')}
                 placeholder="••••••••"
                 className="h-12"
+                aria-invalid={errors.confirmPassword ? 'true' : 'false'}
               />
+              {errors.confirmPassword && (
+                <p className="text-sm text-destructive mt-1">{errors.confirmPassword.message}</p>
+              )}
             </div>
 
             <Button
               type="submit"
               size="lg"
-              disabled={loading}
+              disabled={isSubmitting}
               className="h-12 w-full"
             >
-              {loading ? 'Регистрация...' : 'Зарегистрироваться'}
+              {isSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}
             </Button>
           </form>
 

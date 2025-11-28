@@ -1,6 +1,7 @@
 // Утилиты для работы с профилями (profiles) в Supabase
 import { supabase } from './supabase';
 import type { Database } from './supabase';
+import { logger } from './logger';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
@@ -46,7 +47,7 @@ export async function getProfiles(): Promise<Profile[]> {
 
     return data || [];
   } catch (error) {
-    console.error('Error getting profiles:', error);
+    logger.error('Error getting profiles:', error);
     throw error;
   }
 }
@@ -109,7 +110,7 @@ export async function createProfile(member: FamilyMemberInput): Promise<Profile>
 
     return data;
   } catch (error) {
-    console.error('Error creating profile:', error);
+    logger.error('Error creating profile:', error);
     throw error;
   }
 }
@@ -135,7 +136,7 @@ export async function updateProfile(
     // worryTags может быть массивом (даже пустым) или undefined
     if (updates.worryTags !== undefined) {
       updateData.worry_tags = updates.worryTags.length > 0 ? updates.worryTags : null;
-      console.log('Updating worry_tags:', {
+      logger.log('Updating worry_tags:', {
         profileId,
         worryTags: updates.worryTags,
         updateData: updateData.worry_tags
@@ -150,20 +151,18 @@ export async function updateProfile(
       .single();
 
     if (error) {
-      console.error('Supabase update error:', error);
+      logger.error('Supabase update error:', error);
       throw error;
     }
     
-    console.log('Profile update result:', {
+    logger.log('Profile update result:', {
       profileId: data.id,
       worry_tags: data.worry_tags
     });
 
-    if (error) throw error;
-
     return data;
   } catch (error) {
-    console.error('Error updating profile:', error);
+    logger.error('Error updating profile:', error);
     throw error;
   }
 }

@@ -1,6 +1,7 @@
 // Компонент для защиты маршрутов (требует авторизации)
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { isSessionValid } from '@/lib/authUtils';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -20,14 +21,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   // Проверяем, что есть и user, и валидная сессия
-  if (!user || !session) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Дополнительная проверка: если сессия истекла, редиректим на логин
-  const now = Math.floor(Date.now() / 1000);
-  const expiresAt = session.expires_at;
-  if (expiresAt && expiresAt < now) {
+  if (!user || !isSessionValid(session)) {
     return <Navigate to="/login" replace />;
   }
 

@@ -1,20 +1,30 @@
 // Страница входа
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { loginSchema, type LoginInput } from '@/lib/validation/schemas';
+import { handleApiError } from '@/lib/errorHandler';
+import { logger } from '@/lib/logger';
 import logoOtters from '@/assets/logo-otters.png';
 
 export default function Login() {
   const navigate = useNavigate();
   const { signIn, user, loading: authLoading } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+  });
 
   // Если пользователь уже авторизован, редиректим на dashboard
   useEffect(() => {
@@ -23,34 +33,46 @@ export default function Login() {
     }
   }, [user, authLoading, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const onSubmit = async (data: LoginInput) => {
+    try {
+      const { error } = await handleApiError(
+        () => signIn(data.email, data.password),
+        'Ошибка при входе'
+      );
 
-    const { error } = await signIn(email, password);
+      if (error) {
+        toast.error(error.message || 'Ошибка при входе');
+        return;
+      }
 
-    if (error) {
-      toast.error(error.message || 'Ошибка при входе');
-      setLoading(false);
-    } else {
       toast.success('Вход выполнен успешно!');
+      
       // Проверяем, заполнен ли профиль пользователя
       const { getCurrentUserData } = await import('@/lib/userStorage');
       const { getProfiles } = await import('@/lib/profileStorage');
       
-      const userData = await getCurrentUserData();
-      const profiles = await getProfiles();
-      const parentProfile = profiles.find(p => p.type === 'parent');
-      
-      // Если профиль не заполнен или нет профиля родителя, идем на страницу профиля
-      if (!userData || !userData.phone || !parentProfile) {
-        navigate('/profile');
-      } else if (!userData.region) {
-        // Если регион не заполнен, идем на выбор региона
-        navigate('/region');
-      } else {
+      try {
+        const userData = await getCurrentUserData();
+        const profiles = await getProfiles();
+        const parentProfile = profiles.find(p => p.type === 'parent');
+        
+        // Если профиль не заполнен или нет профиля родителя, идем на страницу профиля
+        if (!userData || !userData.phone || !parentProfile) {
+          navigate('/profile');
+        } else if (!userData.region) {
+          // Если регион не заполнен, идем на выбор региона
+          navigate('/region');
+        } else {
+          navigate('/dashboard');
+        }
+      } catch (profileError) {
+        logger.error('Error loading user profile:', profileError);
+        // Продолжаем на dashboard даже если ошибка загрузки профиля
         navigate('/dashboard');
       }
+    } catch (err) {
+      logger.error('Login exception:', err);
+      // Ошибка уже обработана в handleApiError
     }
   };
 
@@ -71,18 +93,20 @@ export default function Login() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                {...register('email')}
                 placeholder="your@email.com"
                 className="h-12"
+                aria-invalid={errors.email ? 'true' : 'false'}
               />
+              {errors.email && (
+                <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -90,21 +114,23 @@ export default function Login() {
               <Input
                 id="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                {...register('password')}
                 placeholder="••••••••"
                 className="h-12"
+                aria-invalid={errors.password ? 'true' : 'false'}
               />
+              {errors.password && (
+                <p className="text-sm text-destructive mt-1">{errors.password.message}</p>
+              )}
             </div>
 
             <Button
               type="submit"
               size="lg"
-              disabled={loading}
+              disabled={isSubmitting}
               className="h-12 w-full"
             >
-              {loading ? 'Вход...' : 'Войти'}
+              {isSubmitting ? 'Вход...' : 'Войти'}
             </Button>
           </form>
 

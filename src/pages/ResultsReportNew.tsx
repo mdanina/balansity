@@ -1,14 +1,16 @@
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import leafDecoration from "@/assets/leaf-decoration.png";
 import { ChevronLeft, ChevronRight, Download, MessageCircle, Lightbulb, Minus, Plus, Save } from "lucide-react";
-import { getCompletedAssessment, getAssessmentResults, recalculateAssessmentResults } from "@/lib/assessmentStorage";
+import { getCompletedAssessment, getAssessmentResults, recalculateAssessmentResults, getCompletedAssessmentsForProfiles } from "@/lib/assessmentStorage";
 import { getProfile, getProfiles } from "@/lib/profileStorage";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 // Категории worry tags (должны совпадать с Worries.tsx)
 const childWorries = [
@@ -58,6 +60,11 @@ interface CheckupResults {
   hyperactivity?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
   peer_problems?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
   prosocial?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
+  // Три субдомена влияния согласно авторской схеме
+  impact_child?: { score: number; status: 'concerning' | 'typical' };
+  impact_parent?: { score: number; status: 'concerning' | 'typical' };
+  impact_family?: { score: number; status: 'concerning' | 'typical' };
+  // Обратная совместимость для старых данных
   impact?: { score: number; status: 'high_impact' | 'medium_impact' | 'low_impact' };
   total_difficulties?: number;
 }
@@ -97,13 +104,18 @@ export default function ResultsReportNew() {
   
   // Для обратной совместимости: если передан profileId, показываем данные этого ребенка
   const selectedProfileId = params.profileId || searchParams.get('profileId') || currentProfileId;
-  const selectedChildCheckup = selectedProfileId 
-    ? childrenCheckups.find(c => c.profile.id === selectedProfileId)
-    : childrenCheckups[0]; // Или первый ребенок, если не указан
+  
+  // Мемоизация вычисления selectedChildCheckup
+  const selectedChildCheckup = useMemo(() => {
+    return selectedProfileId 
+      ? childrenCheckups.find(c => c.profile.id === selectedProfileId)
+      : childrenCheckups[0]; // Или первый ребенок, если не указан
+  }, [selectedProfileId, childrenCheckups]);
 
-  const toggleSection = (section: string) => {
+  // Мемоизация toggleSection - критично для предотвращения ре-рендеров
+  const toggleSection = useCallback((section: string) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
+  }, []);
 
   // Загружаем данные всех профилей пользователя и их оценки
   useEffect(() => {
@@ -126,8 +138,7 @@ export default function ResultsReportNew() {
         // Находим профиль родителя и партнера
         const parent = profiles.find(p => p.type === 'parent');
         const partner = profiles.find(p => p.type === 'partner');
-        let foundParentAssess: Assessment | null = null;
-        let foundFamilyAssess: Assessment | null = null;
+        const children = profiles.filter(p => p.type === 'child');
         
         if (parent) {
           setParentProfile(parent);
@@ -136,78 +147,67 @@ export default function ResultsReportNew() {
           setPartnerProfile(partner);
         }
         
-        if (parent) {
-          
-          // Сначала пробуем найти по профилю родителя
-          let parentAssess = await getCompletedAssessment(parent.id, 'parent');
-          if (parentAssess) {
-            // Если результаты не рассчитаны, пересчитываем
-            if (!parentAssess.results_summary || Object.keys(parentAssess.results_summary).length === 0 || (parentAssess.results_summary as any).status === 'completed') {
-              try {
-                await recalculateAssessmentResults(parentAssess.id);
-                // Перезагружаем оценку после пересчета
-                parentAssess = await getCompletedAssessment(parent.id, 'parent');
-              } catch (error) {
-                console.error('Error recalculating parent assessment:', error);
-              }
-            }
-            foundParentAssess = parentAssess;
-          }
+        // ОДИН запрос для ВСЕХ завершенных оценок пользователя
+        // Это исправляет катастрофическую проблему N+1 запросов!
+        const profileIds = profiles.map(p => p.id);
+        const { data: allAssessments, error: assessmentsError } = await supabase
+          .from('assessments')
+          .select('*')
+          .in('profile_id', profileIds)
+          .eq('status', 'completed')
+          .in('assessment_type', ['parent', 'family', 'checkup']);
 
-          let familyAssess = await getCompletedAssessment(parent.id, 'family');
-          if (familyAssess) {
-            // Если результаты не рассчитаны, пересчитываем
-            if (!familyAssess.results_summary || Object.keys(familyAssess.results_summary).length === 0 || (familyAssess.results_summary as any).status === 'completed') {
-              try {
-                await recalculateAssessmentResults(familyAssess.id);
-                // Перезагружаем оценку после пересчета
-                familyAssess = await getCompletedAssessment(parent.id, 'family');
-              } catch (error) {
-                console.error('Error recalculating family assessment:', error);
-              }
-            }
-            foundFamilyAssess = familyAssess;
-          }
+        if (assessmentsError) {
+          throw assessmentsError;
         }
-        
-        // Если не нашли по профилю родителя, ищем по всем остальным профилям
-        // (на случай, если они были созданы с неправильным profileId)
-        if (!foundParentAssess || !foundFamilyAssess) {
-          for (const profile of profiles) {
-            if (profile.type !== 'parent') {
-              if (!foundParentAssess) {
-                let parentAssess = await getCompletedAssessment(profile.id, 'parent');
-                if (parentAssess) {
-                  // Пересчитываем, если нужно
-                  if (!parentAssess.results_summary || Object.keys(parentAssess.results_summary).length === 0 || (parentAssess.results_summary as any).status === 'completed') {
-                    try {
-                      await recalculateAssessmentResults(parentAssess.id);
-                      parentAssess = await getCompletedAssessment(profile.id, 'parent');
-                    } catch (error) {
-                      console.error('Error recalculating parent assessment:', error);
-                    }
-                  }
-                  foundParentAssess = parentAssess;
-                }
-              }
-              if (!foundFamilyAssess) {
-                let familyAssess = await getCompletedAssessment(profile.id, 'family');
-                if (familyAssess) {
-                  // Пересчитываем, если нужно
-                  if (!familyAssess.results_summary || Object.keys(familyAssess.results_summary).length === 0 || (familyAssess.results_summary as any).status === 'completed') {
-                    try {
-                      await recalculateAssessmentResults(familyAssess.id);
-                      familyAssess = await getCompletedAssessment(profile.id, 'family');
-                    } catch (error) {
-                      console.error('Error recalculating family assessment:', error);
-                    }
-                  }
-                  foundFamilyAssess = familyAssess;
-                }
-              }
+
+        // Разделение по типам оценок
+        const parentAssessments = allAssessments?.filter(a => a.assessment_type === 'parent') || [];
+        const familyAssessments = allAssessments?.filter(a => a.assessment_type === 'family') || [];
+        const checkupAssessments = allAssessments?.filter(a => a.assessment_type === 'checkup') || [];
+
+        // Находим parent и family оценки (приоритет - по профилю родителя, если есть)
+        let foundParentAssess: Assessment | null = null;
+        let foundFamilyAssess: Assessment | null = null;
+
+        if (parent) {
+          // Ищем по профилю родителя
+          foundParentAssess = parentAssessments.find(a => a.profile_id === parent.id) || null;
+          foundFamilyAssess = familyAssessments.find(a => a.profile_id === parent.id) || null;
+        }
+
+        // Если не нашли, берем любую найденную
+        if (!foundParentAssess && parentAssessments.length > 0) {
+          foundParentAssess = parentAssessments[0]; // Берем первую найденную
+        }
+        if (!foundFamilyAssess && familyAssessments.length > 0) {
+          foundFamilyAssess = familyAssessments[0]; // Берем первую найденную
+        }
+
+        // Пересчитываем результаты, если нужно
+        const recalculateIfNeeded = async (assessment: Assessment | null): Promise<Assessment | null> => {
+          if (!assessment) return null;
+          
+          const needsRecalc = !assessment.results_summary || 
+            Object.keys(assessment.results_summary).length === 0 || 
+            (assessment.results_summary as any).status === 'completed';
+          
+          if (needsRecalc) {
+            try {
+              await recalculateAssessmentResults(assessment.id);
+              // Перезагружаем оценку после пересчета
+              const updated = await getCompletedAssessment(assessment.profile_id, assessment.assessment_type);
+              return updated;
+            } catch (error) {
+              logger.error(`Error recalculating ${assessment.assessment_type} assessment:`, error);
+              return assessment; // Возвращаем оригинальную, если пересчет не удался
             }
           }
-        }
+          return assessment;
+        };
+
+        foundParentAssess = await recalculateIfNeeded(foundParentAssess);
+        foundFamilyAssess = await recalculateIfNeeded(foundFamilyAssess);
         
         // Устанавливаем найденные оценки в state
         if (foundParentAssess) {
@@ -217,12 +217,12 @@ export default function ResultsReportNew() {
           setFamilyAssessment(foundFamilyAssess);
         }
         
-        // Загружаем checkup оценки для всех детей
-        const children = profiles.filter(p => p.type === 'child');
+        // Обрабатываем checkup оценки для детей (уже загружены одним запросом!)
+        const checkupsMap = new Map(checkupAssessments.map(a => [a.profile_id, a]));
         const childrenData: ChildCheckupData[] = [];
         
         for (const child of children) {
-          const checkupAssessment = await getCompletedAssessment(child.id, 'checkup');
+          const checkupAssessment = checkupsMap.get(child.id);
           if (checkupAssessment && checkupAssessment.results_summary) {
             childrenData.push({
               profile: child,
@@ -235,12 +235,12 @@ export default function ResultsReportNew() {
         setChildrenCheckups(childrenData);
         
         // Если нет ни одной завершенной оценки, показываем ошибку
-        if (childrenData.length === 0 && !parentAssessment && !familyAssessment) {
+        if (childrenData.length === 0 && !foundParentAssess && !foundFamilyAssess) {
           toast.error('Завершенные оценки не найдены');
           navigate("/dashboard");
         }
       } catch (error) {
-        console.error('Error loading results:', error);
+        logger.error('Error loading results:', error);
         toast.error('Ошибка при загрузке результатов');
       } finally {
         setLoading(false);
@@ -821,8 +821,8 @@ export default function ResultsReportNew() {
           </div>
           )}
 
-          {/* Impact Section */}
-          {childResults.impact && (
+          {/* Impact Section - Три субдомена влияния */}
+          {(childResults.impact_child || childResults.impact_parent || childResults.impact_family || childResults.impact) && (
             <div className="mb-8 border-l-4 border-muted pl-6">
               <div className="mb-4 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
@@ -832,65 +832,140 @@ export default function ResultsReportNew() {
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <div className="mb-2 flex items-center gap-2">
-                    <span className="font-medium text-foreground">{childProfile.first_name}</span>
-                    <span className={`text-sm ${
-                      childResults.impact.status === 'high_impact' ? 'text-red-600' :
-                      childResults.impact.status === 'medium_impact' ? 'text-yellow-600' :
-                      'text-primary'
-                    }`}>
-                      • {childResults.impact.status === 'high_impact' ? 'Высокое влияние' :
-                          childResults.impact.status === 'medium_impact' ? 'Среднее влияние' :
-                          'Низкое влияние'}
-                    </span>
+                {/* Влияние на ребёнка */}
+                {childResults.impact_child && (
+                  <div>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="font-medium text-foreground">Влияние на ребёнка</span>
+                      <span className={`text-sm ${getStatusColor(childResults.impact_child.status)}`}>
+                        • {getStatusText(childResults.impact_child.status)}
+                      </span>
+                    </div>
+                    <div className="h-3 overflow-hidden rounded-full bg-muted">
+                      <div 
+                        className={`h-full ${
+                          childResults.impact_child.status === 'concerning' ? 'bg-red-500' :
+                          'bg-primary'
+                        }`}
+                        style={{ width: `${getProgressPercentage(childResults.impact_child.score, 3)}%` }}
+                      ></div>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Балл: {childResults.impact_child.score} / 3 (порог: ≥ 2)
+                    </p>
                   </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-muted">
-                    <div 
-                      className={`h-full ${
-                        childResults.impact.status === 'high_impact' ? 'bg-red-500' :
-                        childResults.impact.status === 'medium_impact' ? 'bg-yellow-500' :
-                        'bg-primary'
-                      }`}
-                      style={{ width: `${getProgressPercentage(childResults.impact.score, 2)}%` }}
-                    ></div>
+                )}
+
+                {/* Влияние на родителя */}
+                {childResults.impact_parent && (
+                  <div>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="font-medium text-foreground">Влияние на родителя</span>
+                      <span className={`text-sm ${getStatusColor(childResults.impact_parent.status)}`}>
+                        • {getStatusText(childResults.impact_parent.status)}
+                      </span>
+                    </div>
+                    <div className="h-3 overflow-hidden rounded-full bg-muted">
+                      <div 
+                        className={`h-full ${
+                          childResults.impact_parent.status === 'concerning' ? 'bg-red-500' :
+                          'bg-primary'
+                        }`}
+                        style={{ width: `${getProgressPercentage(childResults.impact_parent.score, 6)}%` }}
+                      ></div>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Балл: {childResults.impact_parent.score} / 6 (порог: ≥ 3)
+                    </p>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Балл влияния: {childResults.impact.score} / 2
-                  </p>
-                </div>
+                )}
+
+                {/* Влияние на семью */}
+                {childResults.impact_family && (
+                  <div>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="font-medium text-foreground">Влияние на семью</span>
+                      <span className={`text-sm ${getStatusColor(childResults.impact_family.status)}`}>
+                        • {getStatusText(childResults.impact_family.status)}
+                      </span>
+                    </div>
+                    <div className="h-3 overflow-hidden rounded-full bg-muted">
+                      <div 
+                        className={`h-full ${
+                          childResults.impact_family.status === 'concerning' ? 'bg-red-500' :
+                          'bg-primary'
+                        }`}
+                        style={{ width: `${getProgressPercentage(childResults.impact_family.score, 18)}%` }}
+                      ></div>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Балл: {childResults.impact_family.score} / 18 (порог: ≥ 6)
+                    </p>
+                  </div>
+                )}
+
+                {/* Обратная совместимость: старый формат impact */}
+                {childResults.impact && !childResults.impact_child && !childResults.impact_parent && !childResults.impact_family && (
+                  <div>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="font-medium text-foreground">{childProfile.first_name}</span>
+                      <span className={`text-sm ${
+                        childResults.impact.status === 'high_impact' ? 'text-red-600' :
+                        childResults.impact.status === 'medium_impact' ? 'text-yellow-600' :
+                        'text-primary'
+                      }`}>
+                        • {childResults.impact.status === 'high_impact' ? 'Высокое влияние' :
+                            childResults.impact.status === 'medium_impact' ? 'Среднее влияние' :
+                            'Низкое влияние'}
+                      </span>
+                    </div>
+                    <div className="h-3 overflow-hidden rounded-full bg-muted">
+                      <div 
+                        className={`h-full ${
+                          childResults.impact.status === 'high_impact' ? 'bg-red-500' :
+                          childResults.impact.status === 'medium_impact' ? 'bg-yellow-500' :
+                          'bg-primary'
+                        }`}
+                        style={{ width: `${getProgressPercentage(childResults.impact.score, 2)}%` }}
+                      ></div>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Балл влияния: {childResults.impact.score} / 2
+                    </p>
+                  </div>
+                )}
               </div>
 
-            <Collapsible open={openSections['impact-mean']} onOpenChange={() => toggleSection('impact-mean')} className="mt-6">
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
-                <div className="flex items-center gap-3">
-                  <MessageCircle className="h-5 w-5 text-purple-600" />
-                  <span className="font-medium text-foreground">Что это значит?</span>
-                </div>
-                {openSections['impact-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
-                <p className="text-foreground">
-                  Когда мы говорим о ментальном здоровье, речь идет не о симптомах; речь идет о вашей жизни. Ментальное здоровье вашего ребенка влияет на его жизнь, вашу жизнь и жизнь вашей семьи!
-                </p>
-              </CollapsibleContent>
-            </Collapsible>
+              <Collapsible open={openSections['impact-mean']} onOpenChange={() => toggleSection('impact-mean')} className="mt-6">
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
+                  <div className="flex items-center gap-3">
+                    <MessageCircle className="h-5 w-5 text-purple-600" />
+                    <span className="font-medium text-foreground">Что это значит?</span>
+                  </div>
+                  {openSections['impact-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                  <p className="text-foreground">
+                    Когда мы говорим о ментальном здоровье, речь идет не о симптомах; речь идет о вашей жизни. Ментальное здоровье вашего ребенка влияет на его жизнь, вашу жизнь и жизнь вашей семьи!
+                  </p>
+                </CollapsibleContent>
+              </Collapsible>
 
-            <Collapsible open={openSections['impact-do']} onOpenChange={() => toggleSection('impact-do')} className="mt-3">
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-blue-50 p-4 text-left hover:bg-blue-100">
-                <div className="flex items-center gap-3">
-                  <Lightbulb className="h-5 w-5 text-blue-600" />
-                  <span className="font-medium text-foreground">Что я могу сделать?</span>
-                </div>
-                {openSections['impact-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
-                <p className="text-foreground">
-                  В Little Otter мы поддерживаем вашего ребенка и вашу семью, чтобы снизить влияние трудностей и укрепить сильные стороны. Проще говоря, мы здесь, чтобы помочь вам и вашей семье процветать!
-                </p>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
+              <Collapsible open={openSections['impact-do']} onOpenChange={() => toggleSection('impact-do')} className="mt-3">
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-blue-50 p-4 text-left hover:bg-blue-100">
+                  <div className="flex items-center gap-3">
+                    <Lightbulb className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium text-foreground">Что я могу сделать?</span>
+                  </div>
+                  {openSections['impact-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                  <p className="text-foreground">
+                    В Little Otter мы поддерживаем вашего ребенка и вашу семью, чтобы снизить влияние трудностей и укрепить сильные стороны. Проще говоря, мы здесь, чтобы помочь вам и вашей семье процветать!
+                  </p>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
           )}
 
           {/* Child's Recap */}
@@ -1017,20 +1092,21 @@ export default function ResultsReportNew() {
         })}
 
         {/* Your Mental Health */}
-        {parentAssessment ? (
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-8">Ваше ментальное здоровье</h2>
-            <p className="text-muted-foreground mb-4">
-              Результаты родительской оценки {parentAssessment.completed_at 
-                ? new Date(parentAssessment.completed_at).toLocaleDateString('ru-RU')
-                : ''}
-            </p>
-            
-            {/* Worries Section - о себе */}
-            {(() => {
-              const personalWorryTags = parentProfile?.worry_tags?.filter(w => personalWorries.includes(w)) || [];
-              if (personalWorryTags.length === 0) return null;
-              
+        <div className="mb-12">
+          <h2 className="text-3xl font-bold text-foreground mb-8">Ваше ментальное здоровье</h2>
+          
+          {/* Worries Section - о себе - показываем всегда, если есть worry tags */}
+          {(() => {
+            const personalWorryTags = parentProfile?.worry_tags?.filter(w => personalWorries.includes(w)) || [];
+            // Отладка: логируем worry tags
+            if (parentProfile?.worry_tags) {
+              logger.log('Parent profile worry tags:', {
+                allWorryTags: parentProfile.worry_tags,
+                personalWorryTags,
+                personalWorriesList: personalWorries
+              });
+            }
+            if (personalWorryTags.length > 0) {
               return (
                 <div className="mb-8 border-l-4 border-muted pl-6">
                   <div className="mb-4 flex items-center gap-3">
@@ -1051,7 +1127,17 @@ export default function ResultsReportNew() {
                   </div>
                 </div>
               );
-            })()}
+            }
+            return null;
+          })()}
+          
+          {parentAssessment ? (
+            <>
+              <p className="text-muted-foreground mb-4">
+                Результаты родительской оценки {parentAssessment.completed_at 
+                  ? new Date(parentAssessment.completed_at).toLocaleDateString('ru-RU')
+                  : ''}
+              </p>
             
             {parentAssessment.results_summary ? (
               (() => {
@@ -1133,17 +1219,15 @@ export default function ResultsReportNew() {
                 </p>
               </div>
             )}
-          </div>
+          </>
         ) : (
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-8">Ваше ментальное здоровье</h2>
-            <div className="rounded-lg border border-border bg-muted/20 p-6">
-              <p className="text-muted-foreground">
-                Родительская оценка не завершена. Пройдите опрос о себе, чтобы увидеть результаты здесь.
-              </p>
-            </div>
+          <div className="rounded-lg border border-border bg-muted/20 p-6">
+            <p className="text-muted-foreground">
+              Родительская оценка не завершена. Пройдите опрос о себе, чтобы увидеть результаты здесь.
+            </p>
           </div>
         )}
+        </div>
 
         {/* Legacy Parent Section - скрываем, если нет данных */}
         {false && (

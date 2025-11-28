@@ -1,13 +1,33 @@
 // Supabase клиент для работы с базой данных
 import { createClient } from '@supabase/supabase-js';
+import { logger } from './logger';
 
 // Эти значения должны быть в переменных окружения
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase URL и Anon Key должны быть установлены в переменных окружения');
+function validateEnv(): void {
+  const errors: string[] = [];
+
+  if (!supabaseUrl) {
+    errors.push('VITE_SUPABASE_URL не установлена');
+  } else if (!supabaseUrl.startsWith('http')) {
+    errors.push('VITE_SUPABASE_URL имеет неверный формат (должна начинаться с http)');
+  }
+
+  if (!supabaseAnonKey) {
+    errors.push('VITE_SUPABASE_ANON_KEY не установлена');
+  }
+
+  if (errors.length > 0) {
+    const errorMessage = `Критические переменные окружения не настроены:\n${errors.join('\n')}`;
+    logger.error(errorMessage);
+    throw new Error(errorMessage);
+  }
 }
+
+// Вызываем валидацию сразу при загрузке модуля
+validateEnv();
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

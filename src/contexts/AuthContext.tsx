@@ -2,6 +2,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { isSessionExpired, isSessionValid } from '@/lib/authUtils';
+import { logger } from '@/lib/logger';
 
 interface AuthContextType {
   user: User | null;
@@ -20,10 +22,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Получаем текущую сессию
+      // Получаем текущую сессию
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
-        console.error('Error getting session:', error);
+        logger.error('Error getting session:', error);
         // Если ошибка при получении сессии, очищаем состояние
         setSession(null);
         setUser(null);
@@ -33,12 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Проверяем, что сессия валидная и не истекла
       if (session) {
-        const now = Math.floor(Date.now() / 1000);
-        const expiresAt = session.expires_at;
-        
-        // Если сессия истекла, очищаем её
-        if (expiresAt && expiresAt < now) {
-          console.log('Session expired, clearing...');
+        if (isSessionExpired(session)) {
+          logger.warn('Session expired, clearing...');
           supabase.auth.signOut();
           setSession(null);
           setUser(null);
@@ -58,19 +56,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
+      logger.log('Auth state changed:', event, session?.user?.email);
       
       // Если сессия истекла или была удалена, очищаем состояние
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
+      if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
         setSession(null);
         setUser(null);
       } else if (session) {
         // Проверяем валидность сессии
-        const now = Math.floor(Date.now() / 1000);
-        const expiresAt = session.expires_at;
-        
-        if (expiresAt && expiresAt < now) {
-          console.log('Session expired in state change, clearing...');
+        if (isSessionExpired(session)) {
+          logger.warn('Session expired in state change, clearing...');
           supabase.auth.signOut();
           setSession(null);
           setUser(null);

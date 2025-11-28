@@ -1,6 +1,7 @@
 // Утилиты для работы с оценками (assessments) и ответами (answers) в Supabase
 import { supabase } from './supabase';
 import type { Database } from './supabase';
+import { logger } from './logger';
 
 type Assessment = Database['public']['Tables']['assessments']['Row'];
 type AssessmentInsert = Database['public']['Tables']['assessments']['Insert'];
@@ -50,7 +51,7 @@ export async function getOrCreateAssessment(
 
     return assessmentId;
   } catch (error) {
-    console.error('Error getting/creating assessment:', error);
+    logger.error('Error getting/creating assessment:', error);
     throw error;
   }
 }
@@ -77,7 +78,7 @@ export async function getActiveAssessment(
 
     return data;
   } catch (error) {
-    console.error('Error getting active assessment:', error);
+    logger.error('Error getting active assessment:', error);
     return null;
   }
 }
@@ -97,7 +98,7 @@ export async function updateAssessmentStep(
 
     if (error) throw error;
   } catch (error) {
-    console.error('Error updating assessment step:', error);
+    logger.error('Error updating assessment step:', error);
     throw error;
   }
 }
@@ -129,7 +130,7 @@ export async function saveAnswer(
 
     if (error) throw error;
   } catch (error) {
-    console.error('Error saving answer:', error);
+    logger.error('Error saving answer:', error);
     throw error;
   }
 }
@@ -149,7 +150,7 @@ export async function getAnswers(assessmentId: string): Promise<Answer[]> {
 
     return data || [];
   } catch (error) {
-    console.error('Error getting answers:', error);
+    logger.error('Error getting answers:', error);
     throw error;
   }
 }
@@ -178,7 +179,7 @@ export async function getAnswer(
 
     return data;
   } catch (error) {
-    console.error('Error getting answer:', error);
+    logger.error('Error getting answer:', error);
     return null;
   }
 }
@@ -196,7 +197,7 @@ export async function completeAssessment(assessmentId: string): Promise<Record<s
 
     return data as Record<string, any>;
   } catch (error) {
-    console.error('Error completing assessment:', error);
+    logger.error('Error completing assessment:', error);
     throw error;
   }
 }
@@ -219,7 +220,7 @@ export async function getAssessmentResults(assessmentId: string): Promise<Record
       isPaid: data.is_paid,
     };
   } catch (error) {
-    console.error('Error getting assessment results:', error);
+    logger.error('Error getting assessment results:', error);
     return null;
   }
 }
@@ -239,7 +240,7 @@ export async function getAssessmentsForProfile(profileId: string): Promise<Asses
 
     return data || [];
   } catch (error) {
-    console.error('Error getting assessments for profile:', error);
+    logger.error('Error getting assessments for profile:', error);
     throw error;
   }
 }
@@ -266,7 +267,7 @@ export async function getCompletedAssessment(
 
     return data;
   } catch (error) {
-    console.error('Error getting completed assessment:', error);
+    logger.error('Error getting completed assessment:', error);
     return null;
   }
 }
@@ -284,7 +285,61 @@ export async function recalculateAssessmentResults(assessmentId: string): Promis
 
     return data as Record<string, any>;
   } catch (error) {
-    console.error('Error recalculating assessment results:', error);
+    logger.error('Error recalculating assessment results:', error);
     return null;
+  }
+}
+
+/**
+ * Получить завершенные оценки для нескольких профилей одним запросом
+ * КРИТИЧНО: Исправляет N+1 проблему
+ * 
+ * @param profileIds - Массив ID профилей
+ * @param assessmentType - Тип оценки
+ * @returns Map где ключ - profile_id, значение - Assessment или null
+ */
+export async function getCompletedAssessmentsForProfiles(
+  profileIds: string[],
+  assessmentType: 'checkup' | 'parent' | 'family'
+): Promise<Record<string, Assessment | null>> {
+  if (profileIds.length === 0) {
+    return {};
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('assessments')
+      .select('*')
+      .in('profile_id', profileIds)
+      .eq('assessment_type', assessmentType)
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Группируем по profile_id, берем последнюю завершенную оценку для каждого профиля
+    const assessmentMap = data?.reduce((acc, assessment) => {
+      const existing = acc[assessment.profile_id];
+      
+      // Если еще нет оценки для этого профиля, или эта новее - сохраняем
+      if (!existing || 
+          (!existing.completed_at && assessment.completed_at) ||
+          (existing.completed_at && assessment.completed_at &&
+           new Date(assessment.completed_at) > new Date(existing.completed_at))) {
+        acc[assessment.profile_id] = assessment;
+      }
+      return acc;
+    }, {} as Record<string, Assessment>) || {};
+
+    // Возвращаем Map со всеми профилями (null для тех, у кого нет оценок)
+    const result: Record<string, Assessment | null> = {};
+    for (const profileId of profileIds) {
+      result[profileId] = assessmentMap[profileId] || null;
+    }
+
+    return result;
+  } catch (error) {
+    logger.error('Error getting assessments for profiles:', error);
+    throw error;
   }
 }

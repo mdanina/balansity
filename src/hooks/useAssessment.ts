@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCurrentProfile } from '@/contexts/ProfileContext';
 import { getProfiles } from '@/lib/profileStorage';
+import { logger } from '@/lib/logger';
 import {
   getOrCreateAssessment,
   getActiveAssessment,
@@ -49,7 +50,7 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
             return;
           }
         } catch (error) {
-          console.error('Error loading profiles:', error);
+          logger.error('Error loading profiles:', error);
           // Если ошибка, используем переданный profileId
           if (!cancelled) {
             setActualProfileId(inputProfileId || null);
@@ -75,7 +76,7 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
   useEffect(() => {
     async function init() {
       if (!actualProfileId) {
-        console.warn('Profile ID not found');
+        logger.warn('Profile ID not found');
         setLoading(false);
         return;
       }
@@ -103,7 +104,7 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
           setSavedAnswers(answersMap);
         }
       } catch (error) {
-        console.error('Error initializing assessment:', error);
+        logger.error('Error initializing assessment:', error);
         toast.error('Ошибка при загрузке оценки. Попробуйте обновить страницу.');
       } finally {
         setLoading(false);
@@ -113,7 +114,7 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
     init();
   }, [actualProfileId, assessmentType, totalSteps]);
 
-  // Сохранение ответа
+  // Сохранение ответа с оптимистичным обновлением UI
   const saveAnswerToDb = async (
     questionId: number,
     questionCode: string,
@@ -123,9 +124,16 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
     stepNumber: number
   ) => {
     if (!assessmentId) {
-      console.warn('Assessment ID not available');
+      logger.warn('Assessment ID not available');
       return;
     }
+
+    // ОПТИМИСТИЧНОЕ обновление UI - обновляем сразу, не дожидаясь ответа сервера
+    const previousValue = savedAnswers.get(questionId);
+    const previousStep = currentStep;
+    
+    setSavedAnswers(prev => new Map(prev).set(questionId, value));
+    setCurrentStep(stepNumber);
 
     try {
       const answerData: AnswerData = {
@@ -138,23 +146,34 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
       };
 
       await saveAnswer(assessmentId, answerData);
-      
-      // Обновляем локальное состояние
-      setSavedAnswers(prev => new Map(prev).set(questionId, value));
-      
-      // Обновляем текущий шаг
       await updateAssessmentStep(assessmentId, stepNumber);
-      setCurrentStep(stepNumber);
+      
+      // Успех - состояние уже обновлено оптимистично
     } catch (error) {
-      console.error('Error saving answer:', error);
-      toast.error('Ошибка при сохранении ответа');
+      // ОТКАТ при ошибке - восстанавливаем предыдущее состояние
+      logger.error('Error saving answer:', error);
+      
+      setSavedAnswers(prev => {
+        const newMap = new Map(prev);
+        if (previousValue !== undefined) {
+          newMap.set(questionId, previousValue);
+        } else {
+          newMap.delete(questionId);
+        }
+        return newMap;
+      });
+      
+      setCurrentStep(previousStep);
+      
+      toast.error('Ошибка при сохранении ответа. Попробуйте еще раз.');
+      throw error; // Пробрасываем для обработки в компоненте
     }
   };
 
   // Завершение оценки
   const complete = async () => {
     if (!assessmentId) {
-      console.warn('Assessment ID not available');
+      logger.warn('Assessment ID not available');
       return null;
     }
 
@@ -163,7 +182,7 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
       toast.success('Оценка завершена!');
       return results;
     } catch (error) {
-      console.error('Error completing assessment:', error);
+      logger.error('Error completing assessment:', error);
       toast.error('Ошибка при завершении оценки');
       return null;
     }

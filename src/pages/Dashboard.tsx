@@ -7,10 +7,13 @@ import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { User, CheckCircle2, Clock, Settings, MapPin, Users, LogOut } from "lucide-react";
-import { getProfiles } from "@/lib/profileStorage";
-import { getCompletedAssessment, getAssessmentsForProfile } from "@/lib/assessmentStorage";
+import { toast } from "sonner";
+import { calculateAge } from "@/lib/profileStorage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
+import { useProfiles } from "@/hooks/useProfiles";
+import { useAssessmentsForProfiles } from "@/hooks/useAssessments";
+import { logger } from "@/lib/logger";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type { Database } from "@/lib/supabase";
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type Assessment = Database['public']['Tables']['assessments']['Row'];
@@ -32,25 +35,45 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { setCurrentProfileId, setCurrentProfile } = useCurrentProfile();
-  const [familyMembers, setFamilyMembers] = useState<MemberWithAssessment[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Используем React Query для кеширования
+  const { data: profiles, isLoading: profilesLoading, error: profilesError } = useProfiles();
+  const profileIds = useMemo(() => {
+    if (!profiles || !Array.isArray(profiles)) return [];
+    return profiles.map(p => p.id);
+  }, [profiles]);
+  
+  const { 
+    data: assessmentsMap, 
+    isLoading: assessmentsLoading 
+  } = useAssessmentsForProfiles(profileIds, 'checkup');
+
+  // Вычисляем members с оценками
+  const familyMembers = useMemo(() => {
+    if (!profiles || !Array.isArray(profiles)) return [];
+    const assessments = assessmentsMap || {};
+    return profiles.map(profile => ({
+      ...profile,
+      checkupAssessment: assessments[profile.id] || null,
+    }));
+  }, [profiles, assessmentsMap]);
+
+  const loading = profilesLoading || assessmentsLoading;
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
   };
 
-  const handleCheckupClick = () => {
-    console.log('Checkup card clicked!');
-    console.log('Family members:', familyMembers);
+  // Мемоизация обработчика клика
+  const handleCheckupClick = useCallback(() => {
+    logger.log('Checkup card clicked');
     
     // Находим всех детей
     const children = familyMembers.filter(m => m.type === 'child');
-    console.log('Children found:', children);
     
     if (children.length === 0) {
       // Нет детей - предлагаем добавить
-      console.log('No children found, navigating to family-members');
       navigate("/family-members");
       return;
     }
@@ -59,65 +82,28 @@ export default function Dashboard() {
     const childrenWithoutCheckup = children.filter(child => 
       !child.checkupAssessment || child.checkupAssessment.status !== 'completed'
     );
-    console.log('Children without checkup:', childrenWithoutCheckup);
     
     if (childrenWithoutCheckup.length === 0) {
-      // Все дети прошли чекап - показываем сообщение
-      console.log('All children have completed checkup');
-      alert('Все дети уже прошли чекап! Вы можете посмотреть результаты в разделе "Ваша семья".');
+      // Все дети прошли чекап - показываем сообщение через toast
+      toast.info('Все дети уже прошли чекап! Вы можете посмотреть результаты в разделе "Ваша семья".');
       return;
     }
     
-    if (childrenWithoutCheckup.length === 1) {
-      // Один ребенок - сразу начинаем чекап
-      const child = childrenWithoutCheckup[0];
-      console.log('Starting checkup for single child:', child.first_name);
-      setCurrentProfileId(child.id);
-      setCurrentProfile(child);
-      navigate(`/checkup-intro/${child.id}`);
-    } else {
-      // Несколько детей - начинаем с первого
-      const firstChild = childrenWithoutCheckup[0];
-      console.log('Starting checkup for first child:', firstChild.first_name, `(${childrenWithoutCheckup.length} children total)`);
-      setCurrentProfileId(firstChild.id);
-      setCurrentProfile(firstChild);
-      navigate(`/checkup-intro/${firstChild.id}`);
-    }
-  };
+    // Берем первого ребенка без чекапа
+    const firstChild = childrenWithoutCheckup[0];
+    logger.log('Starting checkup for child:', firstChild.first_name);
+    setCurrentProfileId(firstChild.id);
+    setCurrentProfile(firstChild);
+    navigate(`/checkup-intro/${firstChild.id}`);
+  }, [familyMembers, navigate, setCurrentProfileId, setCurrentProfile]);
 
+  // Обработка ошибок загрузки
   useEffect(() => {
-    async function loadMembers() {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const profiles = await getProfiles();
-        
-        // Загружаем статус чекапа для каждого профиля
-        const membersWithAssessments = await Promise.all(
-          profiles.map(async (profile) => {
-            try {
-              const checkupAssessment = await getCompletedAssessment(profile.id, 'checkup');
-              return { ...profile, checkupAssessment };
-            } catch (error) {
-              console.error(`Error loading assessment for profile ${profile.id}:`, error);
-              return { ...profile, checkupAssessment: null };
-            }
-          })
-        );
-        
-        setFamilyMembers(membersWithAssessments);
-      } catch (error) {
-        console.error('Error loading family members:', error);
-      } finally {
-        setLoading(false);
-      }
+    if (profilesError) {
+      logger.error('Error loading profiles:', profilesError);
+      toast.error('Не удалось загрузить данные. Попробуйте обновить страницу.');
     }
-    loadMembers();
-  }, [user]);
+  }, [profilesError]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -239,7 +225,6 @@ export default function Dashboard() {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              console.log('Card clicked directly');
               handleCheckupClick();
             }}
             role="button"
@@ -255,7 +240,6 @@ export default function Dashboard() {
               className="flex flex-col items-center text-center"
               onClick={(e) => {
                 e.stopPropagation();
-                console.log('Inner div clicked');
                 handleCheckupClick();
               }}
             >
@@ -284,10 +268,8 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-4">
               {familyMembers.map((member) => {
-                const age = member.dob 
-                  ? new Date().getFullYear() - new Date(member.dob).getFullYear()
-                  : null;
-                
+                // Вычисляем данные для каждого члена семьи
+                const age = member.dob ? calculateAge(member.dob) : null;
                 const hasCompletedCheckup = member.checkupAssessment?.status === 'completed';
                 const checkupDate = member.checkupAssessment?.completed_at 
                   ? new Date(member.checkupAssessment.completed_at).toLocaleDateString('ru-RU')
