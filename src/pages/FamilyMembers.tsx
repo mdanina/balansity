@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { StepIndicator } from "@/components/StepIndicator";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import {
 
 export default function FamilyMembers() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setCurrentProfileId, setCurrentProfile } = useCurrentProfile();
   const [members, setMembers] = useState<Profile[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -34,6 +35,8 @@ export default function FamilyMembers() {
       try {
         setLoading(true);
         const profiles = await getProfiles();
+        console.log('Loaded profiles:', profiles);
+        console.log('Profiles with types:', profiles.map(p => ({ name: p.first_name, type: p.type })));
         setMembers(profiles);
       } catch (error) {
         console.error('Error loading family members:', error);
@@ -43,7 +46,7 @@ export default function FamilyMembers() {
       }
     }
     loadMembers();
-  }, []);
+  }, [location.pathname]); // Перезагружаем при изменении маршрута
 
   const handleDelete = async (id: string) => {
     try {
@@ -123,7 +126,7 @@ export default function FamilyMembers() {
                           onClick={() => {
                             setCurrentProfileId(member.id);
                             setCurrentProfile(member);
-                            navigate(`/checkup-intro`);
+                            navigate(`/checkup-intro/${member.id}`);
                           }}
                         >
                           Начать опрос
@@ -173,7 +176,32 @@ export default function FamilyMembers() {
             <Button
               type="button"
               size="lg"
-              onClick={() => navigate("/worries")}
+              onClick={() => {
+                // Находим первого ребенка для перехода к worry tags
+                console.log('Members list:', members);
+                console.log('Members types:', members.map(m => ({ 
+                  id: m.id, 
+                  name: m.first_name, 
+                  type: m.type,
+                  dob: m.dob 
+                })));
+                
+                const children = members.filter(m => m.type === 'child');
+                const firstChild = children[0];
+                
+                if (firstChild) {
+                  console.log('Found child:', firstChild);
+                  setCurrentProfileId(firstChild.id);
+                  setCurrentProfile(firstChild);
+                  navigate(`/worries/${firstChild.id}`);
+                } else {
+                  console.log('No child found. Available members:', members);
+                  const memberTypes = members.map(m => `${m.first_name} (${m.type})`).join(', ');
+                  toast.error(
+                    `Не найден ребенок в семье. Текущие члены семьи: ${memberTypes || 'нет'}. Пожалуйста, добавьте ребенка.`
+                  );
+                }
+              }}
               className="h-14 flex-1 text-base font-medium"
             >
               Далее

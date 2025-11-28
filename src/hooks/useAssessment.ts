@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCurrentProfile } from '@/contexts/ProfileContext';
+import { getProfiles } from '@/lib/profileStorage';
 import {
   getOrCreateAssessment,
   getActiveAssessment,
@@ -22,21 +23,49 @@ interface UseAssessmentOptions {
 export function useAssessment({ assessmentType, totalSteps, profileId: providedProfileId }: UseAssessmentOptions) {
   const params = useParams<{ profileId?: string }>();
   const { currentProfileId } = useCurrentProfile();
-  const profileId = providedProfileId || params.profileId || currentProfileId;
+  const [actualProfileId, setActualProfileId] = useState<string | null>(null);
   
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [savedAnswers, setSavedAnswers] = useState<Map<number, number>>(new Map());
   const [loading, setLoading] = useState(true);
 
+  // Определяем правильный profileId: для parent/family используем профиль родителя
+  useEffect(() => {
+    async function determineProfileId() {
+      const inputProfileId = providedProfileId || params.profileId || currentProfileId;
+      
+      // Для parent и family оценок всегда используем профиль родителя
+      if (assessmentType === 'parent' || assessmentType === 'family') {
+        try {
+          const profiles = await getProfiles();
+          const parent = profiles.find(p => p.type === 'parent');
+          if (parent) {
+            setActualProfileId(parent.id);
+            return;
+          }
+        } catch (error) {
+          console.error('Error loading profiles:', error);
+        }
+      }
+      
+      // Для checkup используем переданный profileId (профиль ребенка)
+      setActualProfileId(inputProfileId || null);
+    }
+    
+    determineProfileId();
+  }, [providedProfileId, params.profileId, currentProfileId, assessmentType]);
+
   // Инициализация: получение или создание оценки
   useEffect(() => {
     async function init() {
-      if (!profileId) {
+      if (!actualProfileId) {
         console.warn('Profile ID not found');
         setLoading(false);
         return;
       }
+      
+      const profileId = actualProfileId;
 
       try {
         setLoading(true);
@@ -67,7 +96,7 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
     }
 
     init();
-  }, [profileId, assessmentType, totalSteps]);
+  }, [actualProfileId, assessmentType, totalSteps]);
 
   // Сохранение ответа
   const saveAnswerToDb = async (

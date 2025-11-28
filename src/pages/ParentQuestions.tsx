@@ -29,28 +29,37 @@ export default function ParentQuestions() {
     profileId: params.profileId,
   });
 
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  // Инициализируем индекс на основе сохраненного шага или 0
+  const initialIndex = !loading && currentStep > 1 ? currentStep - 1 : 0;
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(initialIndex);
   const [answers, setAnswers] = useState<Answer[]>(
     parentQuestions.map((q) => ({ 
       questionId: q.id, 
       value: null 
     }))
   );
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Восстанавливаем ответы при загрузке
+  // Восстанавливаем ответы при загрузке (только один раз)
   useEffect(() => {
-    if (!loading && params.profileId) {
+    if (!loading && params.profileId && !isInitialized) {
       const restoredAnswers = parentQuestions.map((q) => ({
         questionId: q.id,
         value: getSavedAnswer(q.id),
       }));
       setAnswers(restoredAnswers);
       
+      // Устанавливаем индекс только один раз при инициализации
       if (currentStep > 1) {
-        setCurrentQuestionIndex(currentStep - 1);
+        const stepIndex = currentStep - 1;
+        if (stepIndex >= 0 && stepIndex < parentQuestions.length) {
+          setCurrentQuestionIndex(stepIndex);
+        }
       }
+      setIsInitialized(true);
     }
-  }, [loading, currentStep, params.profileId, getSavedAnswer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, params.profileId]);
 
   if (currentQuestionIndex < 0 || currentQuestionIndex >= parentQuestions.length) {
     navigate("/parent-intro");
@@ -79,36 +88,52 @@ export default function ParentQuestions() {
   const currentAnswerOptions = getAnswerOptions();
 
   const handleAnswer = async (value: number) => {
-    const newAnswers = [...answers];
-    newAnswers[currentQuestionIndex] = {
-      questionId: currentQuestion.id,
-      value,
-    };
-    setAnswers(newAnswers);
-
-    // Сохраняем в базу данных
-    if (params.profileId) {
-      await saveAnswer(
-        currentQuestion.id,
-        `parent_${currentQuestion.id.toString().padStart(2, '0')}`,
-        currentQuestion.category,
-        value,
-        currentQuestion.answerType,
-        currentQuestionIndex + 1
-      );
-    }
-
-    setTimeout(() => {
-      if (currentQuestionIndex < parentQuestions.length - 1) {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-      } else {
-        // Завершаем оценку
-        if (params.profileId) {
-          complete();
-        }
-        navigate("/family-intro");
+    try {
+      if (!currentQuestion) {
+        console.error('Current question is not defined');
+        return;
       }
-    }, TRANSITION_DELAY_MS);
+
+      // Обновляем локальное состояние
+      const newAnswers = [...answers];
+      newAnswers[currentQuestionIndex] = {
+        questionId: currentQuestion.id,
+        value,
+      };
+      setAnswers(newAnswers);
+
+      // Сохраняем в базу данных
+      if (params.profileId) {
+        try {
+          await saveAnswer(
+            currentQuestion.id,
+            `parent_${currentQuestion.id.toString().padStart(2, '0')}`,
+            currentQuestion.category,
+            value,
+            currentQuestion.answerType,
+            currentQuestionIndex + 1
+          );
+        } catch (error) {
+          console.error('Error saving answer:', error);
+          // Продолжаем выполнение даже если сохранение не удалось
+        }
+      }
+
+      // Автоматически переходим к следующему вопросу
+      setTimeout(() => {
+        if (currentQuestionIndex < parentQuestions.length - 1) {
+          setCurrentQuestionIndex(currentQuestionIndex + 1);
+        } else {
+          // Завершаем оценку
+          if (params.profileId) {
+            complete().catch(err => console.error('Error completing assessment:', err));
+          }
+          navigate("/family-intro");
+        }
+      }, TRANSITION_DELAY_MS);
+    } catch (error) {
+      console.error('Error in handleAnswer:', error);
+    }
   };
 
   const handleSkip = async () => {

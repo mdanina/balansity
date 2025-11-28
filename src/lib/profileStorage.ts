@@ -132,7 +132,15 @@ export async function updateProfile(
     if (updates.pronouns !== undefined) updateData.pronouns = updates.pronouns || null;
     if (updates.referral !== undefined) updateData.referral = updates.referral || null;
     if (updates.seekingCare) updateData.seeking_care = updates.seekingCare;
-    if (updates.worryTags) updateData.worry_tags = updates.worryTags;
+    // worryTags может быть массивом (даже пустым) или undefined
+    if (updates.worryTags !== undefined) {
+      updateData.worry_tags = updates.worryTags.length > 0 ? updates.worryTags : null;
+      console.log('Updating worry_tags:', {
+        profileId,
+        worryTags: updates.worryTags,
+        updateData: updateData.worry_tags
+      });
+    }
 
     const { data, error } = await supabase
       .from('profiles')
@@ -140,6 +148,16 @@ export async function updateProfile(
       .eq('id', profileId)
       .select()
       .single();
+
+    if (error) {
+      console.error('Supabase update error:', error);
+      throw error;
+    }
+    
+    console.log('Profile update result:', {
+      profileId: data.id,
+      worry_tags: data.worry_tags
+    });
 
     if (error) throw error;
 

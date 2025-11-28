@@ -2,11 +2,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useCurrentProfile } from "@/contexts/ProfileContext";
 import otterSchool from "@/assets/otter-school.png";
 
 export default function CheckupIntro() {
   const navigate = useNavigate();
   const params = useParams<{ profileId?: string }>();
+  const { currentProfileId } = useCurrentProfile();
+  
+  // Используем profileId из URL или из контекста
+  const profileId = params.profileId || currentProfileId;
 
   return (
     <div className="min-h-screen bg-background">
@@ -38,8 +43,8 @@ export default function CheckupIntro() {
           <Button
             size="lg"
             onClick={() => {
-              if (params.profileId) {
-                navigate(`/checkup-questions/${params.profileId}`);
+              if (profileId) {
+                navigate(`/checkup-questions/${profileId}`);
               } else {
                 navigate("/checkup");
               }

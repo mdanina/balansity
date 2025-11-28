@@ -1,15 +1,29 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useCurrentProfile } from "@/contexts/ProfileContext";
+import { getProfiles } from "@/lib/profileStorage";
 import otterReading from "@/assets/otter-reading.png";
 
 export default function FamilyIntro() {
   const navigate = useNavigate();
-  const params = useParams<{ profileId?: string }>();
-  const { currentProfileId } = useCurrentProfile();
-  const profileId = params.profileId || currentProfileId;
+  const [parentProfileId, setParentProfileId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadParentProfile() {
+      try {
+        const profiles = await getProfiles();
+        const parent = profiles.find(p => p.type === 'parent');
+        if (parent) {
+          setParentProfileId(parent.id);
+        }
+      } catch (error) {
+        console.error('Error loading parent profile:', error);
+      }
+    }
+    loadParentProfile();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,8 +63,8 @@ export default function FamilyIntro() {
           <Button
             size="lg"
             onClick={() => {
-              if (profileId) {
-                navigate(`/family-questions/${profileId}`);
+              if (parentProfileId) {
+                navigate(`/family-questions/${parentProfileId}`);
               } else {
                 navigate("/family-questions");
               }

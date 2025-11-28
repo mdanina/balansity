@@ -135,7 +135,7 @@ export default function EditFamilyMember() {
 
             <div className="space-y-2">
               <Label htmlFor="relationship">
-                Какое у ВАС отношение к этому человеку? <span className="text-destructive">*</span>
+                Кто этот человек для вас? <span className="text-destructive">*</span>
               </Label>
               <Select value={relationship} onValueChange={setRelationship}>
                 <SelectTrigger id="relationship" className="h-12 text-base">

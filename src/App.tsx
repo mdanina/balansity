@@ -59,11 +59,11 @@ const App = () => (
               <Route path="/family-members" element={<ProtectedRoute><FamilyMembers /></ProtectedRoute>} />
               <Route path="/add-family-member" element={<ProtectedRoute><AddFamilyMember /></ProtectedRoute>} />
               <Route path="/edit-family-member/:id" element={<ProtectedRoute><EditFamilyMember /></ProtectedRoute>} />
-              <Route path="/worries" element={<ProtectedRoute><Worries /></ProtectedRoute>} />
+              <Route path="/worries/:profileId?" element={<ProtectedRoute><Worries /></ProtectedRoute>} />
               <Route path="/checkup-intro/:profileId?" element={<ProtectedRoute><CheckupIntro /></ProtectedRoute>} />
               <Route path="/checkup" element={<ProtectedRoute><Checkup /></ProtectedRoute>} />
               <Route path="/checkup-questions/:profileId?" element={<ProtectedRoute><CheckupQuestions /></ProtectedRoute>} />
-              <Route path="/checkup-interlude" element={<ProtectedRoute><CheckupInterlude /></ProtectedRoute>} />
+              <Route path="/checkup-interlude/:profileId?" element={<ProtectedRoute><CheckupInterlude /></ProtectedRoute>} />
               <Route path="/parent-intro" element={<ProtectedRoute><ParentIntro /></ProtectedRoute>} />
               <Route path="/parent-questions/:profileId?" element={<ProtectedRoute><ParentQuestions /></ProtectedRoute>} />
               <Route path="/family-intro" element={<ProtectedRoute><FamilyIntro /></ProtectedRoute>} />

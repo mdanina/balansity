@@ -1,9 +1,12 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useCurrentProfile } from "@/contexts/ProfileContext";
+import { updateProfile, getProfile, getProfiles } from "@/lib/profileStorage";
+import { toast } from "sonner";
 
 const childWorries = [
   "Фокус и внимание",
@@ -44,12 +47,34 @@ const familyWorries = [
 
 export default function Worries() {
   const navigate = useNavigate();
+  const params = useParams<{ profileId?: string }>();
+  const { currentProfileId, currentProfile, setCurrentProfile } = useCurrentProfile();
+  const profileId = params.profileId || currentProfileId;
+  
   const [expandedSections, setExpandedSections] = useState({
     child: false,
     personal: false,
     family: false,
   });
   const [selectedWorries, setSelectedWorries] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Загружаем существующие worry tags при загрузке
+  useEffect(() => {
+    async function loadWorryTags() {
+      if (profileId) {
+        try {
+          const profile = await getProfile(profileId);
+          if (profile && profile.worry_tags && profile.worry_tags.length > 0) {
+            setSelectedWorries(profile.worry_tags);
+          }
+        } catch (error) {
+          console.error('Error loading worry tags:', error);
+        }
+      }
+    }
+    loadWorryTags();
+  }, [profileId]);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({
@@ -191,10 +216,74 @@ export default function Worries() {
 
           <Button
             size="lg"
-            onClick={() => navigate("/checkup-intro")}
+            onClick={async () => {
+              let targetProfileId = profileId;
+              
+              // Если profileId не передан, пытаемся найти первого ребенка
+              if (!targetProfileId) {
+                try {
+                  const profiles = await getProfiles();
+                  const firstChild = profiles.find(p => p.type === 'child');
+                  if (firstChild) {
+                    targetProfileId = firstChild.id;
+                    setCurrentProfileId(firstChild.id);
+                    setCurrentProfile(firstChild);
+                  } else {
+                    toast.error('Не выбран профиль ребенка. Пожалуйста, сначала добавьте ребенка на странице "Члены семьи"');
+                    navigate("/family-members");
+                    return;
+                  }
+                } catch (error) {
+                  console.error('Error loading profiles:', error);
+                  toast.error('Ошибка при загрузке профилей');
+                  navigate("/family-members");
+                  return;
+                }
+              }
+
+              try {
+                setLoading(true);
+                
+                console.log('Saving worry tags:', {
+                  profileId: targetProfileId,
+                  selectedWorries,
+                  count: selectedWorries.length
+                });
+                
+                // Сохраняем worry tags в профиль ребенка
+                // Передаем массив всегда, даже если он пустой (будет сохранен как null)
+                const updatedProfile = await updateProfile(targetProfileId, {
+                  worryTags: selectedWorries,
+                });
+
+                console.log('Profile updated:', {
+                  profileId: updatedProfile.id,
+                  worry_tags: updatedProfile.worry_tags
+                });
+
+                // Обновляем профиль в контексте, если он там есть
+                if (currentProfile) {
+                  setCurrentProfile({
+                    ...currentProfile,
+                    worry_tags: selectedWorries.length > 0 ? selectedWorries : null,
+                  });
+                }
+
+                toast.success('Беспокойства сохранены');
+                
+                // Переходим к чекапу
+                navigate(`/checkup-intro/${targetProfileId}`);
+              } catch (error) {
+                console.error('Error saving worry tags:', error);
+                toast.error('Ошибка при сохранении беспокойств');
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
             className="h-14 w-full text-base font-medium"
           >
-            Далее
+            {loading ? 'Сохранение...' : 'Далее'}
           </Button>
         </div>
       </div>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { User, CheckCircle2, Clock } from "lucide-react";
+import { User, CheckCircle2, Clock, Settings, ArrowRight } from "lucide-react";
 import { getProfiles } from "@/lib/profileStorage";
 import { getCompletedAssessment, getAssessmentsForProfile } from "@/lib/assessmentStorage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -144,6 +144,47 @@ export default function Dashboard() {
             </div>
           </Card>
         </div>
+
+        {/* Onboarding Section */}
+        <Card className="mb-8 border-2 bg-gradient-to-br from-blue-50 to-white p-6 shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Settings className="h-6 w-6 text-blue-600" />
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Настройки профиля</h3>
+                <p className="text-sm text-muted-foreground">
+                  Пройдите настройку заново или измените данные
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate("/profile")}
+              >
+                Профиль
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate("/region")}
+              >
+                Регион
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate("/family-members")}
+              >
+                Члены семьи
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </Card>
 
         {/* Your Family Section */}
         <div>

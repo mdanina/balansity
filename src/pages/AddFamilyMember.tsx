@@ -25,11 +25,19 @@ export default function AddFamilyMember() {
   const [pronouns, setPronouns] = useState("");
   const [referral, setReferral] = useState("");
   const [seekingCare, setSeekingCare] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Защита от двойной отправки
+    if (isSubmitting) {
+      return;
+    }
+    
     if (firstName && lastName && dateOfBirth && relationship && sex && seekingCare) {
       try {
+        setIsSubmitting(true);
         await createProfile({
           firstName,
           lastName,
@@ -45,6 +53,7 @@ export default function AddFamilyMember() {
       } catch (error) {
         console.error('Error creating profile:', error);
         toast.error('Ошибка при добавлении члена семьи');
+        setIsSubmitting(false);
       }
     }
   };
@@ -106,7 +115,7 @@ export default function AddFamilyMember() {
 
             <div className="space-y-2">
               <Label htmlFor="relationship">
-                Какое у ВАС отношение к этому человеку? <span className="text-destructive">*</span>
+                Кто этот человек для вас? <span className="text-destructive">*</span>
               </Label>
               <Select value={relationship} onValueChange={setRelationship}>
                 <SelectTrigger id="relationship" className="h-12 text-base">
@@ -209,9 +218,10 @@ export default function AddFamilyMember() {
               <Button
                 type="submit"
                 size="lg"
+                disabled={isSubmitting}
                 className="h-14 flex-1 text-base font-medium"
               >
-                Добавить
+                {isSubmitting ? 'Добавление...' : 'Добавить'}
               </Button>
             </div>
           </form>

@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { checkupQuestions, answerOptions, impactAnswerOptions } from "@/data/checkupQuestions";
 import { useAssessment } from "@/hooks/useAssessment";
+import { useCurrentProfile } from "@/contexts/ProfileContext";
 
 interface Answer {
   questionId: number;
@@ -31,6 +32,10 @@ export default function CheckupQuestions() {
   const params = useParams<{ profileId?: string }>();
   const [searchParams] = useSearchParams();
   const startIndex = parseInt(searchParams.get("start") || "1") - 1;
+  const { currentProfileId } = useCurrentProfile();
+  
+  // Используем profileId из URL или из контекста
+  const profileId = params.profileId || currentProfileId;
   
   // Используем хук для работы с оценкой
   const { 
@@ -38,63 +43,79 @@ export default function CheckupQuestions() {
     loading, 
     saveAnswer, 
     getSavedAnswer,
+    savedAnswers,
     complete 
   } = useAssessment({
     assessmentType: 'checkup',
     totalSteps: checkupQuestions.length,
-    profileId: params.profileId,
+    profileId: profileId,
   });
 
-  // Восстанавливаем индекс вопроса из сохраненного шага или из URL
-  const initialIndex = params.profileId && currentStep > 1 
-    ? currentStep - 1 
-    : startIndex;
+  // Восстанавливаем индекс вопроса из URL параметра start (приоритет) или из сохраненного шага
+  // Если есть параметр start в URL, используем его (это значит, что мы вернулись с interlude)
+  const hasStartParam = searchParams.has("start");
+  const initialIndex = hasStartParam 
+    ? startIndex 
+    : (profileId && currentStep > 1 ? currentStep - 1 : 0);
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(initialIndex);
   const [answers, setAnswers] = useState<Answer[]>(
-    checkupQuestions.map((q) => {
-      const savedValue = getSavedAnswer(q.id);
-      // Если вопрос обратный и есть сохраненное значение, применяем обратное преобразование для отображения
-      if (q.isReverse && savedValue !== null && savedValue >= 0) {
-        return {
-          questionId: q.id,
-          value: unreverseScore(savedValue),
-        };
-      }
-      return {
-        questionId: q.id,
-        value: savedValue,
-      };
-    })
+    checkupQuestions.map((q) => ({ 
+      questionId: q.id, 
+      value: null 
+    }))
   );
 
-  // Восстанавливаем ответы при загрузке
+  // Восстанавливаем ответы при загрузке (только один раз после загрузки)
   useEffect(() => {
-    if (!loading && params.profileId) {
-      const restoredAnswers = checkupQuestions.map((q) => {
-        const savedValue = getSavedAnswer(q.id);
-        // Если вопрос обратный и есть сохраненное значение, применяем обратное преобразование для отображения
-        if (q.isReverse && savedValue !== null && savedValue >= 0) {
+    if (!loading && profileId) {
+      // Проверяем, есть ли уже сохраненные ответы
+      const hasSavedAnswers = checkupQuestions.some(q => getSavedAnswer(q.id) !== null);
+      
+      if (hasSavedAnswers) {
+        const restoredAnswers = checkupQuestions.map((q) => {
+          const savedValue = getSavedAnswer(q.id);
+          // Если вопрос обратный и есть сохраненное значение, применяем обратное преобразование для отображения
+          if (q.isReverse && savedValue !== null && savedValue >= 0) {
+            return {
+              questionId: q.id,
+              value: unreverseScore(savedValue),
+            };
+          }
           return {
             questionId: q.id,
-            value: unreverseScore(savedValue),
+            value: savedValue,
           };
-        }
-        return {
-          questionId: q.id,
-          value: savedValue,
-        };
-      });
-      setAnswers(restoredAnswers);
+        });
+        setAnswers(restoredAnswers);
+      }
       
-      // Восстанавливаем позицию
-      if (currentStep > 1) {
-        setCurrentQuestionIndex(currentStep - 1);
+      // Восстанавливаем позицию только если индекс еще не установлен из URL параметра
+      // Если есть параметр start в URL, он уже использован в initialIndex
+      const urlStartParam = searchParams.get("start");
+      if (!urlStartParam && currentStep > 1) {
+        // Используем сохраненный шаг только если нет параметра start
+        const stepIndex = currentStep - 1;
+        if (stepIndex >= 0 && stepIndex < checkupQuestions.length) {
+          setCurrentQuestionIndex(stepIndex);
+        }
       }
     }
-  }, [loading, currentStep, params.profileId, getSavedAnswer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, profileId]);
 
   // Проверка на существование вопроса
+  if (!checkupQuestions || checkupQuestions.length === 0) {
+    console.error('checkupQuestions is not defined or empty');
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Ошибка загрузки вопросов</p>
+        </div>
+      </div>
+    );
+  }
+
   if (currentQuestionIndex < 0 || currentQuestionIndex >= checkupQuestions.length) {
     navigate("/checkup-intro");
     return null;
@@ -110,50 +131,75 @@ export default function CheckupQuestions() {
   const currentAnswerOptions = currentQuestion.answerType === 'impact' ? impactAnswerOptions : answerOptions;
 
   const handleAnswer = async (value: number) => {
-    // Обновляем локальное состояние
-    const newAnswers = [...answers];
-    newAnswers[currentQuestionIndex] = {
-      questionId: currentQuestion.id,
-      value,
-    };
-    setAnswers(newAnswers);
-
-    // Применяем reverse scoring для обратных вопросов ПРИ СОХРАНЕНИИ
-    const valueToSave = currentQuestion.isReverse ? reverseScore(value) : value;
-
-    // Сохраняем в базу данных
-    if (params.profileId) {
-      await saveAnswer(
-        currentQuestion.id,
-        `checkup_${currentQuestion.id.toString().padStart(2, '0')}`,
-        currentQuestion.category,
-        valueToSave, // Сохраняем уже преобразованное значение
-        currentQuestion.answerType,
-        currentQuestionIndex + 1
-      );
-    }
-
-    // Автоматически переходим к следующему вопросу
-    setTimeout(async () => {
-      // Если это вопрос 21, переходим на промежуточный экран
-      if (currentQuestionIndex === INTERLUDE_QUESTION_INDEX) {
-        navigate("/checkup-interlude");
-      } else if (currentQuestionIndex < checkupQuestions.length - 1) {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-      } else {
-        // После последнего вопроса завершаем checkup assessment
-        if (params.profileId) {
-          await complete();
-        }
-        // Переходим к вопросам о родителе
-        navigate("/parent-intro");
+    try {
+      if (!currentQuestion) {
+        console.error('Current question is not defined');
+        return;
       }
-    }, TRANSITION_DELAY_MS);
+
+      // Обновляем локальное состояние
+      const newAnswers = [...answers];
+      newAnswers[currentQuestionIndex] = {
+        questionId: currentQuestion.id,
+        value,
+      };
+      setAnswers(newAnswers);
+
+      // Применяем reverse scoring для обратных вопросов ПРИ СОХРАНЕНИИ
+      const valueToSave = currentQuestion.isReverse === true ? reverseScore(value) : value;
+
+      // Сохраняем в базу данных
+      if (profileId) {
+        try {
+          await saveAnswer(
+            currentQuestion.id,
+            `checkup_${currentQuestion.id.toString().padStart(2, '0')}`,
+            currentQuestion.category,
+            valueToSave, // Сохраняем уже преобразованное значение
+            currentQuestion.answerType,
+            currentQuestionIndex + 1
+          );
+        } catch (error) {
+          console.error('Error saving answer:', error);
+          // Продолжаем выполнение даже если сохранение не удалось
+        }
+      }
+
+      // Автоматически переходим к следующему вопросу
+      setTimeout(() => {
+        // Если это вопрос 21, переходим на промежуточный экран
+        if (currentQuestionIndex === INTERLUDE_QUESTION_INDEX) {
+          if (profileId) {
+            navigate(`/checkup-interlude/${profileId}`);
+          } else {
+            navigate("/checkup-interlude");
+          }
+        } else if (currentQuestionIndex < checkupQuestions.length - 1) {
+          // Переходим к следующему вопросу
+          const nextIndex = currentQuestionIndex + 1;
+          // Очищаем URL от параметра start, если он есть
+          if (profileId) {
+            const newUrl = `/checkup-questions/${profileId}`;
+            window.history.replaceState({}, '', newUrl);
+          }
+          setCurrentQuestionIndex(nextIndex);
+        } else {
+          // После последнего вопроса завершаем checkup assessment
+          if (profileId) {
+            complete().catch(err => console.error('Error completing assessment:', err));
+          }
+          // Переходим к вопросам о родителе
+          navigate("/parent-intro");
+        }
+      }, TRANSITION_DELAY_MS);
+    } catch (error) {
+      console.error('Error in handleAnswer:', error);
+    }
   };
 
   const handleSkip = async () => {
     // Сохраняем пропущенный ответ (используем -1 как маркер пропущенного вопроса)
-    if (params.profileId) {
+    if (profileId) {
       await saveAnswer(
         currentQuestion.id,
         `checkup_${currentQuestion.id.toString().padStart(2, '0')}`,
@@ -175,12 +221,16 @@ export default function CheckupQuestions() {
     // Переходим к следующему вопросу
     setTimeout(async () => {
       if (currentQuestionIndex === INTERLUDE_QUESTION_INDEX) {
-        navigate("/checkup-interlude");
+        if (profileId) {
+          navigate(`/checkup-interlude/${profileId}`);
+        } else {
+          navigate("/checkup-interlude");
+        }
       } else if (currentQuestionIndex < checkupQuestions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
         // После последнего вопроса завершаем checkup assessment
-        if (params.profileId) {
+        if (profileId) {
           await complete();
         }
         navigate("/parent-intro");
