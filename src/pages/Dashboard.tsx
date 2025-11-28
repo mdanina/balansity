@@ -103,7 +103,7 @@ export default function Dashboard() {
             <div className="flex flex-col items-center text-center">
               <img 
                 src={otterHearts} 
-                alt="Family Mental Health Check-up" 
+                alt="Проверка психического здоровья семьи" 
                 className="mb-6 h-40 w-auto object-contain"
               />
               <h3 className="mb-2 text-2xl font-bold text-foreground">Психическое здоровье семьи</h3>

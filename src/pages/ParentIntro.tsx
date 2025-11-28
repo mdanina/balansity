@@ -24,7 +24,7 @@ export default function ParentIntro() {
         <div className="space-y-12">
           <img
             src={otterHearts}
-            alt="Otters with hearts"
+            alt="Выдры с сердцами"
             className="mx-auto h-64 w-64 object-contain"
           />
           

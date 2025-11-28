@@ -6,11 +6,11 @@ export interface FamilyQuestion {
 }
 
 export const familyQuestions: FamilyQuestion[] = [
-  { id: 1, text: "Как дела у вашей семьи?", category: "Family", answerType: 'wellbeing' },
-  { id: 2, text: "Вообще, как часто вы думаете, что отношения между вами и вашим партнером складываются хорошо?", category: "Family", answerType: 'relationship' },
-  { id: 3, text: "Как часто вы с партнером ссоритесь?", category: "Family", answerType: 'frequency' },
-  { id: 4, text: "Как часто вы и со-родитель(и) вашего ребенка работаете вместе в воспитании вашего ребенка?", category: "Family", answerType: 'frequency' },
-  { id: 5, text: "Как часто вы и со-родитель(и) спорите о том, как воспитывать вашего ребенка?", category: "Family", answerType: 'frequency' },
+  { id: 1, text: "Как дела у вашей семьи?", category: "О семье", answerType: 'wellbeing' },
+  { id: 2, text: "Вообще, как часто вы думаете, что отношения между вами и вашим партнером складываются хорошо?", category: "О семье", answerType: 'relationship' },
+  { id: 3, text: "Как часто вы с партнером ссоритесь?", category: "О семье", answerType: 'frequency' },
+  { id: 4, text: "Как часто вы и со-родитель(и) вашего ребенка работаете вместе в воспитании вашего ребенка?", category: "О семье", answerType: 'frequency' },
+  { id: 5, text: "Как часто вы и со-родитель(и) спорите о том, как воспитывать вашего ребенка?", category: "О семье", answerType: 'frequency' },
 ];
 
 export const wellbeingOptions = [

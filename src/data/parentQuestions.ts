@@ -6,11 +6,11 @@ export interface ParentQuestion {
 }
 
 export const parentQuestions: ParentQuestion[] = [
-  { id: 1, text: "Пол, присвоенный при рождении", category: "You", answerType: 'sex' },
-  { id: 2, text: "Чувство нервозности, тревоги или беспокойства", category: "You", answerType: 'frequency' },
-  { id: 3, text: "Невозможность остановить или контролировать беспокойство", category: "You", answerType: 'frequency' },
-  { id: 4, text: "Малый интерес или удовольствие от занятий", category: "You", answerType: 'frequency' },
-  { id: 5, text: "Чувство подавленности, депрессии или безнадежности", category: "You", answerType: 'frequency' },
+  { id: 1, text: "Пол, присвоенный при рождении", category: "О вас", answerType: 'sex' },
+  { id: 2, text: "Чувство нервозности, тревоги или беспокойства", category: "О вас", answerType: 'frequency' },
+  { id: 3, text: "Невозможность остановить или контролировать беспокойство", category: "О вас", answerType: 'frequency' },
+  { id: 4, text: "Малый интерес или удовольствие от занятий", category: "О вас", answerType: 'frequency' },
+  { id: 5, text: "Чувство подавленности, депрессии или безнадежности", category: "О вас", answerType: 'frequency' },
 ];
 
 export const sexOptions = [

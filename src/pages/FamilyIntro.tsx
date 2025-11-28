@@ -24,7 +24,7 @@ export default function FamilyIntro() {
         <div className="space-y-12">
           <img
             src={otterReading}
-            alt="Otter on couch"
+            alt="Выдра читает"
             className="mx-auto h-64 w-64 object-contain"
           />
           

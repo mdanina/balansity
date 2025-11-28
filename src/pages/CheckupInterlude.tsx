@@ -24,7 +24,7 @@ export default function CheckupInterlude() {
         <div className="space-y-12">
           <img
             src={otterCouch}
-            alt="Otter on couch"
+            alt="Выдра на диване"
             className="mx-auto h-80 w-80 object-contain"
           />
           

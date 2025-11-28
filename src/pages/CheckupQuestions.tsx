@@ -86,7 +86,7 @@ export default function CheckupQuestions() {
           <div className="space-y-6">
             {currentQuestion.answerType === 'impact' ? (
               <p className="text-center text-muted-foreground">
-                Do any of your child's feelings or behaviors we have asked about here. . .
+                Вызывают ли какие-либо из чувств или поведения вашего ребенка, о которых мы здесь спрашивали...
               </p>
             ) : (
               <p className="text-center text-muted-foreground">
