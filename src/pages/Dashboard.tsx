@@ -5,17 +5,24 @@ import otterHearts from "@/assets/otter-hearts.png";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
-import { User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { User, CheckCircle2, Clock } from "lucide-react";
 import { getProfiles } from "@/lib/profileStorage";
+import { getCompletedAssessment, getAssessmentsForProfile } from "@/lib/assessmentStorage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import type { Database } from "@/lib/supabase";
 type Profile = Database['public']['Tables']['profiles']['Row'];
+type Assessment = Database['public']['Tables']['assessments']['Row'];
+
+interface MemberWithAssessment extends Profile {
+  checkupAssessment?: Assessment | null;
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [familyMembers, setFamilyMembers] = useState<Profile[]>([]);
+  const [familyMembers, setFamilyMembers] = useState<MemberWithAssessment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,7 +35,21 @@ export default function Dashboard() {
       try {
         setLoading(true);
         const profiles = await getProfiles();
-        setFamilyMembers(profiles);
+        
+        // Загружаем статус чекапа для каждого профиля
+        const membersWithAssessments = await Promise.all(
+          profiles.map(async (profile) => {
+            try {
+              const checkupAssessment = await getCompletedAssessment(profile.id, 'checkup');
+              return { ...profile, checkupAssessment };
+            } catch (error) {
+              console.error(`Error loading assessment for profile ${profile.id}:`, error);
+              return { ...profile, checkupAssessment: null };
+            }
+          })
+        );
+        
+        setFamilyMembers(membersWithAssessments);
       } catch (error) {
         console.error('Error loading family members:', error);
       } finally {
@@ -141,6 +162,11 @@ export default function Dashboard() {
                   ? new Date().getFullYear() - new Date(member.dob).getFullYear()
                   : null;
                 
+                const hasCompletedCheckup = member.checkupAssessment?.status === 'completed';
+                const checkupDate = member.checkupAssessment?.completed_at 
+                  ? new Date(member.checkupAssessment.completed_at).toLocaleDateString('ru-RU')
+                  : null;
+                
                 return (
                   <Card 
                     key={member.id}
@@ -152,11 +178,44 @@ export default function Dashboard() {
                       </div>
                     </Avatar>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-foreground">
-                        {member.first_name} {member.last_name || ''}
-                      </h3>
+                      <div className="flex items-center gap-3 mb-1">
+                        <h3 className="text-xl font-bold text-foreground">
+                          {member.first_name} {member.last_name || ''}
+                        </h3>
+                        {hasCompletedCheckup && (
+                          <Badge variant="default" className="bg-green-500">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Чекап завершен
+                          </Badge>
+                        )}
+                      </div>
                       {age !== null && (
-                        <p className="text-muted-foreground">{age} лет</p>
+                        <p className="text-muted-foreground mb-1">{age} лет</p>
+                      )}
+                      {hasCompletedCheckup && checkupDate && (
+                        <p className="text-sm text-muted-foreground">
+                          Завершен: {checkupDate}
+                        </p>
+                      )}
+                      {!hasCompletedCheckup && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={() => navigate(`/checkup-intro/${member.id}`)}
+                        >
+                          Пройти чекап
+                        </Button>
+                      )}
+                      {hasCompletedCheckup && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={() => navigate(`/results-report?profileId=${member.id}`)}
+                        >
+                          Посмотреть результаты
+                        </Button>
                       )}
                     </div>
                   </Card>

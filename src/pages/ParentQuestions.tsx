@@ -111,12 +111,39 @@ export default function ParentQuestions() {
     }, TRANSITION_DELAY_MS);
   };
 
-  const handleSkip = () => {
-    if (currentQuestionIndex < parentQuestions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    } else {
-      navigate("/family-intro");
+  const handleSkip = async () => {
+    // Сохраняем пропущенный ответ (используем -1 как маркер пропущенного вопроса)
+    if (params.profileId) {
+      await saveAnswer(
+        currentQuestion.id,
+        `parent_${currentQuestion.id.toString().padStart(2, '0')}`,
+        currentQuestion.category,
+        -1, // -1 означает пропущенный вопрос
+        currentQuestion.answerType,
+        currentQuestionIndex + 1
+      );
     }
+
+    // Обновляем локальное состояние
+    const newAnswers = [...answers];
+    newAnswers[currentQuestionIndex] = {
+      questionId: currentQuestion.id,
+      value: -1,
+    };
+    setAnswers(newAnswers);
+
+    // Переходим к следующему вопросу
+    setTimeout(async () => {
+      if (currentQuestionIndex < parentQuestions.length - 1) {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+      } else {
+        // Завершаем оценку
+        if (params.profileId) {
+          await complete();
+        }
+        navigate("/family-intro");
+      }
+    }, TRANSITION_DELAY_MS);
   };
 
   useEffect(() => {

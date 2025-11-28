@@ -60,7 +60,7 @@ const App = () => (
               <Route path="/add-family-member" element={<ProtectedRoute><AddFamilyMember /></ProtectedRoute>} />
               <Route path="/edit-family-member/:id" element={<ProtectedRoute><EditFamilyMember /></ProtectedRoute>} />
               <Route path="/worries" element={<ProtectedRoute><Worries /></ProtectedRoute>} />
-              <Route path="/checkup-intro" element={<ProtectedRoute><CheckupIntro /></ProtectedRoute>} />
+              <Route path="/checkup-intro/:profileId?" element={<ProtectedRoute><CheckupIntro /></ProtectedRoute>} />
               <Route path="/checkup" element={<ProtectedRoute><Checkup /></ProtectedRoute>} />
               <Route path="/checkup-questions/:profileId?" element={<ProtectedRoute><CheckupQuestions /></ProtectedRoute>} />
               <Route path="/checkup-interlude" element={<ProtectedRoute><CheckupInterlude /></ProtectedRoute>} />
@@ -69,7 +69,7 @@ const App = () => (
               <Route path="/family-intro" element={<ProtectedRoute><FamilyIntro /></ProtectedRoute>} />
               <Route path="/family-questions/:profileId?" element={<ProtectedRoute><FamilyQuestions /></ProtectedRoute>} />
               <Route path="/checkup-results" element={<ProtectedRoute><CheckupResults /></ProtectedRoute>} />
-              <Route path="/results-report" element={<ProtectedRoute><ResultsReportNew /></ProtectedRoute>} />
+              <Route path="/results-report/:profileId?" element={<ProtectedRoute><ResultsReportNew /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -6,6 +6,7 @@ import otterSchool from "@/assets/otter-school.png";
 
 export default function CheckupIntro() {
   const navigate = useNavigate();
+  const params = useParams<{ profileId?: string }>();
 
   return (
     <div className="min-h-screen bg-background">
@@ -36,7 +37,13 @@ export default function CheckupIntro() {
 
           <Button
             size="lg"
-            onClick={() => navigate("/checkup")}
+            onClick={() => {
+              if (params.profileId) {
+                navigate(`/checkup-questions/${params.profileId}`);
+              } else {
+                navigate("/checkup");
+              }
+            }}
             className="h-14 w-full max-w-md text-base font-medium"
           >
             Начнем

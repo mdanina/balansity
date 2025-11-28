@@ -230,3 +230,50 @@ export async function getAssessmentResults(assessmentId: string): Promise<Record
   }
 }
 
+/**
+ * Получить все оценки для профиля
+ */
+export async function getAssessmentsForProfile(profileId: string): Promise<Assessment[]> {
+  try {
+    const { data, error } = await supabase
+      .from('assessments')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return data || [];
+  } catch (error) {
+    console.error('Error getting assessments for profile:', error);
+    throw error;
+  }
+}
+
+/**
+ * Получить завершенную оценку определенного типа
+ */
+export async function getCompletedAssessment(
+  profileId: string,
+  assessmentType: 'checkup' | 'parent' | 'family'
+): Promise<Assessment | null> {
+  try {
+    const { data, error } = await supabase
+      .from('assessments')
+      .select('*')
+      .eq('profile_id', profileId)
+      .eq('assessment_type', assessmentType)
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return data;
+  } catch (error) {
+    console.error('Error getting completed assessment:', error);
+    return null;
+  }
+}
+

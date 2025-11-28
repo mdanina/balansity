@@ -14,6 +14,18 @@ interface Answer {
 const INTERLUDE_QUESTION_INDEX = 20;
 const TRANSITION_DELAY_MS = 300;
 
+// Функция для reverse scoring: 4->0, 3->1, 2->2, 1->3, 0->4
+function reverseScore(value: number): number {
+  if (value < 0 || value > 4) return value; // Для пропущенных (-1) или некорректных значений
+  return 4 - value;
+}
+
+// Обратная функция для восстановления отображения: 0->4, 1->3, 2->2, 3->1, 4->0
+function unreverseScore(value: number): number {
+  if (value < 0 || value > 4) return value;
+  return 4 - value;
+}
+
 export default function CheckupQuestions() {
   const navigate = useNavigate();
   const params = useParams<{ profileId?: string }>();
@@ -25,7 +37,8 @@ export default function CheckupQuestions() {
     currentStep, 
     loading, 
     saveAnswer, 
-    getSavedAnswer 
+    getSavedAnswer,
+    complete 
   } = useAssessment({
     assessmentType: 'checkup',
     totalSteps: checkupQuestions.length,
@@ -39,19 +52,39 @@ export default function CheckupQuestions() {
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(initialIndex);
   const [answers, setAnswers] = useState<Answer[]>(
-    checkupQuestions.map((q) => ({ 
-      questionId: q.id, 
-      value: getSavedAnswer(q.id) 
-    }))
+    checkupQuestions.map((q) => {
+      const savedValue = getSavedAnswer(q.id);
+      // Если вопрос обратный и есть сохраненное значение, применяем обратное преобразование для отображения
+      if (q.isReverse && savedValue !== null && savedValue >= 0) {
+        return {
+          questionId: q.id,
+          value: unreverseScore(savedValue),
+        };
+      }
+      return {
+        questionId: q.id,
+        value: savedValue,
+      };
+    })
   );
 
   // Восстанавливаем ответы при загрузке
   useEffect(() => {
     if (!loading && params.profileId) {
-      const restoredAnswers = checkupQuestions.map((q) => ({
-        questionId: q.id,
-        value: getSavedAnswer(q.id),
-      }));
+      const restoredAnswers = checkupQuestions.map((q) => {
+        const savedValue = getSavedAnswer(q.id);
+        // Если вопрос обратный и есть сохраненное значение, применяем обратное преобразование для отображения
+        if (q.isReverse && savedValue !== null && savedValue >= 0) {
+          return {
+            questionId: q.id,
+            value: unreverseScore(savedValue),
+          };
+        }
+        return {
+          questionId: q.id,
+          value: savedValue,
+        };
+      });
       setAnswers(restoredAnswers);
       
       // Восстанавливаем позицию
@@ -85,40 +118,74 @@ export default function CheckupQuestions() {
     };
     setAnswers(newAnswers);
 
+    // Применяем reverse scoring для обратных вопросов ПРИ СОХРАНЕНИИ
+    const valueToSave = currentQuestion.isReverse ? reverseScore(value) : value;
+
     // Сохраняем в базу данных
     if (params.profileId) {
       await saveAnswer(
         currentQuestion.id,
         `checkup_${currentQuestion.id.toString().padStart(2, '0')}`,
         currentQuestion.category,
-        value,
+        valueToSave, // Сохраняем уже преобразованное значение
         currentQuestion.answerType,
         currentQuestionIndex + 1
       );
     }
 
     // Автоматически переходим к следующему вопросу
-    setTimeout(() => {
+    setTimeout(async () => {
       // Если это вопрос 21, переходим на промежуточный экран
       if (currentQuestionIndex === INTERLUDE_QUESTION_INDEX) {
         navigate("/checkup-interlude");
       } else if (currentQuestionIndex < checkupQuestions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
-        // После последнего вопроса переходим к вопросам о родителе
+        // После последнего вопроса завершаем checkup assessment
+        if (params.profileId) {
+          await complete();
+        }
+        // Переходим к вопросам о родителе
         navigate("/parent-intro");
       }
     }, TRANSITION_DELAY_MS);
   };
 
-  const handleSkip = () => {
-    if (currentQuestionIndex === INTERLUDE_QUESTION_INDEX) {
-      navigate("/checkup-interlude");
-    } else if (currentQuestionIndex < checkupQuestions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    } else {
-      navigate("/parent-intro");
+  const handleSkip = async () => {
+    // Сохраняем пропущенный ответ (используем -1 как маркер пропущенного вопроса)
+    if (params.profileId) {
+      await saveAnswer(
+        currentQuestion.id,
+        `checkup_${currentQuestion.id.toString().padStart(2, '0')}`,
+        currentQuestion.category,
+        -1, // -1 означает пропущенный вопрос
+        currentQuestion.answerType,
+        currentQuestionIndex + 1
+      );
     }
+
+    // Обновляем локальное состояние
+    const newAnswers = [...answers];
+    newAnswers[currentQuestionIndex] = {
+      questionId: currentQuestion.id,
+      value: -1,
+    };
+    setAnswers(newAnswers);
+
+    // Переходим к следующему вопросу
+    setTimeout(async () => {
+      if (currentQuestionIndex === INTERLUDE_QUESTION_INDEX) {
+        navigate("/checkup-interlude");
+      } else if (currentQuestionIndex < checkupQuestions.length - 1) {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+      } else {
+        // После последнего вопроса завершаем checkup assessment
+        if (params.profileId) {
+          await complete();
+        }
+        navigate("/parent-intro");
+      }
+    }, TRANSITION_DELAY_MS);
   };
 
   useEffect(() => {
