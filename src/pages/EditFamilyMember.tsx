@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { getFamilyMember, updateFamilyMember } from "@/lib/familyStorage";
+import { getProfile, updateProfile } from "@/lib/profileStorage";
 
 export default function EditFamilyMember() {
   const navigate = useNavigate();
@@ -28,39 +28,53 @@ export default function EditFamilyMember() {
   const [seekingCare, setSeekingCare] = useState("");
 
   useEffect(() => {
-    if (id) {
-      const member = getFamilyMember(id);
-      if (member) {
-        setFirstName(member.firstName);
-        setLastName(member.lastName);
-        setDateOfBirth(member.dateOfBirth);
-        setRelationship(member.relationship);
-        setSex(member.sex);
-        setPronouns(member.pronouns || "");
-        setReferral(member.referral || "");
-        setSeekingCare(member.seekingCare);
-      } else {
-        toast.error("Член семьи не найден");
-        navigate("/family-members");
+    async function loadMember() {
+      if (id) {
+        try {
+          const member = await getProfile(id);
+          if (member) {
+            setFirstName(member.first_name);
+            setLastName(member.last_name || "");
+            setDateOfBirth(member.dob || "");
+            setRelationship(member.type);
+            setSex(member.gender || "");
+            setPronouns(member.pronouns || "");
+            setReferral(member.referral || "");
+            setSeekingCare(member.seeking_care || "");
+          } else {
+            toast.error("Член семьи не найден");
+            navigate("/family-members");
+          }
+        } catch (error) {
+          console.error('Error loading profile:', error);
+          toast.error('Ошибка при загрузке данных');
+          navigate("/family-members");
+        }
       }
     }
+    loadMember();
   }, [id, navigate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (firstName && lastName && dateOfBirth && relationship && sex && seekingCare && id) {
-      updateFamilyMember(id, {
-        firstName,
-        lastName,
-        dateOfBirth,
-        relationship,
-        sex,
-        pronouns,
-        referral,
-        seekingCare,
-      });
-      toast.success("Данные члена семьи обновлены!");
-      navigate("/family-members");
+      try {
+        await updateProfile(id, {
+          firstName,
+          lastName,
+          dateOfBirth,
+          relationship: relationship as 'parent' | 'child' | 'partner' | 'sibling' | 'caregiver' | 'other',
+          sex: sex as 'male' | 'female' | 'other',
+          pronouns,
+          referral,
+          seekingCare: seekingCare as 'yes' | 'no',
+        });
+        toast.success("Данные члена семьи обновлены!");
+        navigate("/family-members");
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        toast.error('Ошибка при обновлении данных');
+      }
     }
   };
 

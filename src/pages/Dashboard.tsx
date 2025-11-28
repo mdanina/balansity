@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import logoOtters from "@/assets/logo-otters.png";
 import otterReading from "@/assets/otter-reading.png";
 import otterHearts from "@/assets/otter-hearts.png";
@@ -5,34 +6,37 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { User } from "lucide-react";
-import { getFamilyMembers, saveFamilyMembers } from "@/lib/familyStorage";
+import { getProfiles } from "@/lib/profileStorage";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
+import type { Database } from "@/lib/supabase";
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export default function Dashboard() {
-  const [familyMembers, setFamilyMembers] = useState<Array<{ firstName: string; lastName: string; age: number }>>([]);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [familyMembers, setFamilyMembers] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let members = getFamilyMembers();
-    
-    // Если нет членов семьи, добавляем начальные данные
-    if (members.length === 0) {
-      members = [
-        {
-          id: "1",
-          firstName: "Мария",
-          lastName: "Данина",
-          age: 39,
-          dateOfBirth: "1985-01-01",
-          relationship: "parent",
-          sex: "female",
-          seekingCare: "no"
-        }
-      ];
-      saveFamilyMembers(members);
+    async function loadMembers() {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const profiles = await getProfiles();
+        setFamilyMembers(profiles);
+      } catch (error) {
+        console.error('Error loading family members:', error);
+      } finally {
+        setLoading(false);
+      }
     }
-    
-    setFamilyMembers(members);
-  }, []);
+    loadMembers();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,13 +62,15 @@ export default function Dashboard() {
         <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-teal-400/30 to-transparent" />
         
         <div className="container mx-auto relative z-10 max-w-5xl">
-          <h1 className="mb-4 text-4xl font-bold md:text-5xl">Привет, Мария</h1>
+          <h1 className="mb-4 text-4xl font-bold md:text-5xl">
+            Привет{user?.email ? `, ${user.email.split('@')[0]}` : ''}
+          </h1>
           <p className="text-xl md:text-2xl opacity-90">Как вы себя чувствуете сегодня?</p>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto max-w-5xl px-6 py-8">
+        <div className="container mx-auto max-w-5xl px-6 py-8">
         {/* Welcome Card */}
         <Card className="mb-8 overflow-hidden border-2 bg-card p-8 shadow-lg">
           <div className="flex items-center justify-between gap-8">
@@ -84,6 +90,12 @@ export default function Dashboard() {
             </Button>
           </div>
         </Card>
+
+        {loading ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Загрузка...</p>
+          </div>
+        ) : null}
 
         {/* Portal Cards */}
         <div className="mb-12 grid gap-6 md:grid-cols-2">
@@ -115,24 +127,43 @@ export default function Dashboard() {
         {/* Your Family Section */}
         <div>
           <h2 className="mb-6 text-3xl font-bold text-foreground">Ваша семья</h2>
-          <div className="space-y-4">
-            {familyMembers.map((member, index) => (
-              <Card 
-                key={index}
-                className="flex items-center gap-4 border-2 bg-card p-6 shadow-sm transition-all hover:shadow-md"
-              >
-                <Avatar className="h-16 w-16 bg-gradient-to-br from-blue-400 to-blue-600">
-                  <div className="flex h-full w-full items-center justify-center text-white">
-                    <User className="h-8 w-8" />
-                  </div>
-                </Avatar>
-                <div>
-                  <h3 className="text-xl font-bold text-foreground">{member.firstName} {member.lastName}</h3>
-                  <p className="text-muted-foreground">{member.age} лет</p>
-                </div>
-              </Card>
-            ))}
-          </div>
+          {familyMembers.length === 0 ? (
+            <Card className="border-2 bg-card p-8 text-center">
+              <p className="text-muted-foreground mb-4">Пока нет членов семьи</p>
+              <Button onClick={() => navigate("/family-members")}>
+                Добавить члена семьи
+              </Button>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {familyMembers.map((member) => {
+                const age = member.dob 
+                  ? new Date().getFullYear() - new Date(member.dob).getFullYear()
+                  : null;
+                
+                return (
+                  <Card 
+                    key={member.id}
+                    className="flex items-center gap-4 border-2 bg-card p-6 shadow-sm transition-all hover:shadow-md"
+                  >
+                    <Avatar className="h-16 w-16 bg-gradient-to-br from-blue-400 to-blue-600">
+                      <div className="flex h-full w-full items-center justify-center text-white">
+                        <User className="h-8 w-8" />
+                      </div>
+                    </Avatar>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-foreground">
+                        {member.first_name} {member.last_name || ''}
+                      </h3>
+                      {age !== null && (
+                        <p className="text-muted-foreground">{age} лет</p>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

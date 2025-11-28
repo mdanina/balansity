@@ -1,11 +1,15 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useCurrentProfile } from "@/contexts/ProfileContext";
 import otterHearts from "@/assets/otter-hearts.png";
 
 export default function ParentIntro() {
   const navigate = useNavigate();
+  const params = useParams<{ profileId?: string }>();
+  const { currentProfileId } = useCurrentProfile();
+  const profileId = params.profileId || currentProfileId;
 
   return (
     <div className="min-h-screen bg-background">
@@ -44,7 +48,13 @@ export default function ParentIntro() {
 
           <Button
             size="lg"
-            onClick={() => navigate("/parent-questions")}
+            onClick={() => {
+              if (profileId) {
+                navigate(`/parent-questions/${profileId}`);
+              } else {
+                navigate("/parent-questions");
+              }
+            }}
             className="h-14 w-full text-base font-medium"
           >
             Далее

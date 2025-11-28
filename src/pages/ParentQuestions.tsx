@@ -1,24 +1,69 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { parentQuestions, sexOptions, frequencyOptions } from "@/data/parentQuestions";
+import { useAssessment } from "@/hooks/useAssessment";
 
 interface Answer {
   questionId: number;
   value: number | null;
 }
 
+const TRANSITION_DELAY_MS = 300;
+
 export default function ParentQuestions() {
   const navigate = useNavigate();
+  const params = useParams<{ profileId?: string }>();
+  
+  const { 
+    currentStep, 
+    loading, 
+    saveAnswer, 
+    getSavedAnswer,
+    complete 
+  } = useAssessment({
+    assessmentType: 'parent',
+    totalSteps: parentQuestions.length,
+    profileId: params.profileId,
+  });
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>(
-    parentQuestions.map((q) => ({ questionId: q.id, value: null }))
+    parentQuestions.map((q) => ({ 
+      questionId: q.id, 
+      value: null 
+    }))
   );
 
+  // Восстанавливаем ответы при загрузке
+  useEffect(() => {
+    if (!loading && params.profileId) {
+      const restoredAnswers = parentQuestions.map((q) => ({
+        questionId: q.id,
+        value: getSavedAnswer(q.id),
+      }));
+      setAnswers(restoredAnswers);
+      
+      if (currentStep > 1) {
+        setCurrentQuestionIndex(currentStep - 1);
+      }
+    }
+  }, [loading, currentStep, params.profileId, getSavedAnswer]);
+
+  if (currentQuestionIndex < 0 || currentQuestionIndex >= parentQuestions.length) {
+    navigate("/parent-intro");
+    return null;
+  }
+
   const currentQuestion = parentQuestions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / 6) * 100;
+  if (!currentQuestion) {
+    navigate("/parent-intro");
+    return null;
+  }
+
+  const progress = ((currentQuestionIndex + 1) / parentQuestions.length) * 100;
 
   const getAnswerOptions = () => {
     switch (currentQuestion.answerType) {
@@ -33,7 +78,7 @@ export default function ParentQuestions() {
 
   const currentAnswerOptions = getAnswerOptions();
 
-  const handleAnswer = (value: number) => {
+  const handleAnswer = async (value: number) => {
     const newAnswers = [...answers];
     newAnswers[currentQuestionIndex] = {
       questionId: currentQuestion.id,
@@ -41,13 +86,29 @@ export default function ParentQuestions() {
     };
     setAnswers(newAnswers);
 
+    // Сохраняем в базу данных
+    if (params.profileId) {
+      await saveAnswer(
+        currentQuestion.id,
+        `parent_${currentQuestion.id.toString().padStart(2, '0')}`,
+        currentQuestion.category,
+        value,
+        currentQuestion.answerType,
+        currentQuestionIndex + 1
+      );
+    }
+
     setTimeout(() => {
       if (currentQuestionIndex < parentQuestions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
+        // Завершаем оценку
+        if (params.profileId) {
+          complete();
+        }
         navigate("/family-intro");
       }
-    }, 300);
+    }, TRANSITION_DELAY_MS);
   };
 
   const handleSkip = () => {
@@ -62,6 +123,16 @@ export default function ParentQuestions() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentQuestionIndex]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -71,7 +142,7 @@ export default function ParentQuestions() {
           <div className="flex items-center gap-4">
             <Progress value={progress} className="flex-1 bg-primary-foreground/20" />
             <span className="text-sm font-medium text-primary-foreground">
-              {currentQuestionIndex + 1} / 6
+              {currentQuestionIndex + 1} / {parentQuestions.length}
             </span>
           </div>
         </div>

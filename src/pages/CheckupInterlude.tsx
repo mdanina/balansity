@@ -1,11 +1,15 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useCurrentProfile } from "@/contexts/ProfileContext";
 import otterCouch from "@/assets/otter-couch.png";
 
 export default function CheckupInterlude() {
   const navigate = useNavigate();
+  const params = useParams<{ profileId?: string }>();
+  const { currentProfileId } = useCurrentProfile();
+  const profileId = params.profileId || currentProfileId;
 
   return (
     <div className="min-h-screen bg-background">
@@ -44,7 +48,13 @@ export default function CheckupInterlude() {
 
           <Button
             size="lg"
-            onClick={() => navigate("/checkup-questions?start=22")}
+            onClick={() => {
+              if (profileId) {
+                navigate(`/checkup-questions/${profileId}?start=22`);
+              } else {
+                navigate("/checkup-questions?start=22");
+              }
+            }}
             className="h-14 w-full text-base font-medium"
           >
             Далее

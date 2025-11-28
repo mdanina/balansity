@@ -3,7 +3,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProfileProvider } from "@/contexts/ProfileContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Welcome from "./pages/Welcome";
 import RegionSelect from "./pages/RegionSelect";
 import ComingSoon from "./pages/ComingSoon";
@@ -32,38 +37,48 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/welcome" element={<Welcome />} />
-          <Route path="/region" element={<RegionSelect />} />
-          <Route path="/coming-soon" element={<ComingSoon />} />
-          <Route path="/success" element={<Success />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/family-setup" element={<FamilySetup />} />
-          <Route path="/family-members" element={<FamilyMembers />} />
-          <Route path="/add-family-member" element={<AddFamilyMember />} />
-          <Route path="/edit-family-member/:id" element={<EditFamilyMember />} />
-          <Route path="/worries" element={<Worries />} />
-          <Route path="/checkup-intro" element={<CheckupIntro />} />
-          <Route path="/checkup" element={<Checkup />} />
-          <Route path="/checkup-questions" element={<CheckupQuestions />} />
-          <Route path="/checkup-interlude" element={<CheckupInterlude />} />
-          <Route path="/parent-intro" element={<ParentIntro />} />
-          <Route path="/parent-questions" element={<ParentQuestions />} />
-          <Route path="/family-intro" element={<FamilyIntro />} />
-          <Route path="/family-questions" element={<FamilyQuestions />} />
-          <Route path="/checkup-results" element={<CheckupResults />} />
-          <Route path="/results-report" element={<ResultsReportNew />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <ProfileProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Публичные маршруты */}
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/welcome" element={<Welcome />} />
+              <Route path="/coming-soon" element={<ComingSoon />} />
+              
+              {/* Защищенные маршруты (требуют авторизации) */}
+              <Route path="/success" element={<ProtectedRoute><Success /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/region" element={<ProtectedRoute><RegionSelect /></ProtectedRoute>} />
+              <Route path="/family-setup" element={<ProtectedRoute><FamilySetup /></ProtectedRoute>} />
+              <Route path="/family-members" element={<ProtectedRoute><FamilyMembers /></ProtectedRoute>} />
+              <Route path="/add-family-member" element={<ProtectedRoute><AddFamilyMember /></ProtectedRoute>} />
+              <Route path="/edit-family-member/:id" element={<ProtectedRoute><EditFamilyMember /></ProtectedRoute>} />
+              <Route path="/worries" element={<ProtectedRoute><Worries /></ProtectedRoute>} />
+              <Route path="/checkup-intro" element={<ProtectedRoute><CheckupIntro /></ProtectedRoute>} />
+              <Route path="/checkup" element={<ProtectedRoute><Checkup /></ProtectedRoute>} />
+              <Route path="/checkup-questions/:profileId?" element={<ProtectedRoute><CheckupQuestions /></ProtectedRoute>} />
+              <Route path="/checkup-interlude" element={<ProtectedRoute><CheckupInterlude /></ProtectedRoute>} />
+              <Route path="/parent-intro" element={<ProtectedRoute><ParentIntro /></ProtectedRoute>} />
+              <Route path="/parent-questions/:profileId?" element={<ProtectedRoute><ParentQuestions /></ProtectedRoute>} />
+              <Route path="/family-intro" element={<ProtectedRoute><FamilyIntro /></ProtectedRoute>} />
+              <Route path="/family-questions/:profileId?" element={<ProtectedRoute><FamilyQuestions /></ProtectedRoute>} />
+              <Route path="/checkup-results" element={<ProtectedRoute><CheckupResults /></ProtectedRoute>} />
+              <Route path="/results-report" element={<ProtectedRoute><ResultsReportNew /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ProfileProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

@@ -1,0 +1,26 @@
+-- ============================================
+-- Supabase Migration: Email Configuration
+-- ============================================
+-- ⚠️ ВНИМАНИЕ: Для self-hosted Supabase эта миграция НЕ РАБОТАЕТ!
+-- 
+-- В self-hosted Supabase настройки email НЕ хранятся в таблице auth.config.
+-- Вместо этого они настраиваются через переменные окружения GoTrue.
+-- 
+-- См. инструкцию: SUPABASE_SELF_HOSTED_EMAIL_SETUP.md
+-- 
+-- Для настройки email в self-hosted Supabase используйте:
+-- 1. Переменные окружения в docker-compose.yml или .env файле
+-- 2. Настройки в панели управления Beget (если применимо)
+-- 
+-- Пример переменных окружения:
+-- GOTRUE_MAILER_AUTOCONFIRM=true  (для отключения подтверждения)
+-- GOTRUE_SITE_URL=http://localhost:8080
+-- GOTRUE_URI_ALLOW_LIST=http://localhost:8080
+-- GOTRUE_SMTP_HOST=smtp.beget.com
+-- GOTRUE_SMTP_PORT=587
+-- GOTRUE_SMTP_USER=ваш-email@beget.com
+-- GOTRUE_SMTP_PASS=ваш-пароль
+-- 
+-- После изменения переменных перезапустите сервис auth:
+-- docker-compose restart auth
+

@@ -1,14 +1,25 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useCurrentProfile } from "@/contexts/ProfileContext";
 import otterSchool from "@/assets/otter-school.png";
 
 export default function Checkup() {
   const navigate = useNavigate();
-  const [currentQuestion] = useState(1);
+  const params = useParams<{ profileId?: string }>();
+  const { currentProfileId } = useCurrentProfile();
+  const profileId = params.profileId || currentProfileId;
+  const currentQuestion = 1;
   const totalQuestions = 31;
+
+  const handleNext = () => {
+    if (profileId) {
+      navigate(`/checkup-questions/${profileId}`);
+    } else {
+      navigate("/checkup-questions");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,7 +63,7 @@ export default function Checkup() {
 
           <Button
             size="lg"
-            onClick={() => navigate("/checkup-questions")}
+            onClick={handleNext}
             className="h-14 w-full text-base font-medium"
           >
             Далее

@@ -1,29 +1,83 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { checkupQuestions, answerOptions, impactAnswerOptions } from "@/data/checkupQuestions";
+import { useAssessment } from "@/hooks/useAssessment";
 
 interface Answer {
   questionId: number;
   value: number | null;
 }
 
+const INTERLUDE_QUESTION_INDEX = 20;
+const TRANSITION_DELAY_MS = 300;
+
 export default function CheckupQuestions() {
   const navigate = useNavigate();
+  const params = useParams<{ profileId?: string }>();
   const [searchParams] = useSearchParams();
   const startIndex = parseInt(searchParams.get("start") || "1") - 1;
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(startIndex);
+  
+  // Используем хук для работы с оценкой
+  const { 
+    currentStep, 
+    loading, 
+    saveAnswer, 
+    getSavedAnswer 
+  } = useAssessment({
+    assessmentType: 'checkup',
+    totalSteps: checkupQuestions.length,
+    profileId: params.profileId,
+  });
+
+  // Восстанавливаем индекс вопроса из сохраненного шага или из URL
+  const initialIndex = params.profileId && currentStep > 1 
+    ? currentStep - 1 
+    : startIndex;
+  
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(initialIndex);
   const [answers, setAnswers] = useState<Answer[]>(
-    checkupQuestions.map((q) => ({ questionId: q.id, value: null }))
+    checkupQuestions.map((q) => ({ 
+      questionId: q.id, 
+      value: getSavedAnswer(q.id) 
+    }))
   );
 
+  // Восстанавливаем ответы при загрузке
+  useEffect(() => {
+    if (!loading && params.profileId) {
+      const restoredAnswers = checkupQuestions.map((q) => ({
+        questionId: q.id,
+        value: getSavedAnswer(q.id),
+      }));
+      setAnswers(restoredAnswers);
+      
+      // Восстанавливаем позицию
+      if (currentStep > 1) {
+        setCurrentQuestionIndex(currentStep - 1);
+      }
+    }
+  }, [loading, currentStep, params.profileId, getSavedAnswer]);
+
+  // Проверка на существование вопроса
+  if (currentQuestionIndex < 0 || currentQuestionIndex >= checkupQuestions.length) {
+    navigate("/checkup-intro");
+    return null;
+  }
+
   const currentQuestion = checkupQuestions[currentQuestionIndex];
+  if (!currentQuestion) {
+    navigate("/checkup-intro");
+    return null;
+  }
+
   const progress = ((currentQuestionIndex + 1) / checkupQuestions.length) * 100;
   const currentAnswerOptions = currentQuestion.answerType === 'impact' ? impactAnswerOptions : answerOptions;
 
-  const handleAnswer = (value: number) => {
+  const handleAnswer = async (value: number) => {
+    // Обновляем локальное состояние
     const newAnswers = [...answers];
     newAnswers[currentQuestionIndex] = {
       questionId: currentQuestion.id,
@@ -31,10 +85,22 @@ export default function CheckupQuestions() {
     };
     setAnswers(newAnswers);
 
+    // Сохраняем в базу данных
+    if (params.profileId) {
+      await saveAnswer(
+        currentQuestion.id,
+        `checkup_${currentQuestion.id.toString().padStart(2, '0')}`,
+        currentQuestion.category,
+        value,
+        currentQuestion.answerType,
+        currentQuestionIndex + 1
+      );
+    }
+
     // Автоматически переходим к следующему вопросу
     setTimeout(() => {
       // Если это вопрос 21, переходим на промежуточный экран
-      if (currentQuestionIndex === 20) {
+      if (currentQuestionIndex === INTERLUDE_QUESTION_INDEX) {
         navigate("/checkup-interlude");
       } else if (currentQuestionIndex < checkupQuestions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -42,11 +108,11 @@ export default function CheckupQuestions() {
         // После последнего вопроса переходим к вопросам о родителе
         navigate("/parent-intro");
       }
-    }, 300);
+    }, TRANSITION_DELAY_MS);
   };
 
   const handleSkip = () => {
-    if (currentQuestionIndex === 20) {
+    if (currentQuestionIndex === INTERLUDE_QUESTION_INDEX) {
       navigate("/checkup-interlude");
     } else if (currentQuestionIndex < checkupQuestions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -59,6 +125,16 @@ export default function CheckupQuestions() {
     // Прокручиваем вверх при смене вопроса
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentQuestionIndex]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

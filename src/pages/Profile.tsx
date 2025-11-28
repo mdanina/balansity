@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
 import { StepIndicator } from "@/components/StepIndicator";
 import { Button } from "@/components/ui/button";
@@ -15,9 +16,12 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { getCurrentUserData, upsertUserData } from "@/lib/userStorage";
+import { getProfiles, createProfile, updateProfile } from "@/lib/profileStorage";
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -27,12 +31,88 @@ export default function Profile() {
   const [phone, setPhone] = useState("");
   const [smsConsent, setSmsConsent] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Загружаем существующие данные пользователя и профиля родителя
+  useEffect(() => {
+    async function loadUserData() {
+      if (!user) return;
+      
+      try {
+        const userData = await getCurrentUserData();
+        if (userData) {
+          setPhone(userData.phone || "");
+          setMarketingConsent(userData.marketing_consent || false);
+        }
+
+        // Загружаем профиль родителя, если он существует
+        const profiles = await getProfiles();
+        const parentProfile = profiles.find(p => p.type === 'parent');
+        if (parentProfile) {
+          setFirstName(parentProfile.first_name || "");
+          setLastName(parentProfile.last_name || "");
+          setDateOfBirth(parentProfile.dob || "");
+          setSex(parentProfile.gender || "");
+          setPronouns(parentProfile.pronouns || "");
+          setSeekingCare(parentProfile.seeking_care || "");
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadUserData();
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (firstName && lastName && dateOfBirth && sex && seekingCare && phone) {
-      toast.success("Профиль успешно создан!");
-      navigate("/family-setup");
+      try {
+        setLoading(true);
+        
+        // Сохраняем данные пользователя в таблицу users
+        await upsertUserData({
+          phone,
+          marketing_consent: marketingConsent,
+        });
+
+        // Проверяем, есть ли уже профиль родителя
+        const profiles = await getProfiles();
+        const parentProfile = profiles.find(p => p.type === 'parent');
+
+        if (parentProfile) {
+          // Обновляем существующий профиль
+          await updateProfile(parentProfile.id, {
+            firstName,
+            lastName,
+            dateOfBirth,
+            relationship: 'parent',
+            sex: sex as 'male' | 'female' | 'other',
+            pronouns,
+            seekingCare: seekingCare as 'yes' | 'no',
+          });
+          toast.success("Профиль успешно обновлен!");
+        } else {
+          // Создаем новый профиль родителя
+          await createProfile({
+            firstName,
+            lastName,
+            dateOfBirth,
+            relationship: 'parent',
+            sex: sex as 'male' | 'female' | 'other',
+            pronouns,
+            seekingCare: seekingCare as 'yes' | 'no',
+          });
+          toast.success("Профиль успешно создан!");
+        }
+
+        navigate("/region");
+      } catch (error) {
+        console.error('Error saving profile:', error);
+        toast.error('Ошибка при сохранении профиля');
+        setLoading(false);
+      }
     }
   };
 
@@ -41,7 +121,7 @@ export default function Profile() {
       <Header />
       
       <div className="container mx-auto max-w-2xl px-4 py-12">
-        <StepIndicator currentStep={3} totalSteps={3} label="ПРОФИЛЬ СЕМЬИ" />
+        <StepIndicator currentStep={1} totalSteps={3} label="ПРОФИЛЬ" />
         
         <div className="space-y-8">
           <div className="text-center">
@@ -195,9 +275,10 @@ export default function Profile() {
             <Button
               type="submit"
               size="lg"
+              disabled={loading}
               className="h-14 w-full text-base font-medium"
             >
-              Продолжить
+              {loading ? 'Сохранение...' : 'Продолжить'}
             </Button>
           </form>
         </div>

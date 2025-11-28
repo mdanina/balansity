@@ -74,7 +74,7 @@ export default function Index() {
 
           <Button
             size="lg"
-            onClick={() => navigate("/welcome")}
+            onClick={() => navigate("/login")}
             className="h-14 w-full text-base font-medium sm:w-auto sm:px-12"
           >
             Начать

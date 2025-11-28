@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { addFamilyMember } from "@/lib/familyStorage";
+import { createProfile } from "@/lib/profileStorage";
 
 export default function AddFamilyMember() {
   const navigate = useNavigate();
@@ -26,21 +26,26 @@ export default function AddFamilyMember() {
   const [referral, setReferral] = useState("");
   const [seekingCare, setSeekingCare] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (firstName && lastName && dateOfBirth && relationship && sex && seekingCare) {
-      addFamilyMember({
-        firstName,
-        lastName,
-        dateOfBirth,
-        relationship,
-        sex,
-        pronouns,
-        referral,
-        seekingCare,
-      });
-      toast.success("Член семьи успешно добавлен!");
-      navigate("/family-members");
+      try {
+        await createProfile({
+          firstName,
+          lastName,
+          dateOfBirth,
+          relationship: relationship as 'parent' | 'child' | 'partner' | 'sibling' | 'caregiver' | 'other',
+          sex: sex as 'male' | 'female' | 'other',
+          pronouns,
+          referral,
+          seekingCare: seekingCare as 'yes' | 'no',
+        });
+        toast.success("Член семьи успешно добавлен!");
+        navigate("/family-members");
+      } catch (error) {
+        console.error('Error creating profile:', error);
+        toast.error('Ошибка при добавлении члена семьи');
+      }
     }
   };
 

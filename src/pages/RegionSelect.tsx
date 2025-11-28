@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
 import { StepIndicator } from "@/components/StepIndicator";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { getCurrentUserData, upsertUserData } from "@/lib/userStorage";
 
 const regions = [
   "Москва",
@@ -32,15 +35,50 @@ const regions = [
 
 export default function RegionSelect() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [region, setRegion] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const handleContinue = () => {
+  // Загружаем существующий регион
+  useEffect(() => {
+    async function loadRegion() {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const userData = await getCurrentUserData();
+        if (userData?.region) {
+          setRegion(userData.region);
+        }
+      } catch (error) {
+        console.error('Error loading region:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadRegion();
+  }, [user]);
+
+  const handleContinue = async () => {
     if (region) {
-      // Simulate some regions being unavailable
-      if (region === "Омск" || region === "Волгоград") {
-        navigate("/coming-soon");
-      } else {
-        navigate("/profile");
+      try {
+        setLoading(true);
+        
+        // Сохраняем регион в таблицу users
+        await upsertUserData({ region });
+
+        // Simulate some regions being unavailable
+        if (region === "Омск" || region === "Волгоград") {
+          navigate("/coming-soon");
+        } else {
+          navigate("/family-setup");
+        }
+      } catch (error) {
+        console.error('Error saving region:', error);
+        toast.error('Ошибка при сохранении региона');
+        setLoading(false);
       }
     }
   };
@@ -50,7 +88,7 @@ export default function RegionSelect() {
       <Header />
       
       <div className="container mx-auto max-w-2xl px-4 py-12">
-        <StepIndicator currentStep={2} totalSteps={3} label="ДОБРО ПОЖАЛОВАТЬ" />
+        <StepIndicator currentStep={2} totalSteps={3} label="РЕГИОН" />
         
         <div className="space-y-8">
           <div className="text-center">
@@ -83,7 +121,7 @@ export default function RegionSelect() {
                 type="button"
                 variant="outline"
                 size="lg"
-                onClick={() => navigate("/welcome")}
+                onClick={() => navigate("/profile")}
                 className="h-14 flex-1 text-base font-medium"
               >
                 Назад
@@ -92,10 +130,10 @@ export default function RegionSelect() {
                 type="button"
                 size="lg"
                 onClick={handleContinue}
-                disabled={!region}
+                disabled={!region || loading}
                 className="h-14 flex-1 text-base font-medium"
               >
-                Продолжить
+                {loading ? 'Сохранение...' : 'Продолжить'}
               </Button>
             </div>
           </div>
