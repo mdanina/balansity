@@ -59,14 +59,36 @@ export default function Worries() {
   const [selectedWorries, setSelectedWorries] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Загружаем существующие worry tags при загрузке
+  // Загружаем существующие worry tags при загрузке из всех профилей
   useEffect(() => {
     async function loadWorryTags() {
       if (profileId) {
         try {
-          const profile = await getProfile(profileId);
-          if (profile && profile.worry_tags && profile.worry_tags.length > 0) {
-            setSelectedWorries(profile.worry_tags);
+          const profiles = await getProfiles();
+          const childProfile = profiles.find(p => p.id === profileId);
+          const parentProfile = profiles.find(p => p.type === 'parent');
+          const partnerProfile = profiles.find(p => p.type === 'partner');
+          
+          // Собираем worry tags из всех профилей
+          const allWorryTags: string[] = [];
+          
+          if (childProfile?.worry_tags) {
+            allWorryTags.push(...childProfile.worry_tags);
+          }
+          if (parentProfile?.worry_tags) {
+            // Добавляем только personal и family worry tags из профиля родителя
+            const parentPersonalWorries = parentProfile.worry_tags.filter(w => personalWorries.includes(w));
+            const parentFamilyWorries = parentProfile.worry_tags.filter(w => familyWorries.includes(w));
+            allWorryTags.push(...parentPersonalWorries, ...parentFamilyWorries);
+          }
+          if (partnerProfile?.worry_tags) {
+            allWorryTags.push(...partnerProfile.worry_tags);
+          }
+          
+          // Убираем дубликаты
+          const uniqueWorryTags = [...new Set(allWorryTags)];
+          if (uniqueWorryTags.length > 0) {
+            setSelectedWorries(uniqueWorryTags);
           }
         } catch (error) {
           console.error('Error loading worry tags:', error);
@@ -244,29 +266,54 @@ export default function Worries() {
               try {
                 setLoading(true);
                 
+                // Разделяем worry tags по категориям
+                const childWorryTags = selectedWorries.filter(w => childWorries.includes(w));
+                const personalWorryTags = selectedWorries.filter(w => personalWorries.includes(w));
+                const familyWorryTags = selectedWorries.filter(w => familyWorries.includes(w));
+                
                 console.log('Saving worry tags:', {
-                  profileId: targetProfileId,
-                  selectedWorries,
-                  count: selectedWorries.length
+                  childProfileId: targetProfileId,
+                  childWorryTags,
+                  personalWorryTags,
+                  familyWorryTags
                 });
                 
-                // Сохраняем worry tags в профиль ребенка
-                // Передаем массив всегда, даже если он пустой (будет сохранен как null)
-                const updatedProfile = await updateProfile(targetProfileId, {
-                  worryTags: selectedWorries,
+                // Сохраняем worry tags о ребенке в профиль ребенка
+                await updateProfile(targetProfileId, {
+                  worryTags: childWorryTags,
                 });
 
-                console.log('Profile updated:', {
-                  profileId: updatedProfile.id,
-                  worry_tags: updatedProfile.worry_tags
-                });
+                // Сохраняем worry tags о себе в профиль родителя
+                const profiles = await getProfiles();
+                const parentProfile = profiles.find(p => p.type === 'parent');
+                if (parentProfile) {
+                  await updateProfile(parentProfile.id, {
+                    worryTags: personalWorryTags,
+                  });
+                }
+
+                // Сохраняем worry tags о семье в профиль партнера (если есть) или родителя
+                const partnerProfile = profiles.find(p => p.type === 'partner');
+                if (partnerProfile) {
+                  await updateProfile(partnerProfile.id, {
+                    worryTags: familyWorryTags,
+                  });
+                } else if (parentProfile) {
+                  // Если нет партнера, сохраняем семейные беспокойства в профиль родителя
+                  // Объединяем с уже существующими worry tags родителя
+                  const existingParentWorries = parentProfile.worry_tags || [];
+                  const combinedParentWorries = [...new Set([...existingParentWorries, ...familyWorryTags])];
+                  await updateProfile(parentProfile.id, {
+                    worryTags: combinedParentWorries,
+                  });
+                }
 
                 // Обновляем профиль в контексте, если он там есть
                 if (currentProfile) {
-                  setCurrentProfile({
-                    ...currentProfile,
-                    worry_tags: selectedWorries.length > 0 ? selectedWorries : null,
-                  });
+                  const updatedChildProfile = await getProfile(targetProfileId);
+                  if (updatedChildProfile) {
+                    setCurrentProfile(updatedChildProfile);
+                  }
                 }
 
                 toast.success('Беспокойства сохранены');

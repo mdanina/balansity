@@ -5,10 +5,48 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import leafDecoration from "@/assets/leaf-decoration.png";
 import { ChevronLeft, ChevronRight, Download, MessageCircle, Lightbulb, Minus, Plus, Save } from "lucide-react";
-import { getCompletedAssessment, getAssessmentResults } from "@/lib/assessmentStorage";
+import { getCompletedAssessment, getAssessmentResults, recalculateAssessmentResults } from "@/lib/assessmentStorage";
 import { getProfile, getProfiles } from "@/lib/profileStorage";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
+
+// Категории worry tags (должны совпадать с Worries.tsx)
+const childWorries = [
+  "Фокус и внимание",
+  "Грусть и плач",
+  "Тревоги и беспокойства",
+  "Питание",
+  "Сон и режим",
+  "Туалет",
+  "Сенсорная чувствительность",
+  "Гнев и агрессия",
+  "Импульсивность",
+  "Травма",
+  "Горе и потеря",
+  "Буллинг",
+  "Самооценка",
+  "Школа/детский сад",
+  "Удары, укусы или пинки",
+  "Гендерная или сексуальная идентичность",
+  "Сотрудничество",
+];
+
+const personalWorries = [
+  "Выгорание",
+  "Тревожность",
+  "Пониженное настроение",
+  "Трудности с концентрацией внимания",
+  "Общий стресс",
+];
+
+const familyWorries = [
+  "Разделение/развод",
+  "Семейный стресс",
+  "Отношения с партнером",
+  "Психическое здоровье партнера",
+  "Воспитание",
+  "Семейный конфликт",
+];
 import { toast } from "sonner";
 import type { Database } from "@/lib/supabase";
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -24,6 +62,18 @@ interface CheckupResults {
   total_difficulties?: number;
 }
 
+interface ParentResults {
+  anxiety?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
+  depression?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
+  total?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
+}
+
+interface FamilyResults {
+  family_stress?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
+  partner_relationship?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
+  coparenting?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
+}
+
 interface ChildCheckupData {
   profile: Profile;
   assessment: Assessment;
@@ -35,11 +85,12 @@ export default function ResultsReportNew() {
   const params = useParams<{ profileId?: string }>();
   const [searchParams] = useSearchParams();
   const { currentProfileId } = useCurrentProfile();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [parentProfile, setParentProfile] = useState<Profile | null>(null);
+  const [partnerProfile, setPartnerProfile] = useState<Profile | null>(null);
   const [childrenCheckups, setChildrenCheckups] = useState<ChildCheckupData[]>([]);
   const [parentAssessment, setParentAssessment] = useState<Assessment | null>(null);
   const [familyAssessment, setFamilyAssessment] = useState<Assessment | null>(null);
@@ -57,6 +108,10 @@ export default function ResultsReportNew() {
   // Загружаем данные всех профилей пользователя и их оценки
   useEffect(() => {
     async function loadResults() {
+      if (authLoading) {
+        return; // Ждем завершения загрузки авторизации
+      }
+      
       if (!user) {
         navigate("/dashboard");
         return;
@@ -68,42 +123,98 @@ export default function ResultsReportNew() {
         // Загружаем все профили пользователя
         const profiles = await getProfiles();
         
-        // Находим профиль родителя
+        // Находим профиль родителя и партнера
         const parent = profiles.find(p => p.type === 'parent');
+        const partner = profiles.find(p => p.type === 'partner');
+        let foundParentAssess: Assessment | null = null;
+        let foundFamilyAssess: Assessment | null = null;
+        
         if (parent) {
           setParentProfile(parent);
+        }
+        if (partner) {
+          setPartnerProfile(partner);
+        }
+        
+        if (parent) {
           
           // Сначала пробуем найти по профилю родителя
-          const parentAssess = await getCompletedAssessment(parent.id, 'parent');
+          let parentAssess = await getCompletedAssessment(parent.id, 'parent');
           if (parentAssess) {
-            setParentAssessment(parentAssess);
+            // Если результаты не рассчитаны, пересчитываем
+            if (!parentAssess.results_summary || Object.keys(parentAssess.results_summary).length === 0 || (parentAssess.results_summary as any).status === 'completed') {
+              try {
+                await recalculateAssessmentResults(parentAssess.id);
+                // Перезагружаем оценку после пересчета
+                parentAssess = await getCompletedAssessment(parent.id, 'parent');
+              } catch (error) {
+                console.error('Error recalculating parent assessment:', error);
+              }
+            }
+            foundParentAssess = parentAssess;
           }
 
-          const familyAssess = await getCompletedAssessment(parent.id, 'family');
+          let familyAssess = await getCompletedAssessment(parent.id, 'family');
           if (familyAssess) {
-            setFamilyAssessment(familyAssess);
+            // Если результаты не рассчитаны, пересчитываем
+            if (!familyAssess.results_summary || Object.keys(familyAssess.results_summary).length === 0 || (familyAssess.results_summary as any).status === 'completed') {
+              try {
+                await recalculateAssessmentResults(familyAssess.id);
+                // Перезагружаем оценку после пересчета
+                familyAssess = await getCompletedAssessment(parent.id, 'family');
+              } catch (error) {
+                console.error('Error recalculating family assessment:', error);
+              }
+            }
+            foundFamilyAssess = familyAssess;
           }
         }
         
         // Если не нашли по профилю родителя, ищем по всем остальным профилям
         // (на случай, если они были созданы с неправильным profileId)
-        if (!parentAssessment || !familyAssessment) {
+        if (!foundParentAssess || !foundFamilyAssess) {
           for (const profile of profiles) {
             if (profile.type !== 'parent') {
-              if (!parentAssessment) {
-                const parentAssess = await getCompletedAssessment(profile.id, 'parent');
+              if (!foundParentAssess) {
+                let parentAssess = await getCompletedAssessment(profile.id, 'parent');
                 if (parentAssess) {
-                  setParentAssessment(parentAssess);
+                  // Пересчитываем, если нужно
+                  if (!parentAssess.results_summary || Object.keys(parentAssess.results_summary).length === 0 || (parentAssess.results_summary as any).status === 'completed') {
+                    try {
+                      await recalculateAssessmentResults(parentAssess.id);
+                      parentAssess = await getCompletedAssessment(profile.id, 'parent');
+                    } catch (error) {
+                      console.error('Error recalculating parent assessment:', error);
+                    }
+                  }
+                  foundParentAssess = parentAssess;
                 }
               }
-              if (!familyAssessment) {
-                const familyAssess = await getCompletedAssessment(profile.id, 'family');
+              if (!foundFamilyAssess) {
+                let familyAssess = await getCompletedAssessment(profile.id, 'family');
                 if (familyAssess) {
-                  setFamilyAssessment(familyAssess);
+                  // Пересчитываем, если нужно
+                  if (!familyAssess.results_summary || Object.keys(familyAssess.results_summary).length === 0 || (familyAssess.results_summary as any).status === 'completed') {
+                    try {
+                      await recalculateAssessmentResults(familyAssess.id);
+                      familyAssess = await getCompletedAssessment(profile.id, 'family');
+                    } catch (error) {
+                      console.error('Error recalculating family assessment:', error);
+                    }
+                  }
+                  foundFamilyAssess = familyAssess;
                 }
               }
             }
           }
+        }
+        
+        // Устанавливаем найденные оценки в state
+        if (foundParentAssess) {
+          setParentAssessment(foundParentAssess);
+        }
+        if (foundFamilyAssess) {
+          setFamilyAssessment(foundFamilyAssess);
         }
         
         // Загружаем checkup оценки для всех детей
@@ -136,8 +247,14 @@ export default function ResultsReportNew() {
       }
     }
 
-    loadResults();
-  }, [user, navigate]);
+    if (!authLoading) {
+      if (user) {
+        loadResults();
+      } else {
+        setLoading(false);
+      }
+    }
+  }, [user, authLoading, navigate]);
 
   // Функция для получения текста статуса на русском
   const getStatusText = (status: string): string => {
@@ -326,13 +443,49 @@ export default function ResultsReportNew() {
                     <h3 className="text-xl font-bold text-foreground">Вы</h3>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Родительская оценка завершена
-                    </p>
-                    {parentAssessment.completed_at && (
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(parentAssessment.completed_at).toLocaleDateString('ru-RU')}
-                      </p>
+                    {parentAssessment.results_summary ? (
+                      (() => {
+                        const parentResults = parentAssessment.results_summary as ParentResults;
+                        return (
+                          <>
+                            {parentResults.anxiety && (
+                              <div>
+                                <span className={`font-medium ${getStatusColor(parentResults.anxiety.status).split(' ')[0]}`}>
+                                  {getStatusText(parentResults.anxiety.status)}
+                                </span>
+                                <p className="text-sm text-muted-foreground">Тревожность (балл: {parentResults.anxiety.score})</p>
+                              </div>
+                            )}
+                            {parentResults.depression && (
+                              <div>
+                                <span className={`font-medium ${getStatusColor(parentResults.depression.status).split(' ')[0]}`}>
+                                  {getStatusText(parentResults.depression.status)}
+                                </span>
+                                <p className="text-sm text-muted-foreground">Депрессия (балл: {parentResults.depression.score})</p>
+                              </div>
+                            )}
+                            {parentResults.total && (
+                              <div>
+                                <span className={`font-medium ${getStatusColor(parentResults.total.status).split(' ')[0]}`}>
+                                  {getStatusText(parentResults.total.status)}
+                                </span>
+                                <p className="text-sm text-muted-foreground">Общий балл: {parentResults.total.score}</p>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()
+                    ) : (
+                      <>
+                        <p className="text-sm text-muted-foreground">
+                          Родительская оценка завершена
+                        </p>
+                        {parentAssessment.completed_at && (
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(parentAssessment.completed_at).toLocaleDateString('ru-RU')}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -345,13 +498,49 @@ export default function ResultsReportNew() {
                     <h3 className="text-xl font-bold text-foreground">Семья</h3>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Семейная оценка завершена
-                    </p>
-                    {familyAssessment.completed_at && (
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(familyAssessment.completed_at).toLocaleDateString('ru-RU')}
-                      </p>
+                    {familyAssessment.results_summary ? (
+                      (() => {
+                        const familyResults = familyAssessment.results_summary as FamilyResults;
+                        return (
+                          <>
+                            {familyResults.family_stress && (
+                              <div>
+                                <span className={`font-medium ${getStatusColor(familyResults.family_stress.status).split(' ')[0]}`}>
+                                  {getStatusText(familyResults.family_stress.status)}
+                                </span>
+                                <p className="text-sm text-muted-foreground">Семейный стресс (балл: {familyResults.family_stress.score})</p>
+                              </div>
+                            )}
+                            {familyResults.partner_relationship && (
+                              <div>
+                                <span className={`font-medium ${getStatusColor(familyResults.partner_relationship.status).split(' ')[0]}`}>
+                                  {getStatusText(familyResults.partner_relationship.status)}
+                                </span>
+                                <p className="text-sm text-muted-foreground">Отношения с партнером (балл: {familyResults.partner_relationship.score})</p>
+                              </div>
+                            )}
+                            {familyResults.coparenting && (
+                              <div>
+                                <span className={`font-medium ${getStatusColor(familyResults.coparenting.status).split(' ')[0]}`}>
+                                  {getStatusText(familyResults.coparenting.status)}
+                                </span>
+                                <p className="text-sm text-muted-foreground">Совместное воспитание (балл: {familyResults.coparenting.score})</p>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()
+                    ) : (
+                      <>
+                        <p className="text-sm text-muted-foreground">
+                          Семейная оценка завершена
+                        </p>
+                        {familyAssessment.completed_at && (
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(familyAssessment.completed_at).toLocaleDateString('ru-RU')}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -371,27 +560,32 @@ export default function ResultsReportNew() {
                 Ментальное здоровье {childProfile.first_name}
               </h2>
               
-              {/* Worries Section */}
-              {childProfile.worry_tags && childProfile.worry_tags.length > 0 && (
-                <div className="mb-8 border-l-4 border-muted pl-6">
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                      <span className="text-sm font-medium">●</span>
+              {/* Worries Section - только о ребенке */}
+              {(() => {
+                const childWorryTags = childProfile.worry_tags?.filter(w => childWorries.includes(w)) || [];
+                if (childWorryTags.length === 0) return null;
+                
+                return (
+                  <div className="mb-8 border-l-4 border-muted pl-6">
+                    <div className="mb-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                        <span className="text-sm font-medium">●</span>
+                      </div>
+                      <h3 className="text-2xl font-bold text-foreground">Беспокойства о {childProfile.first_name}</h3>
                     </div>
-                    <h3 className="text-2xl font-bold text-foreground">Беспокойства</h3>
+                    <p className="mb-4 text-muted-foreground">
+                      Беспокойства, которыми вы поделились о {childProfile.first_name}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {childWorryTags.map((worry, index) => (
+                        <span key={index} className="rounded-full bg-red-100 px-4 py-2 text-sm font-medium text-red-800">
+                          {worry}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <p className="mb-4 text-muted-foreground">
-                    Беспокойства, которыми вы поделились о {childProfile.first_name}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {childProfile.worry_tags.map((worry, index) => (
-                  <span key={index} className="rounded-full bg-red-100 px-4 py-2 text-sm font-medium text-red-800">
-                    {worry}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+                );
+              })()}
 
           {/* Emotional Challenges */}
           {childResults.emotional && (
@@ -831,12 +1025,114 @@ export default function ResultsReportNew() {
                 ? new Date(parentAssessment.completed_at).toLocaleDateString('ru-RU')
                 : ''}
             </p>
-            {/* Parent assessment results would go here - показываем, что оценка завершена */}
-            <div className="rounded-lg border border-border bg-muted/20 p-6">
-              <p className="text-foreground">
-                Родительская оценка завершена. Детальные результаты будут доступны после реализации расчета баллов для родительской оценки.
-              </p>
-            </div>
+            
+            {/* Worries Section - о себе */}
+            {(() => {
+              const personalWorryTags = parentProfile?.worry_tags?.filter(w => personalWorries.includes(w)) || [];
+              if (personalWorryTags.length === 0) return null;
+              
+              return (
+                <div className="mb-8 border-l-4 border-muted pl-6">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                      <span className="text-sm font-medium">●</span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-foreground">Беспокойства о себе</h3>
+                  </div>
+                  <p className="mb-4 text-muted-foreground">
+                    Беспокойства, которыми вы поделились о себе
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {personalWorryTags.map((worry, index) => (
+                      <span key={index} className="rounded-full bg-red-100 px-4 py-2 text-sm font-medium text-red-800">
+                        {worry}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+            
+            {parentAssessment.results_summary ? (
+              (() => {
+                const parentResults = parentAssessment.results_summary as ParentResults;
+                return (
+                  <div className="space-y-6">
+                    {parentResults.anxiety && (
+                      <div className="rounded-lg border border-border bg-muted/20 p-6">
+                        <div className="mb-4 flex items-center justify-between">
+                          <h3 className="text-xl font-bold text-foreground">Тревожность</h3>
+                          <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(parentResults.anxiety.status)}`}>
+                            {getStatusText(parentResults.anxiety.status)}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground">Балл: {parentResults.anxiety.score} / 6</p>
+                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                          <div 
+                            className={`h-full ${
+                              parentResults.anxiety.status === 'concerning' ? 'bg-red-500' :
+                              parentResults.anxiety.status === 'borderline' ? 'bg-yellow-500' :
+                              'bg-primary'
+                            }`}
+                            style={{ width: `${getProgressPercentage(parentResults.anxiety.score, 6)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {parentResults.depression && (
+                      <div className="rounded-lg border border-border bg-muted/20 p-6">
+                        <div className="mb-4 flex items-center justify-between">
+                          <h3 className="text-xl font-bold text-foreground">Депрессия</h3>
+                          <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(parentResults.depression.status)}`}>
+                            {getStatusText(parentResults.depression.status)}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground">Балл: {parentResults.depression.score} / 6</p>
+                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                          <div 
+                            className={`h-full ${
+                              parentResults.depression.status === 'concerning' ? 'bg-red-500' :
+                              parentResults.depression.status === 'borderline' ? 'bg-yellow-500' :
+                              'bg-primary'
+                            }`}
+                            style={{ width: `${getProgressPercentage(parentResults.depression.score, 6)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {parentResults.total && (
+                      <div className="rounded-lg border border-border bg-muted/20 p-6">
+                        <div className="mb-4 flex items-center justify-between">
+                          <h3 className="text-xl font-bold text-foreground">Общий балл</h3>
+                          <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(parentResults.total.status)}`}>
+                            {getStatusText(parentResults.total.status)}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground">Балл: {parentResults.total.score} / 12</p>
+                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                          <div 
+                            className={`h-full ${
+                              parentResults.total.status === 'concerning' ? 'bg-red-500' :
+                              parentResults.total.status === 'borderline' ? 'bg-yellow-500' :
+                              'bg-primary'
+                            }`}
+                            style={{ width: `${getProgressPercentage(parentResults.total.score, 12)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+            ) : (
+              <div className="rounded-lg border border-border bg-muted/20 p-6">
+                <p className="text-foreground">
+                  Родительская оценка завершена, но результаты еще не рассчитаны.
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="mb-12">
@@ -962,12 +1258,116 @@ export default function ResultsReportNew() {
                 ? new Date(familyAssessment.completed_at).toLocaleDateString('ru-RU')
                 : ''}
             </p>
-            {/* Family assessment results would go here - показываем, что оценка завершена */}
-            <div className="rounded-lg border border-border bg-muted/20 p-6">
-              <p className="text-foreground">
-                Семейная оценка завершена. Детальные результаты будут доступны после реализации расчета баллов для семейной оценки.
-              </p>
-            </div>
+            
+            {/* Worries Section - о семье */}
+            {(() => {
+              // Ищем worry tags о семье в профиле партнера или родителя
+              const familyWorryTags = partnerProfile?.worry_tags?.filter(w => familyWorries.includes(w)) || 
+                                     parentProfile?.worry_tags?.filter(w => familyWorries.includes(w)) || [];
+              if (familyWorryTags.length === 0) return null;
+              
+              return (
+                <div className="mb-8 border-l-4 border-muted pl-6">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                      <span className="text-sm font-medium">●</span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-foreground">Беспокойства о семье</h3>
+                  </div>
+                  <p className="mb-4 text-muted-foreground">
+                    Беспокойства, которыми вы поделились о семье
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {familyWorryTags.map((worry, index) => (
+                      <span key={index} className="rounded-full bg-red-100 px-4 py-2 text-sm font-medium text-red-800">
+                        {worry}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+            
+            {familyAssessment.results_summary ? (
+              (() => {
+                const familyResults = familyAssessment.results_summary as FamilyResults;
+                return (
+                  <div className="space-y-6">
+                    {familyResults.family_stress && (
+                      <div className="rounded-lg border border-border bg-muted/20 p-6">
+                        <div className="mb-4 flex items-center justify-between">
+                          <h3 className="text-xl font-bold text-foreground">Семейный стресс</h3>
+                          <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(familyResults.family_stress.status)}`}>
+                            {getStatusText(familyResults.family_stress.status)}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground">Балл: {familyResults.family_stress.score} / 4</p>
+                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                          <div 
+                            className={`h-full ${
+                              familyResults.family_stress.status === 'concerning' ? 'bg-red-500' :
+                              familyResults.family_stress.status === 'borderline' ? 'bg-yellow-500' :
+                              'bg-primary'
+                            }`}
+                            style={{ width: `${getProgressPercentage(familyResults.family_stress.score, 4)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {familyResults.partner_relationship && (
+                      <div className="rounded-lg border border-border bg-muted/20 p-6">
+                        <div className="mb-4 flex items-center justify-between">
+                          <h3 className="text-xl font-bold text-foreground">Отношения с партнером</h3>
+                          <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(familyResults.partner_relationship.status)}`}>
+                            {getStatusText(familyResults.partner_relationship.status)}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground">Балл: {familyResults.partner_relationship.score} / 5</p>
+                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                          <div 
+                            className={`h-full ${
+                              familyResults.partner_relationship.status === 'concerning' ? 'bg-red-500' :
+                              familyResults.partner_relationship.status === 'borderline' ? 'bg-yellow-500' :
+                              'bg-primary'
+                            }`}
+                            style={{ width: `${getProgressPercentage(familyResults.partner_relationship.score, 5)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {familyResults.coparenting && (
+                      <div className="rounded-lg border border-border bg-muted/20 p-6">
+                        <div className="mb-4 flex items-center justify-between">
+                          <h3 className="text-xl font-bold text-foreground">Совместное воспитание</h3>
+                          <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(familyResults.coparenting.status)}`}>
+                            {getStatusText(familyResults.coparenting.status)}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground">Балл: {familyResults.coparenting.score} / 10</p>
+                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                          <div 
+                            className={`h-full ${
+                              familyResults.coparenting.status === 'concerning' ? 'bg-red-500' :
+                              familyResults.coparenting.status === 'borderline' ? 'bg-yellow-500' :
+                              'bg-primary'
+                            }`}
+                            style={{ width: `${getProgressPercentage(familyResults.coparenting.score, 10)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+            ) : (
+              <div className="rounded-lg border border-border bg-muted/20 p-6">
+                <p className="text-foreground">
+                  Семейная оценка завершена, но результаты еще не рассчитаны.
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="mb-12">

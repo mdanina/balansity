@@ -2,10 +2,10 @@
 import { supabase } from './supabase';
 import type { Database } from './supabase';
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
 type Assessment = Database['public']['Tables']['assessments']['Row'];
-type Answer = Database['public']['Tables']['answers']['Row'];
 type AssessmentInsert = Database['public']['Tables']['assessments']['Insert'];
+type AssessmentUpdate = Database['public']['Tables']['assessments']['Update'];
+type Answer = Database['public']['Tables']['answers']['Row'];
 type AnswerInsert = Database['public']['Tables']['answers']['Insert'];
 
 export interface AnswerData {
@@ -71,20 +71,14 @@ export async function getActiveAssessment(
       .eq('status', 'in_progress')
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // Не найдено - это нормально
-        return null;
-      }
-      throw error;
-    }
+    if (error) throw error;
 
     return data;
   } catch (error) {
     console.error('Error getting active assessment:', error);
-    throw error;
+    return null;
   }
 }
 
@@ -149,7 +143,7 @@ export async function getAnswers(assessmentId: string): Promise<Answer[]> {
       .from('answers')
       .select('*')
       .eq('assessment_id', assessmentId)
-      .order('step_number', { ascending: true });
+      .order('question_id', { ascending: true });
 
     if (error) throw error;
 
@@ -173,7 +167,7 @@ export async function getAnswer(
       .select('*')
       .eq('assessment_id', assessmentId)
       .eq('question_id', questionId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -277,3 +271,20 @@ export async function getCompletedAssessment(
   }
 }
 
+/**
+ * Пересчитать результаты для завершенной оценки
+ */
+export async function recalculateAssessmentResults(assessmentId: string): Promise<Record<string, any> | null> {
+  try {
+    const { data, error } = await supabase.rpc('complete_assessment', {
+      assessment_uuid: assessmentId,
+    });
+
+    if (error) throw error;
+
+    return data as Record<string, any>;
+  } catch (error) {
+    console.error('Error recalculating assessment results:', error);
+    return null;
+  }
+}

@@ -32,6 +32,8 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
 
   // Определяем правильный profileId: для parent/family используем профиль родителя
   useEffect(() => {
+    let cancelled = false;
+    
     async function determineProfileId() {
       const inputProfileId = providedProfileId || params.profileId || currentProfileId;
       
@@ -39,6 +41,8 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
       if (assessmentType === 'parent' || assessmentType === 'family') {
         try {
           const profiles = await getProfiles();
+          if (cancelled) return;
+          
           const parent = profiles.find(p => p.type === 'parent');
           if (parent) {
             setActualProfileId(parent.id);
@@ -46,14 +50,25 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
           }
         } catch (error) {
           console.error('Error loading profiles:', error);
+          // Если ошибка, используем переданный profileId
+          if (!cancelled) {
+            setActualProfileId(inputProfileId || null);
+          }
+          return;
         }
       }
       
       // Для checkup используем переданный profileId (профиль ребенка)
-      setActualProfileId(inputProfileId || null);
+      if (!cancelled) {
+        setActualProfileId(inputProfileId || null);
+      }
     }
     
     determineProfileId();
+    
+    return () => {
+      cancelled = true;
+    };
   }, [providedProfileId, params.profileId, currentProfileId, assessmentType]);
 
   // Инициализация: получение или создание оценки
