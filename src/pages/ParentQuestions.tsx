@@ -13,6 +13,18 @@ interface Answer {
 
 const TRANSITION_DELAY_MS = 300;
 
+// Функция для reverse scoring для шкалы 0-3: 3->0, 2->1, 1->2, 0->3
+function reverseScore3(value: number): number {
+  if (value < 0 || value > 3) return value; // Для пропущенных (-1) или некорректных значений
+  return 3 - value;
+}
+
+// Обратная функция для восстановления отображения: 0->3, 1->2, 2->1, 3->0
+function unreverseScore3(value: number): number {
+  if (value < 0 || value > 3) return value;
+  return 3 - value;
+}
+
 export default function ParentQuestions() {
   const navigate = useNavigate();
   const params = useParams<{ profileId?: string }>();
@@ -43,10 +55,20 @@ export default function ParentQuestions() {
   // Восстанавливаем ответы при загрузке (только один раз)
   useEffect(() => {
     if (!loading && params.profileId && !isInitialized) {
-      const restoredAnswers = parentQuestions.map((q) => ({
-        questionId: q.id,
-        value: getSavedAnswer(q.id),
-      }));
+      const restoredAnswers = parentQuestions.map((q) => {
+        const savedValue = getSavedAnswer(q.id);
+        // Если вопрос обратный и есть сохраненное значение, применяем обратное преобразование для отображения
+        if (q.isReverse && savedValue !== null && savedValue >= 0 && savedValue <= 3) {
+          return {
+            questionId: q.id,
+            value: unreverseScore3(savedValue),
+          };
+        }
+        return {
+          questionId: q.id,
+          value: savedValue,
+        };
+      });
       setAnswers(restoredAnswers);
       
       // Устанавливаем индекс только один раз при инициализации
@@ -102,6 +124,9 @@ export default function ParentQuestions() {
       };
       setAnswers(newAnswers);
 
+      // Применяем reverse scoring для обратных вопросов ПРИ СОХРАНЕНИИ
+      const valueToSave = currentQuestion.isReverse === true ? reverseScore3(value) : value;
+
       // Сохраняем в базу данных
       if (params.profileId) {
         try {
@@ -109,7 +134,7 @@ export default function ParentQuestions() {
             currentQuestion.id,
             `parent_${currentQuestion.id.toString().padStart(2, '0')}`,
             currentQuestion.category,
-            value,
+            valueToSave, // Сохраняем уже преобразованное значение
             currentQuestion.answerType,
             currentQuestionIndex + 1
           );

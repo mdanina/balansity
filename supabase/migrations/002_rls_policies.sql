@@ -4,6 +4,13 @@
 -- Политики безопасности для защиты данных пользователей
 
 -- ============================================
+-- 0. Создаем индексы для оптимизации RLS политик
+-- ============================================
+-- Эти индексы оптимизируют JOIN операции в RLS политиках для таблиц answers и assessments
+CREATE INDEX IF NOT EXISTS idx_assessments_composite ON public.assessments(id, profile_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_composite ON public.profiles(id, user_id);
+
+-- ============================================
 -- 1. Включаем RLS для всех таблиц
 -- ============================================
 alter table public.users enable row level security;

@@ -1,17 +1,42 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
+import { getProfile } from "@/lib/profileStorage";
+import type { Database } from "@/lib/supabase";
 import otterSchool from "@/assets/otter-school.png";
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export default function CheckupIntro() {
   const navigate = useNavigate();
   const params = useParams<{ profileId?: string }>();
   const { currentProfileId } = useCurrentProfile();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
   
   // Используем profileId из URL или из контекста
   const profileId = params.profileId || currentProfileId;
+
+  useEffect(() => {
+    async function loadProfile() {
+      if (profileId) {
+        try {
+          const loadedProfile = await getProfile(profileId);
+          setProfile(loadedProfile);
+        } catch (error) {
+          console.error('Error loading profile:', error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    }
+    loadProfile();
+  }, [profileId]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -36,7 +61,11 @@ export default function CheckupIntro() {
           
           <div className="space-y-4">
             <h1 className="text-5xl font-bold text-foreground">
-              Давайте сосредоточимся на ребенке.
+              {profile ? (
+                <>Давайте сосредоточимся на <span className="font-bold">{profile.first_name}</span>.</>
+              ) : (
+                <>Давайте сосредоточимся на ребенке.</>
+              )}
             </h1>
           </div>
 

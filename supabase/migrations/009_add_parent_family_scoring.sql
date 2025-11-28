@@ -32,6 +32,8 @@ begin
   
   -- Определение статуса
   -- Пороговые значения для тревожности и депрессии (PHQ-4 подобная шкала)
+  -- ВАЖНО: Пороги могут потребовать научного обоснования и пересмотра
+  -- Текущие пороги основаны на PHQ-4 подобной шкале, но могут быть адаптированы
   result := jsonb_build_object(
     'anxiety', jsonb_build_object(
       'score', anxiety_score,
@@ -87,10 +89,11 @@ begin
     and value >= 0
   limit 1;
   
-  family_stress_score := wellbeing_value;
+  -- Используем coalesce для защиты от NULL
+  family_stress_score := coalesce(wellbeing_value, 0);
   
   -- Вопрос 2: Отношения с партнером (relationship) - 0-6, но 6 = "Не применимо"
-  -- Обратная шкала: 0 = "Все время" (лучше), 5 = "Никогда" (хуже)
+  -- Reverse scoring применяется на фронтенде, поэтому здесь просто используем значение
   select coalesce(value, 0) into relationship_value
   from public.answers
   where assessment_id = assessment_uuid
@@ -100,8 +103,8 @@ begin
     and value < 6  -- Исключаем "Не применимо"
   limit 1;
   
-  -- Преобразуем: 0=0, 1=1, 2=2, 3=3, 4=4, 5=5 (чем выше, тем хуже)
-  partner_relationship_score := relationship_value;
+  -- Используем значение напрямую (reverse scoring уже применен на фронтенде)
+  partner_relationship_score := coalesce(relationship_value, 0);
   
   -- Вопрос 3: Частота ссор (frequency) - 0-6, но 6 = "Не применимо"
   -- Чем выше значение, тем чаще ссоры (хуже)
@@ -115,7 +118,7 @@ begin
   limit 1;
   
   -- Вопрос 4: Совместное воспитание (frequency) - 0-6, но 6 = "Не применимо"
-  -- Обратная шкала: 0 = "Все время" (лучше), 5 = "Никогда" (хуже)
+  -- Reverse scoring применяется на фронтенде, поэтому здесь просто используем значение
   select coalesce(value, 0) into coparenting_together_value
   from public.answers
   where assessment_id = assessment_uuid
@@ -125,9 +128,8 @@ begin
     and value < 6  -- Исключаем "Не применимо"
   limit 1;
   
-  -- Преобразуем обратную шкалу: 0=5, 1=4, 2=3, 3=2, 4=1, 5=0
-  -- (чем выше исходное значение, тем хуже совместное воспитание)
-  coparenting_score := 5 - coparenting_together_value;
+  -- Используем значение напрямую (reverse scoring уже применен на фронтенде)
+  coparenting_score := coalesce(coparenting_together_value, 0);
   
   -- Вопрос 5: Споры о воспитании (frequency) - 0-6, но 6 = "Не применимо"
   -- Чем выше значение, тем чаще споры (хуже)
@@ -141,14 +143,17 @@ begin
   limit 1;
   
   -- Общий балл совместного воспитания (чем выше, тем хуже)
-  coparenting_score := coparenting_score + coparenting_arguments_value;
+  -- Используем coalesce для защиты от NULL
+  coparenting_score := coalesce(coparenting_score, 0) + coalesce(coparenting_arguments_value, 0);
   
   -- Определение статуса
+  -- ВАЖНО: Пороговые значения для family оценок могут потребовать научного обоснования
+  -- Текущие пороги являются предварительными и могут быть адаптированы на основе клинических данных
   result := jsonb_build_object(
     'family_stress', jsonb_build_object(
       'score', family_stress_score,
       'status', case
-        when family_stress_score >= 3 then 'concerning'  -- Высокий стресс
+        when family_stress_score >= 3 then 'concerning'  -- Высокий стресс (порог требует обоснования)
         when family_stress_score >= 2 then 'borderline'  -- Умеренный стресс
         else 'typical'  -- Низкий стресс
       end
@@ -156,7 +161,7 @@ begin
     'partner_relationship', jsonb_build_object(
       'score', partner_relationship_score,
       'status', case
-        when partner_relationship_score >= 4 then 'concerning'  -- Плохие отношения
+        when partner_relationship_score >= 4 then 'concerning'  -- Плохие отношения (порог требует обоснования)
         when partner_relationship_score >= 3 then 'borderline'  -- Умеренные проблемы
         else 'typical'  -- Хорошие отношения
       end
@@ -164,7 +169,7 @@ begin
     'coparenting', jsonb_build_object(
       'score', coparenting_score,
       'status', case
-        when coparenting_score >= 7 then 'concerning'  -- Плохое совместное воспитание
+        when coparenting_score >= 7 then 'concerning'  -- Плохое совместное воспитание (порог требует обоснования)
         when coparenting_score >= 5 then 'borderline'  -- Умеренные проблемы
         else 'typical'  -- Хорошее совместное воспитание
       end

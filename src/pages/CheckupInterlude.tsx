@@ -1,15 +1,35 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
+import { getProfile } from "@/lib/profileStorage";
+import type { Database } from "@/lib/supabase";
 import otterCouch from "@/assets/otter-couch.png";
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export default function CheckupInterlude() {
   const navigate = useNavigate();
   const params = useParams<{ profileId?: string }>();
   const { currentProfileId } = useCurrentProfile();
   const profileId = params.profileId || currentProfileId;
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    async function loadProfile() {
+      if (profileId) {
+        try {
+          const loadedProfile = await getProfile(profileId);
+          setProfile(loadedProfile);
+        } catch (error) {
+          console.error('Error loading profile:', error);
+        }
+      }
+    }
+    loadProfile();
+  }, [profileId]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -38,7 +58,11 @@ export default function CheckupInterlude() {
             </h1>
             
             <p className="text-lg text-muted-foreground">
-              Трудности вашего ребенка могут повлиять на его развитие и функционирование, а также на качество жизни вашей семьи. Именно тогда важно получить помощь и поддержку.
+              {profile ? (
+                <>Трудности {profile.first_name} могут повлиять на его развитие и функционирование, а также на качество жизни вашей семьи. Именно тогда важно получить помощь и поддержку.</>
+              ) : (
+                <>Трудности вашего ребенка могут повлиять на его развитие и функционирование, а также на качество жизни вашей семьи. Именно тогда важно получить помощь и поддержку.</>
+              )}
             </p>
             
             <p className="text-sm text-muted-foreground">

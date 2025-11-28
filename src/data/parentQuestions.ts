@@ -3,6 +3,7 @@ export interface ParentQuestion {
   text: string;
   category: string;
   answerType: 'sex' | 'frequency' | 'default';
+  isReverse?: boolean; // Для обратных вопросов (reverse scoring)
 }
 
 export const parentQuestions: ParentQuestion[] = [

@@ -174,6 +174,18 @@ export interface Database {
         };
         Returns: Record<string, any>;
       };
+      calculate_parent_scores: {
+        Args: {
+          assessment_uuid: string;
+        };
+        Returns: Record<string, any>;
+      };
+      calculate_family_scores: {
+        Args: {
+          assessment_uuid: string;
+        };
+        Returns: Record<string, any>;
+      };
     };
   };
 }

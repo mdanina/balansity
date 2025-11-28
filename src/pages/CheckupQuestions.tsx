@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { checkupQuestions, answerOptions, impactAnswerOptions } from "@/data/checkupQuestions";
 import { useAssessment } from "@/hooks/useAssessment";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
+import { getProfile, getProfiles } from "@/lib/profileStorage";
+import { getCompletedAssessment } from "@/lib/assessmentStorage";
+import type { Database } from "@/lib/supabase";
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface Answer {
   questionId: number;
@@ -32,10 +37,11 @@ export default function CheckupQuestions() {
   const params = useParams<{ profileId?: string }>();
   const [searchParams] = useSearchParams();
   const startIndex = parseInt(searchParams.get("start") || "1") - 1;
-  const { currentProfileId } = useCurrentProfile();
+  const { currentProfileId, setCurrentProfileId, setCurrentProfile } = useCurrentProfile();
   
   // Используем profileId из URL или из контекста
   const profileId = params.profileId || currentProfileId;
+  const [profile, setProfile] = useState<Profile | null>(null);
   
   // Используем хук для работы с оценкой
   const { 
@@ -50,6 +56,21 @@ export default function CheckupQuestions() {
     totalSteps: checkupQuestions.length,
     profileId: profileId,
   });
+
+  // Загружаем профиль для отображения имени
+  useEffect(() => {
+    async function loadProfile() {
+      if (profileId) {
+        try {
+          const loadedProfile = await getProfile(profileId);
+          setProfile(loadedProfile);
+        } catch (error) {
+          console.error('Error loading profile:', error);
+        }
+      }
+    }
+    loadProfile();
+  }, [profileId]);
 
   // Восстанавливаем индекс вопроса из URL параметра start (приоритет) или из сохраненного шага
   // Если есть параметр start в URL, используем его (это значит, что мы вернулись с interlude)
@@ -187,9 +208,44 @@ export default function CheckupQuestions() {
           // После последнего вопроса завершаем checkup assessment
           if (profileId) {
             complete().catch(err => console.error('Error completing assessment:', err));
+            
+            // Проверяем, есть ли еще дети без завершенного чекапа
+            async function checkNextChild() {
+              try {
+                const allProfiles = await getProfiles();
+                const children = allProfiles.filter(p => p.type === 'child' && p.id !== profileId);
+                
+                // Находим детей без завершенного чекапа
+                const childrenWithoutCheckup = [];
+                for (const child of children) {
+                  const completedCheckup = await getCompletedAssessment(child.id, 'checkup');
+                  if (!completedCheckup || completedCheckup.status !== 'completed') {
+                    childrenWithoutCheckup.push(child);
+                  }
+                }
+                
+                // Если есть еще дети без чекапа, переходим к следующему
+                if (childrenWithoutCheckup.length > 0) {
+                  const nextChild = childrenWithoutCheckup[0];
+                  setCurrentProfileId(nextChild.id);
+                  setCurrentProfile(nextChild);
+                  navigate(`/checkup-intro/${nextChild.id}`);
+                } else {
+                  // Все дети прошли чекап - переходим к вопросам о родителе
+                  navigate("/parent-intro");
+                }
+              } catch (error) {
+                console.error('Error checking next child:', error);
+                // В случае ошибки переходим к вопросам о родителе
+                navigate("/parent-intro");
+              }
+            }
+            
+            checkNextChild();
+          } else {
+            // Переходим к вопросам о родителе
+            navigate("/parent-intro");
           }
-          // Переходим к вопросам о родителе
-          navigate("/parent-intro");
         }
       }, TRANSITION_DELAY_MS);
     } catch (error) {
@@ -232,8 +288,39 @@ export default function CheckupQuestions() {
         // После последнего вопроса завершаем checkup assessment
         if (profileId) {
           await complete();
+          
+          // Проверяем, есть ли еще дети без завершенного чекапа
+          try {
+            const allProfiles = await getProfiles();
+            const children = allProfiles.filter(p => p.type === 'child' && p.id !== profileId);
+            
+            // Находим детей без завершенного чекапа
+            const childrenWithoutCheckup = [];
+            for (const child of children) {
+              const completedCheckup = await getCompletedAssessment(child.id, 'checkup');
+              if (!completedCheckup || completedCheckup.status !== 'completed') {
+                childrenWithoutCheckup.push(child);
+              }
+            }
+            
+            // Если есть еще дети без чекапа, переходим к следующему
+            if (childrenWithoutCheckup.length > 0) {
+              const nextChild = childrenWithoutCheckup[0];
+              setCurrentProfileId(nextChild.id);
+              setCurrentProfile(nextChild);
+              navigate(`/checkup-intro/${nextChild.id}`);
+            } else {
+              // Все дети прошли чекап - переходим к вопросам о родителе
+              navigate("/parent-intro");
+            }
+          } catch (error) {
+            console.error('Error checking next child:', error);
+            // В случае ошибки переходим к вопросам о родителе
+            navigate("/parent-intro");
+          }
+        } else {
+          navigate("/parent-intro");
         }
-        navigate("/parent-intro");
       }
     }, TRANSITION_DELAY_MS);
   };
@@ -279,11 +366,19 @@ export default function CheckupQuestions() {
           <div className="space-y-6">
             {currentQuestion.answerType === 'impact' ? (
               <p className="text-center text-muted-foreground">
-                Вызывают ли какие-либо из чувств или поведения вашего ребенка, о которых мы здесь спрашивали...
+                {profile ? (
+                  <>Вызывают ли какие-либо из чувств или поведения {profile.first_name}, о которых мы здесь спрашивали...</>
+                ) : (
+                  <>Вызывают ли какие-либо из чувств или поведения вашего ребенка, о которых мы здесь спрашивали...</>
+                )}
               </p>
             ) : (
               <p className="text-center text-muted-foreground">
-                Пожалуйста, ответьте на эти вопросы о вашем ребенке за последние шесть месяцев.
+                {profile ? (
+                  <>Пожалуйста, ответьте на эти вопросы о {profile.first_name} за последние шесть месяцев.</>
+                ) : (
+                  <>Пожалуйста, ответьте на эти вопросы о вашем ребенке за последние шесть месяцев.</>
+                )}
               </p>
             )}
 

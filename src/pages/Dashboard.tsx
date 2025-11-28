@@ -6,10 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { User, CheckCircle2, Clock, Settings, ArrowRight } from "lucide-react";
+import { User, CheckCircle2, Clock, Settings, MapPin, Users, LogOut } from "lucide-react";
 import { getProfiles } from "@/lib/profileStorage";
 import { getCompletedAssessment, getAssessmentsForProfile } from "@/lib/assessmentStorage";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCurrentProfile } from "@/contexts/ProfileContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useState, useEffect } from "react";
 import type { Database } from "@/lib/supabase";
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -21,9 +30,60 @@ interface MemberWithAssessment extends Profile {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const { setCurrentProfileId, setCurrentProfile } = useCurrentProfile();
   const [familyMembers, setFamilyMembers] = useState<MemberWithAssessment[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  const handleCheckupClick = () => {
+    console.log('Checkup card clicked!');
+    console.log('Family members:', familyMembers);
+    
+    // Находим всех детей
+    const children = familyMembers.filter(m => m.type === 'child');
+    console.log('Children found:', children);
+    
+    if (children.length === 0) {
+      // Нет детей - предлагаем добавить
+      console.log('No children found, navigating to family-members');
+      navigate("/family-members");
+      return;
+    }
+    
+    // Находим детей без завершенного чекапа
+    const childrenWithoutCheckup = children.filter(child => 
+      !child.checkupAssessment || child.checkupAssessment.status !== 'completed'
+    );
+    console.log('Children without checkup:', childrenWithoutCheckup);
+    
+    if (childrenWithoutCheckup.length === 0) {
+      // Все дети прошли чекап - показываем сообщение
+      console.log('All children have completed checkup');
+      alert('Все дети уже прошли чекап! Вы можете посмотреть результаты в разделе "Ваша семья".');
+      return;
+    }
+    
+    if (childrenWithoutCheckup.length === 1) {
+      // Один ребенок - сразу начинаем чекап
+      const child = childrenWithoutCheckup[0];
+      console.log('Starting checkup for single child:', child.first_name);
+      setCurrentProfileId(child.id);
+      setCurrentProfile(child);
+      navigate(`/checkup-intro/${child.id}`);
+    } else {
+      // Несколько детей - начинаем с первого
+      const firstChild = childrenWithoutCheckup[0];
+      console.log('Starting checkup for first child:', firstChild.first_name, `(${childrenWithoutCheckup.length} children total)`);
+      setCurrentProfileId(firstChild.id);
+      setCurrentProfile(firstChild);
+      navigate(`/checkup-intro/${firstChild.id}`);
+    }
+  };
 
   useEffect(() => {
     async function loadMembers() {
@@ -68,11 +128,53 @@ export default function Dashboard() {
             <img src={logoOtters} alt="Little Otter" className="h-8 w-8" />
             <span className="text-xl font-bold text-foreground">Little Otter</span>
           </div>
-          <Avatar className="h-10 w-10 bg-primary">
-            <div className="flex h-full w-full items-center justify-center">
-              <User className="h-5 w-5 text-primary-foreground" />
-            </div>
-          </Avatar>
+          
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="relative h-10 w-10 rounded-full p-0 hover:bg-accent focus:ring-2 focus:ring-ring"
+                  aria-label="Меню профиля"
+                >
+                  <Avatar className="h-10 w-10 border-2 border-transparent hover:border-primary transition-colors">
+                    <div className="flex h-full w-full items-center justify-center bg-primary hover:bg-primary/90 transition-colors">
+                      <User className="h-5 w-5 text-primary-foreground" />
+                    </div>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 z-50" align="end">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">Профиль</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/profile")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Профиль</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/region")}>
+                  <MapPin className="mr-2 h-4 w-4" />
+                  <span>Регион</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/family-members")}>
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>Члены семьи</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Выйти</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </header>
 
@@ -132,59 +234,42 @@ export default function Dashboard() {
             </div>
           </Card>
 
-          <Card className="group cursor-pointer overflow-hidden border-2 bg-gradient-to-br from-pink-50 to-white p-8 shadow-md transition-all hover:shadow-xl">
-            <div className="flex flex-col items-center text-center">
+          <Card 
+            className="group cursor-pointer overflow-hidden border-2 border-pink-200 bg-gradient-to-br from-pink-50 to-white p-8 shadow-md transition-all hover:shadow-xl hover:border-pink-400 hover:scale-[1.02] active:scale-[0.98]"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Card clicked directly');
+              handleCheckupClick();
+            }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleCheckupClick();
+              }
+            }}
+          >
+            <div 
+              className="flex flex-col items-center text-center"
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('Inner div clicked');
+                handleCheckupClick();
+              }}
+            >
               <img 
                 src={otterHearts} 
                 alt="Проверка психического здоровья семьи" 
-                className="mb-6 h-40 w-auto object-contain"
+                className="mb-6 h-40 w-auto object-contain transition-transform group-hover:scale-110 pointer-events-none"
               />
-              <h3 className="mb-2 text-2xl font-bold text-foreground">Психическое здоровье семьи</h3>
-              <p className="text-lg font-medium text-muted-foreground">Проверка</p>
+              <h3 className="mb-2 text-2xl font-bold text-foreground group-hover:text-pink-600 transition-colors pointer-events-none">Психическое здоровье семьи</h3>
+              <p className="text-lg font-medium text-muted-foreground pointer-events-none">Проверка</p>
             </div>
           </Card>
         </div>
 
-        {/* Onboarding Section */}
-        <Card className="mb-8 border-2 bg-gradient-to-br from-blue-50 to-white p-6 shadow-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Settings className="h-6 w-6 text-blue-600" />
-              <div>
-                <h3 className="text-xl font-bold text-foreground">Настройки профиля</h3>
-                <p className="text-sm text-muted-foreground">
-                  Пройдите настройку заново или измените данные
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate("/profile")}
-              >
-                Профиль
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate("/region")}
-              >
-                Регион
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate("/family-members")}
-              >
-                Члены семьи
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </Card>
 
         {/* Your Family Section */}
         <div>
@@ -237,16 +322,6 @@ export default function Dashboard() {
                         <p className="text-sm text-muted-foreground">
                           Завершен: {checkupDate}
                         </p>
-                      )}
-                      {!hasCompletedCheckup && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="mt-2"
-                          onClick={() => navigate(`/checkup-intro/${member.id}`)}
-                        >
-                          Пройти чекап
-                        </Button>
                       )}
                       {hasCompletedCheckup && (
                         <Button 

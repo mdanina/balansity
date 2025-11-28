@@ -118,20 +118,6 @@ export default function FamilyMembers() {
                       )}
                     </div>
                     <div className="flex gap-2">
-                      {/* Кнопка для начала опроса (только для детей) */}
-                      {member.type === 'child' && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => {
-                            setCurrentProfileId(member.id);
-                            setCurrentProfile(member);
-                            navigate(`/checkup-intro/${member.id}`);
-                          }}
-                        >
-                          Начать опрос
-                        </Button>
-                      )}
                       <Button
                         variant="outline"
                         size="icon"

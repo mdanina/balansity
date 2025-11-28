@@ -21,18 +21,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Получаем текущую сессию
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error);
+        // Если ошибка при получении сессии, очищаем состояние
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      
+      // Проверяем, что сессия валидная и не истекла
+      if (session) {
+        const now = Math.floor(Date.now() / 1000);
+        const expiresAt = session.expires_at;
+        
+        // Если сессия истекла, очищаем её
+        if (expiresAt && expiresAt < now) {
+          console.log('Session expired, clearing...');
+          supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+        } else {
+          setSession(session);
+          setUser(session.user ?? null);
+        }
+      } else {
+        setSession(null);
+        setUser(null);
+      }
+      
       setLoading(false);
     });
 
     // Слушаем изменения авторизации
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
+      
+      // Если сессия истекла или была удалена, очищаем состояние
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
+        setSession(null);
+        setUser(null);
+      } else if (session) {
+        // Проверяем валидность сессии
+        const now = Math.floor(Date.now() / 1000);
+        const expiresAt = session.expires_at;
+        
+        if (expiresAt && expiresAt < now) {
+          console.log('Session expired in state change, clearing...');
+          supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+        } else {
+          setSession(session);
+          setUser(session.user ?? null);
+        }
+      } else {
+        setSession(null);
+        setUser(null);
+      }
+      
       setLoading(false);
     });
 

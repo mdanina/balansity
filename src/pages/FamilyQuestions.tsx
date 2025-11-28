@@ -13,6 +13,18 @@ interface Answer {
 
 const TRANSITION_DELAY_MS = 300;
 
+// Функция для reverse scoring для шкалы 0-5: 5->0, 4->1, 3->2, 2->3, 1->4, 0->5
+function reverseScore5(value: number): number {
+  if (value < 0 || value > 5) return value; // Для пропущенных (-1), некорректных значений или "Не применимо" (6)
+  return 5 - value;
+}
+
+// Обратная функция для восстановления отображения: 0->5, 1->4, 2->3, 3->2, 4->1, 5->0
+function unreverseScore5(value: number): number {
+  if (value < 0 || value > 5) return value;
+  return 5 - value;
+}
+
 export default function FamilyQuestions() {
   const navigate = useNavigate();
   const params = useParams<{ profileId?: string }>();
@@ -43,10 +55,20 @@ export default function FamilyQuestions() {
   // Восстанавливаем ответы при загрузке (только один раз)
   useEffect(() => {
     if (!loading && params.profileId && !isInitialized) {
-      const restoredAnswers = familyQuestions.map((q) => ({
-        questionId: q.id,
-        value: getSavedAnswer(q.id),
-      }));
+      const restoredAnswers = familyQuestions.map((q) => {
+        const savedValue = getSavedAnswer(q.id);
+        // Если вопрос обратный и есть сохраненное значение, применяем обратное преобразование для отображения
+        if (q.isReverse && savedValue !== null && savedValue >= 0 && savedValue <= 5) {
+          return {
+            questionId: q.id,
+            value: unreverseScore5(savedValue),
+          };
+        }
+        return {
+          questionId: q.id,
+          value: savedValue,
+        };
+      });
       setAnswers(restoredAnswers);
       
       // Устанавливаем индекс только один раз при инициализации
@@ -104,6 +126,9 @@ export default function FamilyQuestions() {
       };
       setAnswers(newAnswers);
 
+      // Применяем reverse scoring для обратных вопросов ПРИ СОХРАНЕНИИ
+      const valueToSave = currentQuestion.isReverse === true ? reverseScore5(value) : value;
+
       // Сохраняем в базу данных
       if (params.profileId) {
         try {
@@ -111,7 +136,7 @@ export default function FamilyQuestions() {
             currentQuestion.id,
             `family_${currentQuestion.id.toString().padStart(2, '0')}`,
             currentQuestion.category,
-            value,
+            valueToSave, // Сохраняем уже преобразованное значение
             currentQuestion.answerType,
             currentQuestionIndex + 1
           );
