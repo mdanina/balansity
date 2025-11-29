@@ -230,16 +230,16 @@ create or replace function calculate_family_scores(assessment_uuid uuid)
 returns jsonb as $$
 declare
   result jsonb;
-  family_stress_score int := 0;         -- Вопрос 2 (в схеме)
-  partner_relationship_score int := 0;  -- Вопросы 3, 4 (обратная)
-  coparenting_score int := 0;           -- Вопросы 5, 6 (обратная)
+  family_stress_score int := 0;         -- Вопрос 1 (в коде id=1)
+  partner_relationship_score int := 0;  -- Вопросы 2 (прямая), 3 (обратная)
+  coparenting_score int := 0;           -- Вопросы 4 (прямая), 5 (обратная)
   
   -- Значения отдельных вопросов
   wellbeing_value int := 0;      -- Вопрос 1 (в коде id=1)
-  relationship_value int := 0;   -- Вопрос 2 (в коде id=2, обратная)
-  arguments_value int := 0;      -- Вопрос 3 (в коде id=3)
-  coparenting_together_value int := 0;  -- Вопрос 4 (в коде id=4, обратная)
-  coparenting_arguments_value int := 0; -- Вопрос 5 (в коде id=5)
+  relationship_value int := 0;   -- Вопрос 2 (в коде id=2, прямая)
+  arguments_value int := 0;      -- Вопрос 3 (в коде id=3, обратная)
+  coparenting_together_value int := 0;  -- Вопрос 4 (в коде id=4, прямая)
+  coparenting_arguments_value int := 0; -- Вопрос 5 (в коде id=5, обратная)
 begin
   -- 4.6.1. Семейный стресс: вопрос 2 (в схеме)
   -- В коде: id=1 - "Как дела у вашей семьи?"
@@ -254,9 +254,9 @@ begin
   
   family_stress_score := coalesce(wellbeing_value, 0);
   
-  -- 4.6.2. Отношения с партнёром: вопросы 3, 4 (обратная) (в схеме)
-  -- В коде: id=2 (обратная), id=3
-  -- Reverse scoring уже применен при сохранении для id=2
+  -- 4.6.2. Отношения с партнёром: вопросы 2 (прямая), 3 (обратная)
+  -- В коде: id=2 (прямая), id=3 (обратная)
+  -- Reverse scoring уже применен при сохранении для id=3
   select coalesce(value, 0) into relationship_value
   from public.answers
   where assessment_id = assessment_uuid
@@ -277,9 +277,9 @@ begin
   
   partner_relationship_score := coalesce(relationship_value, 0) + coalesce(arguments_value, 0);
   
-  -- 4.6.3. Совместное родительство: вопросы 5, 6 (обратная) (в схеме)
-  -- В коде: id=4 (обратная), id=5
-  -- Reverse scoring уже применен при сохранении для id=4
+  -- 4.6.3. Совместное родительство: вопросы 4 (прямая), 5 (обратная)
+  -- В коде: id=4 (прямая), id=5 (обратная)
+  -- Reverse scoring уже применен при сохранении для id=5
   select coalesce(value, 0) into coparenting_together_value
   from public.answers
   where assessment_id = assessment_uuid

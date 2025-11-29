@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, BookOpen, Calendar } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 export default function CheckupResults() {
   const navigate = useNavigate();
@@ -25,45 +25,6 @@ export default function CheckupResults() {
               для вашей семьи.
             </p>
           </div>
-
-          <Card className="border-2 border-primary/20">
-            <CardContent className="space-y-6 p-8">
-              <div className="text-center">
-                <h2 className="mb-2 text-2xl font-bold text-foreground">
-                  Ваши результаты готовы
-                </h2>
-                <p className="text-muted-foreground">
-                  Наша команда специалистов изучит ваши ответы и подготовит индивидуальный план ухода
-                </p>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="flex flex-col items-center rounded-lg border border-border p-4 text-center">
-                  <BookOpen className="mb-3 h-8 w-8 text-primary" />
-                  <h3 className="mb-2 font-semibold text-foreground">Ресурсы</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Доступ к полезным материалам
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-center rounded-lg border border-border p-4 text-center">
-                  <Calendar className="mb-3 h-8 w-8 text-primary" />
-                  <h3 className="mb-2 font-semibold text-foreground">Консультация</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Запланируйте встречу со специалистом
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-center rounded-lg border border-border p-4 text-center">
-                  <CheckCircle2 className="mb-3 h-8 w-8 text-primary" />
-                  <h3 className="mb-2 font-semibold text-foreground">План ухода</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Персонализированные рекомендации
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           <div className="space-y-4">
             <h3 className="text-xl font-semibold text-foreground">Следующие шаги</h3>
@@ -95,7 +56,7 @@ export default function CheckupResults() {
                       Запланируйте консультацию
                     </h4>
                     <p className="text-sm text-muted-foreground">
-                      Обсудите результаты с нашим навигатором по уходу
+                      Обсудите результаты с личным координатором бесплатно
                     </p>
                   </div>
                 </CardContent>
@@ -108,10 +69,10 @@ export default function CheckupResults() {
                   </div>
                   <div>
                     <h4 className="mb-1 font-semibold text-foreground">
-                      Начните лечение
+                      Начните решать проблемы с нашими специалистами
                     </h4>
                     <p className="text-sm text-muted-foreground">
-                      Получите доступ к командному плану ухода и ресурсам
+                      Получите индивидуальный план работы от нашей команды высококлассных специалистов
                     </p>
                   </div>
                 </CardContent>
