@@ -12,7 +12,7 @@ import { calculateAge } from "@/lib/profileStorage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
 import { useProfiles } from "@/hooks/useProfiles";
-import { useAssessmentsForProfiles } from "@/hooks/useAssessments";
+import { useAssessmentsForProfiles, useActiveAssessmentsForProfiles } from "@/hooks/useAssessments";
 import { logger } from "@/lib/logger";
 import {
   DropdownMenu,
@@ -29,6 +29,7 @@ type Assessment = Database['public']['Tables']['assessments']['Row'];
 
 interface MemberWithAssessment extends Profile {
   checkupAssessment?: Assessment | null;
+  activeCheckupAssessment?: Assessment | null;
 }
 
 export default function Dashboard() {
@@ -48,22 +49,93 @@ export default function Dashboard() {
     isLoading: assessmentsLoading 
   } = useAssessmentsForProfiles(profileIds, 'checkup');
 
+  const { 
+    data: activeAssessmentsMap, 
+    isLoading: activeAssessmentsLoading 
+  } = useActiveAssessmentsForProfiles(profileIds, 'checkup');
+
   // Вычисляем members с оценками
   const familyMembers = useMemo(() => {
     if (!profiles || !Array.isArray(profiles)) return [];
     const assessments = assessmentsMap || {};
+    const activeAssessments = activeAssessmentsMap || {};
     return profiles.map(profile => ({
       ...profile,
       checkupAssessment: assessments[profile.id] || null,
+      activeCheckupAssessment: activeAssessments[profile.id] || null,
     }));
-  }, [profiles, assessmentsMap]);
+  }, [profiles, assessmentsMap, activeAssessmentsMap]);
 
-  const loading = profilesLoading || assessmentsLoading;
+  const loading = profilesLoading || assessmentsLoading || activeAssessmentsLoading;
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
   };
+
+  // Проверка возможности прохождения чекапа
+  const canStartCheckup = useMemo(() => {
+    const children = familyMembers.filter(m => m.type === 'child');
+    
+    if (children.length === 0) {
+      return { allowed: false, reason: 'no_children' };
+    }
+    
+    // Проверяем наличие активных чекапов
+    // Если есть активный чекап - можно продолжить в любое время
+    const hasActiveCheckup = children.some(child => child.activeCheckupAssessment);
+    if (hasActiveCheckup) {
+      return { allowed: true, reason: 'active_checkup_exists' };
+    }
+    
+    // Находим последний завершенный чекап среди всех детей
+    const completedCheckups = children
+      .map(child => child.checkupAssessment)
+      .filter(assessment => assessment?.status === 'completed' && assessment.completed_at)
+      .map(assessment => new Date(assessment!.completed_at!));
+    
+    const lastCheckupDate = completedCheckups.length > 0
+      ? new Date(Math.max(...completedCheckups.map(d => d.getTime())))
+      : null;
+    
+    // Находим самого нового ребенка (по дате создания)
+    const childrenCreatedDates = children
+      .map(child => new Date(child.created_at))
+      .filter(date => !isNaN(date.getTime()));
+    
+    const newestChildDate = childrenCreatedDates.length > 0
+      ? new Date(Math.max(...childrenCreatedDates.map(d => d.getTime())))
+      : null;
+    
+    // Проверяем условия:
+    // 1. Если нет завершенных чекапов - можно пройти
+    if (!lastCheckupDate) {
+      return { allowed: true, reason: 'no_previous_checkup' };
+    }
+    
+    // 2. Если есть новый ребенок, добавленный после последнего чекапа - можно пройти
+    if (newestChildDate && newestChildDate > lastCheckupDate) {
+      return { allowed: true, reason: 'new_child_added' };
+    }
+    
+    // 3. Если прошло 30 дней с последнего чекапа - можно пройти
+    const daysSinceLastCheckup = Math.floor(
+      (Date.now() - lastCheckupDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    
+    if (daysSinceLastCheckup >= 30) {
+      return { allowed: true, reason: 'month_passed' };
+    }
+    
+    // 4. Иначе - нельзя пройти
+    const daysRemaining = 30 - daysSinceLastCheckup;
+    return { 
+      allowed: false, 
+      reason: 'too_soon',
+      daysRemaining,
+      lastCheckupDate 
+    };
+  }, [familyMembers]);
 
   // Мемоизация обработчика клика
   const handleCheckupClick = useCallback(() => {
@@ -78,24 +150,42 @@ export default function Dashboard() {
       return;
     }
     
-    // Находим детей без завершенного чекапа
-    const childrenWithoutCheckup = children.filter(child => 
-      !child.checkupAssessment || child.checkupAssessment.status !== 'completed'
-    );
-    
-    if (childrenWithoutCheckup.length === 0) {
-      // Все дети прошли чекап - показываем сообщение через toast
-      toast.info('Все дети уже прошли чекап! Вы можете посмотреть результаты в разделе "Ваша семья".');
+    // Проверяем возможность прохождения чекапа
+    if (!canStartCheckup.allowed) {
+      if (canStartCheckup.reason === 'too_soon') {
+        const daysRemaining = canStartCheckup.daysRemaining || 0;
+        const lastCheckupDate = canStartCheckup.lastCheckupDate 
+          ? new Date(canStartCheckup.lastCheckupDate).toLocaleDateString('ru-RU')
+          : '';
+        
+        toast.error(
+          `Чекап можно пройти только раз в месяц или после добавления нового ребенка. ` +
+          `Последний чекап был пройден ${lastCheckupDate}. ` +
+          `Повторно можно будет пройти через ${daysRemaining} ${daysRemaining === 1 ? 'день' : daysRemaining < 5 ? 'дня' : 'дней'}.`
+        );
+      }
       return;
     }
     
-    // Берем первого ребенка без чекапа
-    const firstChild = childrenWithoutCheckup[0];
+    // Если есть активный чекап - продолжаем его
+    if (canStartCheckup.reason === 'active_checkup_exists') {
+      const childWithActiveCheckup = children.find(child => child.activeCheckupAssessment);
+      if (childWithActiveCheckup) {
+        logger.log('Resuming checkup for child:', childWithActiveCheckup.first_name);
+        setCurrentProfileId(childWithActiveCheckup.id);
+        setCurrentProfile(childWithActiveCheckup);
+        navigate(`/checkup-intro/${childWithActiveCheckup.id}`);
+        return;
+      }
+    }
+    
+    // Разрешаем начать новый чекап
+    const firstChild = children[0];
     logger.log('Starting checkup for child:', firstChild.first_name);
     setCurrentProfileId(firstChild.id);
     setCurrentProfile(firstChild);
     navigate(`/checkup-intro/${firstChild.id}`);
-  }, [familyMembers, navigate, setCurrentProfileId, setCurrentProfile]);
+  }, [familyMembers, navigate, setCurrentProfileId, setCurrentProfile, canStartCheckup]);
 
   // Обработка ошибок загрузки
   useEffect(() => {
@@ -221,15 +311,25 @@ export default function Dashboard() {
           </Card>
 
           <Card 
-            className="group cursor-pointer overflow-hidden border-2 border-pink-200 bg-gradient-to-br from-pink-50 to-white p-8 shadow-md transition-all hover:shadow-xl hover:border-pink-400 hover:scale-[1.02] active:scale-[0.98]"
+            className={`group overflow-hidden border-2 p-8 shadow-md transition-all ${
+              canStartCheckup.allowed
+                ? 'cursor-pointer border-pink-200 bg-gradient-to-br from-pink-50 to-white hover:shadow-xl hover:border-pink-400 hover:scale-[1.02] active:scale-[0.98]'
+                : 'cursor-not-allowed border-gray-300 bg-gradient-to-br from-gray-50 to-white opacity-75'
+            }`}
             onClick={(e) => {
+              if (!canStartCheckup.allowed) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+              }
               e.preventDefault();
               e.stopPropagation();
               handleCheckupClick();
             }}
             role="button"
-            tabIndex={0}
+            tabIndex={canStartCheckup.allowed ? 0 : -1}
             onKeyDown={(e) => {
+              if (!canStartCheckup.allowed) return;
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 handleCheckupClick();
@@ -239,6 +339,10 @@ export default function Dashboard() {
             <div 
               className="flex flex-col items-center text-center"
               onClick={(e) => {
+                if (!canStartCheckup.allowed) {
+                  e.stopPropagation();
+                  return;
+                }
                 e.stopPropagation();
                 handleCheckupClick();
               }}
@@ -246,10 +350,30 @@ export default function Dashboard() {
               <img 
                 src={otterHearts} 
                 alt="Проверка психического здоровья семьи" 
-                className="mb-6 h-40 w-auto object-contain transition-transform group-hover:scale-110 pointer-events-none"
+                className={`mb-6 h-40 w-auto object-contain transition-transform pointer-events-none ${
+                  canStartCheckup.allowed ? 'group-hover:scale-110' : ''
+                }`}
               />
-              <h3 className="mb-2 text-2xl font-bold text-foreground group-hover:text-pink-600 transition-colors pointer-events-none">Психическое здоровье семьи</h3>
-              <p className="text-lg font-medium text-muted-foreground pointer-events-none">Проверка</p>
+              <h3 className={`mb-2 text-2xl font-bold text-foreground transition-colors pointer-events-none ${
+                canStartCheckup.allowed ? 'group-hover:text-pink-600' : 'text-muted-foreground'
+              }`}>
+                Психическое здоровье семьи
+              </h3>
+              <p className={`text-lg font-medium pointer-events-none ${
+                canStartCheckup.allowed ? 'text-muted-foreground' : 'text-muted-foreground/70'
+              }`}>
+                {canStartCheckup.allowed && canStartCheckup.reason === 'active_checkup_exists' 
+                  ? 'Продолжить проверку' 
+                  : 'Проверка'}
+              </p>
+              {!canStartCheckup.allowed && canStartCheckup.reason === 'too_soon' && (
+                <p className="mt-3 text-sm text-muted-foreground/80 pointer-events-none">
+                  {canStartCheckup.daysRemaining 
+                    ? `Повторно можно будет пройти через ${canStartCheckup.daysRemaining} ${canStartCheckup.daysRemaining === 1 ? 'день' : canStartCheckup.daysRemaining < 5 ? 'дня' : 'дней'}`
+                    : 'Чекап можно пройти только раз в месяц или после добавления нового ребенка'
+                  }
+                </p>
+              )}
             </div>
           </Card>
         </div>

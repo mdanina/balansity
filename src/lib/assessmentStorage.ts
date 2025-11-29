@@ -343,3 +343,56 @@ export async function getCompletedAssessmentsForProfiles(
     throw error;
   }
 }
+
+/**
+ * Получить активные оценки для нескольких профилей одним запросом
+ * 
+ * @param profileIds - Массив ID профилей
+ * @param assessmentType - Тип оценки
+ * @returns Map где ключ - profile_id, значение - Assessment или null
+ */
+export async function getActiveAssessmentsForProfiles(
+  profileIds: string[],
+  assessmentType: 'checkup' | 'parent' | 'family'
+): Promise<Record<string, Assessment | null>> {
+  if (profileIds.length === 0) {
+    return {};
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('assessments')
+      .select('*')
+      .in('profile_id', profileIds)
+      .eq('assessment_type', assessmentType)
+      .eq('status', 'in_progress')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Группируем по profile_id, берем последнюю активную оценку для каждого профиля
+    const assessmentMap = data?.reduce((acc, assessment) => {
+      const existing = acc[assessment.profile_id];
+      
+      // Если еще нет оценки для этого профиля, или эта новее - сохраняем
+      if (!existing || 
+          (!existing.created_at && assessment.created_at) ||
+          (existing.created_at && assessment.created_at &&
+           new Date(assessment.created_at) > new Date(existing.created_at))) {
+        acc[assessment.profile_id] = assessment;
+      }
+      return acc;
+    }, {} as Record<string, Assessment>) || {};
+
+    // Возвращаем Map со всеми профилями (null для тех, у кого нет активных оценок)
+    const result: Record<string, Assessment | null> = {};
+    for (const profileId of profileIds) {
+      result[profileId] = assessmentMap[profileId] || null;
+    }
+
+    return result;
+  } catch (error) {
+    logger.error('Error getting active assessments for profiles:', error);
+    throw error;
+  }
+}
