@@ -37,6 +37,7 @@ const FamilyQuestions = lazy(() => import("./pages/FamilyQuestions"));
 const CheckupResults = lazy(() => import("./pages/CheckupResults"));
 const ResultsReport = lazy(() => import("./pages/ResultsReport"));
 const ResultsReportNew = lazy(() => import("./pages/ResultsReportNew"));
+const CheckupHistory = lazy(() => import("./pages/CheckupHistory"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 
 // Компонент загрузки
@@ -99,6 +100,7 @@ const App = () => (
                   <Route path="/family-questions/:profileId?" element={<ProtectedRoute><FamilyQuestions /></ProtectedRoute>} />
                   <Route path="/checkup-results" element={<ProtectedRoute><CheckupResults /></ProtectedRoute>} />
                   <Route path="/results-report/:profileId?" element={<ProtectedRoute><ResultsReportNew /></ProtectedRoute>} />
+                  <Route path="/checkup-history" element={<ProtectedRoute><CheckupHistory /></ProtectedRoute>} />
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

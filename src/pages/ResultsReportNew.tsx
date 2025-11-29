@@ -1950,9 +1950,12 @@ export default function ResultsReportNew() {
             <Save className="h-6 w-6 text-primary" />
             <p className="text-foreground">
               Этот отчет сохранен в вашей{" "}
-              <a href="#" className="font-medium text-primary underline hover:no-underline">
+              <button 
+                onClick={() => navigate("/checkup-history")}
+                className="font-medium text-primary underline hover:no-underline"
+              >
                 Истории отчетов
-              </a>
+              </button>
             </p>
           </div>
         </div>
@@ -1964,7 +1967,7 @@ export default function ResultsReportNew() {
             onClick={() => navigate("/dashboard")}
             className="w-full max-w-md"
           >
-            Перейти к вашей истории отчетов
+            Вернуться в личный кабинет
           </Button>
         </div>
       </div>

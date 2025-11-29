@@ -108,7 +108,7 @@ export interface Database {
       assessments: {
         Row: {
           id: string;
-          profile_id: string;
+          profile_id: string | null; // Может быть NULL если профиль удален - чекап сохраняется для аналитики
           assessment_type: 'checkup' | 'parent' | 'family';
           status: 'in_progress' | 'completed' | 'abandoned';
           current_step: number;
@@ -124,7 +124,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          profile_id: string;
+          profile_id: string | null;
           assessment_type: 'checkup' | 'parent' | 'family';
           status?: 'in_progress' | 'completed' | 'abandoned';
           current_step?: number;

@@ -378,7 +378,13 @@ export async function getCompletedAssessmentsForProfiles(
     if (error) throw error;
 
     // Группируем по profile_id, берем последнюю завершенную оценку для каждого профиля
+    // Пропускаем чекапы с NULL profile_id (для удаленных профилей)
     const assessmentMap = data?.reduce((acc, assessment) => {
+      // Пропускаем чекапы с NULL profile_id (удаленные профили)
+      if (!assessment.profile_id) {
+        return acc;
+      }
+      
       const existing = acc[assessment.profile_id];
       
       // Если еще нет оценки для этого профиля, или эта новее - сохраняем
@@ -431,7 +437,13 @@ export async function getActiveAssessmentsForProfiles(
     if (error) throw error;
 
     // Группируем по profile_id, берем последнюю активную оценку для каждого профиля
+    // Пропускаем чекапы с NULL profile_id (для удаленных профилей)
     const assessmentMap = data?.reduce((acc, assessment) => {
+      // Пропускаем чекапы с NULL profile_id (удаленные профили)
+      if (!assessment.profile_id) {
+        return acc;
+      }
+      
       const existing = acc[assessment.profile_id];
       
       // Если еще нет оценки для этого профиля, или эта новее - сохраняем
@@ -453,6 +465,42 @@ export async function getActiveAssessmentsForProfiles(
     return result;
   } catch (error) {
     logger.error('Error getting active assessments for profiles:', error);
+    throw error;
+  }
+}
+
+/**
+ * Получить все чекапы для всех профилей пользователя
+ * Включает завершенные и незавершенные чекапы для истории
+ */
+export async function getAllAssessmentsForUser(): Promise<Assessment[]> {
+  try {
+    const { getCurrentUser, getProfiles } = await import('./profileStorage');
+    const user = await getCurrentUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Получаем все профили пользователя
+    const profiles = await getProfiles();
+    const profileIds = profiles.map(p => p.id);
+
+    if (profileIds.length === 0) {
+      return [];
+    }
+
+    // Получаем все чекапы для этих профилей
+    const { data, error } = await supabase
+      .from('assessments')
+      .select('*')
+      .in('profile_id', profileIds)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return data || [];
+  } catch (error) {
+    logger.error('Error getting all assessments for user:', error);
     throw error;
   }
 }

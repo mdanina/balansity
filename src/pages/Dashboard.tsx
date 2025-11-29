@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { User, CheckCircle2, Clock, MapPin, Users, LogOut, Tag } from "lucide-react";
+import { User, CheckCircle2, Clock, MapPin, Users, LogOut, Tag, History } from "lucide-react";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/profileStorage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -247,6 +247,10 @@ export default function Dashboard() {
                 <DropdownMenuItem onClick={() => navigate("/family-members", { state: { from: 'dashboard' } })}>
                   <Users className="mr-2 h-4 w-4" />
                   <span>Члены семьи</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/checkup-history")}>
+                  <History className="mr-2 h-4 w-4" />
+                  <span>История чекапов</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
