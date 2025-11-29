@@ -56,6 +56,10 @@ Updated to match Little Otter brand colors with exact hex values
     --chart-3: 207 58% 63%; /* Sky Blue #6ba4d6 */
     --chart-4: 285 40% 78%; /* Lavender #d4b5de */
     --chart-5: 348 100% 89%; /* Soft Pink #ffc9d4 */
+
+    /* Success color for completed statuses */
+    --success: 142 76% 36%; /* Green #22c55e - Success, completed statuses */
+    --success-foreground: 0 0% 100%; /* White */
   }
 
   .dark {
@@ -95,6 +99,10 @@ Updated to match Little Otter brand colors with exact hex values
     --sidebar-accent-foreground: 0 0% 98.5%;
     --sidebar-border: 203 60% 20%; /* Dark border */
     --sidebar-ring: 188 30% 52%; /* Teal Blue #5a9ca6 */
+
+    /* Success color for dark mode */
+    --success: 142 76% 50%; /* Lighter green for dark mode */
+    --success-foreground: 0 0% 100%; /* White */
 
     /* Chart colors for dark mode */
     --chart-1: 188 30% 52%; /* Teal Blue #5a9ca6 */

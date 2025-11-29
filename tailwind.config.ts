@@ -79,6 +79,10 @@ export default {
         "sky-blue": "hsl(207 58% 63%)", /* #6ba4d6 */
         "lavender": "hsl(285 40% 78%)", /* #d4b5de */
         "soft-pink": "hsl(348 100% 89%)", /* #ffc9d4 */
+        "success": {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

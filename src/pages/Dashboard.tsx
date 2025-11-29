@@ -252,7 +252,7 @@ export default function Dashboard() {
       <header className="border-b border-border bg-background px-6 py-4">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-foreground">Balansity</span>
+            <span className="text-xl font-serif font-bold text-foreground">Balansity</span>
           </div>
           
           {user && (
@@ -556,7 +556,7 @@ export default function Dashboard() {
                           {member.first_name} {member.last_name || ''}
                         </h3>
                         {hasCompletedCheckup && (
-                          <Badge variant="default" className="bg-green-500">
+                          <Badge variant="default" className="bg-success text-success-foreground">
                             <CheckCircle2 className="h-3 w-3 mr-1" />
                             Чекап завершен
                           </Badge>

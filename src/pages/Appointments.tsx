@@ -161,7 +161,7 @@ export default function Appointments() {
                                 <h3 className="text-xl font-semibold text-foreground">
                                   {type.name}
                                 </h3>
-                                <Badge variant="default" className="bg-green-500">
+                                <Badge variant="default" className="bg-success text-success-foreground">
                                   Бесплатно
                                 </Badge>
                               </div>

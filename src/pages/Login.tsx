@@ -83,7 +83,7 @@ export default function Login() {
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-6">
-              <span className="text-2xl font-bold text-primary">Balansity</span>
+              <span className="text-2xl font-serif font-bold text-primary">Balansity</span>
             </div>
             <h1 className="text-3xl font-bold text-foreground">Вход в систему</h1>
             <p className="mt-2 text-muted-foreground">

@@ -14,8 +14,8 @@ export default function CheckupResults() {
       <div className="container mx-auto max-w-3xl px-4 py-12">
         <div className="space-y-12">
           <div className="text-center">
-            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle2 className="h-10 w-10 text-green-600" />
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-success/20">
+              <CheckCircle2 className="h-10 w-10 text-success" />
             </div>
             <h1 className="mb-4 text-4xl font-bold text-foreground">
               Спасибо за завершение опроса!
