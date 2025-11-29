@@ -14,9 +14,10 @@ export function useProfiles() {
     queryFn: getProfiles,
     enabled: !!user, // Запрос только если пользователь авторизован
     staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими
-    cacheTime: 10 * 60 * 1000, // 10 минут - данные в кеше
+    gcTime: 10 * 60 * 1000, // 10 минут - данные в кеше (было cacheTime в v4)
     retry: 2, // Повторить при ошибке 2 раза
     refetchOnWindowFocus: false, // Не обновлять при фокусе окна
+    refetchOnMount: true, // Обновляем данные при монтировании компонента
   });
 }
 

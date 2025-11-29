@@ -207,11 +207,13 @@ export default function CheckupQuestions() {
         } else {
           // После последнего вопроса завершаем checkup assessment
           if (profileId) {
-            complete().catch(err => console.error('Error completing assessment:', err));
-            
-            // Проверяем, есть ли еще дети без завершенного чекапа
-            async function checkNextChild() {
+            // Дожидаемся завершения чекапа и обновления кеша перед навигацией
+            async function completeAndNavigate() {
               try {
+                // Завершаем чекап и ждем обновления кеша
+                await complete();
+                
+                // Проверяем, есть ли еще дети без завершенного чекапа
                 const allProfiles = await getProfiles();
                 const children = allProfiles.filter(p => p.type === 'child' && p.id !== profileId);
                 
@@ -235,13 +237,13 @@ export default function CheckupQuestions() {
                   navigate("/parent-intro");
                 }
               } catch (error) {
-                console.error('Error checking next child:', error);
+                console.error('Error completing assessment or checking next child:', error);
                 // В случае ошибки переходим к вопросам о родителе
                 navigate("/parent-intro");
               }
             }
             
-            checkNextChild();
+            completeAndNavigate();
           } else {
             // Переходим к вопросам о родителе
             navigate("/parent-intro");

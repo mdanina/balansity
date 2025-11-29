@@ -200,6 +200,22 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
         queryKey: ['assessment', actualProfileId, assessmentType]
       });
       
+      // Инвалидируем profiles для обновления списка профилей (на случай изменений)
+      await queryClient.invalidateQueries({ 
+        queryKey: ['profiles'],
+        exact: false
+      });
+      
+      // Принудительно обновляем данные для немедленного отображения изменений
+      await queryClient.refetchQueries({ 
+        queryKey: ['assessments'],
+        exact: false
+      });
+      await queryClient.refetchQueries({ 
+        queryKey: ['active-assessments'],
+        exact: false
+      });
+      
       toast.success('Оценка завершена!');
       return results;
     } catch (error) {
