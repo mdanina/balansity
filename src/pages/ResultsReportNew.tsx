@@ -290,15 +290,15 @@ export default function ResultsReportNew() {
     switch (status) {
       case 'concerning':
       case 'high_impact':
-        return 'text-white';
+        return 'text-white bg-coral';
       case 'borderline':
       case 'medium_impact':
-        return 'text-white';
+        return 'text-white bg-yellow-400';
       case 'typical':
       case 'low_impact':
-        return 'text-white';
+        return 'text-white bg-secondary';
       default:
-        return 'text-white';
+        return 'text-white bg-secondary';
     }
   };
 
@@ -408,7 +408,7 @@ export default function ResultsReportNew() {
                     <div className="space-y-2">
                       {childResults.emotional && (
                         <div>
-                          <span className={`font-medium ${getStatusColor(childResults.emotional.status)}`}>
+                          <span className="font-medium text-white">
                             {getStatusText(childResults.emotional.status)}
                           </span>
                           <p className="text-sm text-white/90">Эмоции</p>
@@ -416,7 +416,7 @@ export default function ResultsReportNew() {
                       )}
                       {childResults.conduct && (
                         <div>
-                          <span className={`font-medium ${getStatusColor(childResults.conduct.status)}`}>
+                          <span className="font-medium text-white">
                             {getStatusText(childResults.conduct.status)}
                           </span>
                           <p className="text-sm text-white/90">Поведение</p>
@@ -424,7 +424,7 @@ export default function ResultsReportNew() {
                       )}
                       {childResults.peer_problems && (
                         <div>
-                          <span className={`font-medium ${getStatusColor(childResults.peer_problems.status)}`}>
+                          <span className="font-medium text-white">
                             {getStatusText(childResults.peer_problems.status)}
                           </span>
                           <p className="text-sm text-white/90">Социальное</p>
@@ -432,7 +432,7 @@ export default function ResultsReportNew() {
                       )}
                       {childResults.hyperactivity && (
                         <div>
-                          <span className={`font-medium ${getStatusColor(childResults.hyperactivity.status)}`}>
+                          <span className="font-medium text-white">
                             {getStatusText(childResults.hyperactivity.status)}
                           </span>
                           <p className="text-sm text-white/90">Активность</p>
@@ -457,7 +457,7 @@ export default function ResultsReportNew() {
                           <>
                             {parentResults.anxiety && (
                               <div>
-                                <span className={`font-medium ${getStatusColor(parentResults.anxiety.status)}`}>
+                                <span className="font-medium text-white">
                                   {getStatusText(parentResults.anxiety.status)}
                                 </span>
                                 <p className="text-sm text-white/90">Тревожность</p>
@@ -465,7 +465,7 @@ export default function ResultsReportNew() {
                             )}
                             {parentResults.depression && (
                               <div>
-                                <span className={`font-medium ${getStatusColor(parentResults.depression.status)}`}>
+                                <span className="font-medium text-white">
                                   {getStatusText(parentResults.depression.status)}
                                 </span>
                                 <p className="text-sm text-white/90">Депрессия</p>
@@ -504,7 +504,7 @@ export default function ResultsReportNew() {
                           <>
                             {familyResults.family_stress && (
                               <div>
-                                <span className={`font-medium ${getStatusColor(familyResults.family_stress.status)}`}>
+                                <span className="font-medium text-white">
                                   {getStatusText(familyResults.family_stress.status)}
                                 </span>
                                 <p className="text-sm text-white/90">Семейный стресс</p>
@@ -512,7 +512,7 @@ export default function ResultsReportNew() {
                             )}
                             {familyResults.partner_relationship && (
                               <div>
-                                <span className={`font-medium ${getStatusColor(familyResults.partner_relationship.status)}`}>
+                                <span className="font-medium text-white">
                                   {getStatusText(familyResults.partner_relationship.status)}
                                 </span>
                                 <p className="text-sm text-white/90">Отношения с партнером</p>
@@ -520,7 +520,7 @@ export default function ResultsReportNew() {
                             )}
                             {familyResults.coparenting && (
                               <div>
-                                <span className={`font-medium ${getStatusColor(familyResults.coparenting.status)}`}>
+                                <span className="font-medium text-white">
                                   {getStatusText(familyResults.coparenting.status)}
                                 </span>
                                 <p className="text-sm text-white/90">Совместное воспитание</p>
