@@ -350,6 +350,52 @@ export async function createFreeConsultationAfterFirstCheckup(): Promise<Appoint
 }
 
 /**
+ * Получить активную бесплатную консультацию пользователя
+ * Возвращает консультацию со статусом 'scheduled' и типом с price = 0
+ */
+export async function getActiveFreeConsultation(): Promise<(Appointment & { appointment_type: AppointmentType }) | null> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return null;
+    }
+
+    // Получаем консультации пользователя с информацией о типе
+    const { data, error } = await supabase
+      .from('appointments')
+      .select(`
+        *,
+        appointment_type:appointment_types(*)
+      `)
+      .eq('user_id', user.id)
+      .eq('status', 'scheduled')
+      .order('scheduled_at', { ascending: true });
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    // Ищем первую бесплатную консультацию (price = 0)
+    for (const appointment of data) {
+      const appointmentType = (appointment as any).appointment_type as AppointmentType;
+      if (appointmentType && appointmentType.price === 0) {
+        return {
+          ...appointment,
+          appointment_type: appointmentType,
+        } as Appointment & { appointment_type: AppointmentType };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    logger.error('Error getting active free consultation:', error);
+    return null;
+  }
+}
+
+/**
  * Проверить, доступна ли бесплатная консультация
  */
 export async function hasFreeConsultationAvailable(): Promise<boolean> {

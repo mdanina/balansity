@@ -12,11 +12,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useAppointmentType } from "@/hooks/useAppointments";
+import { useAppointmentType, useActiveFreeConsultation } from "@/hooks/useAppointments";
 import { useProfiles } from "@/hooks/useProfiles";
 import { useCreateAppointment } from "@/hooks/useAppointments";
 import { formatAmount } from "@/lib/payment";
-import { Loader2, ArrowLeft, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar as CalendarIcon, Clock, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 
@@ -41,25 +41,82 @@ export default function AppointmentBooking() {
   
   const { data: appointmentType, isLoading: typeLoading } = useAppointmentType(appointmentTypeId);
   const { data: profiles, isLoading: profilesLoading } = useProfiles();
+  const { data: activeFreeConsultation, isLoading: freeConsultationLoading } = useActiveFreeConsultation();
   const createAppointment = useCreateAppointment();
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
 
-  const isLoading = typeLoading || profilesLoading;
+  const isLoading = typeLoading || profilesLoading || freeConsultationLoading;
+  
+  // Проверяем, является ли консультация платной
+  const isPaid = appointmentType && appointmentType.price > 0;
+  
+  // Если платная консультация и нет активной бесплатной - блокируем
+  const isBlocked = isPaid && !activeFreeConsultation;
 
   // Фильтруем профили - для консультации можно выбрать ребенка или оставить пустым (для родителя)
   const availableProfiles = useMemo(() => {
     if (!profiles) return [];
     return [
-      { id: "", name: "Для меня (родитель)" },
+      { id: "__parent__", name: "Для меня (родитель)" },
       ...profiles.filter(p => p.type === 'child').map(p => ({
         id: p.id,
         name: `${p.first_name}${p.last_name ? ` ${p.last_name}` : ''}`
       }))
     ];
   }, [profiles]);
+
+  // Фильтруем доступные даты для платных консультаций
+  const isDateDisabled = useMemo(() => {
+    return (date: Date) => {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const checkDate = new Date(date);
+      checkDate.setHours(0, 0, 0, 0);
+      
+      // Блокируем прошлые даты
+      if (checkDate < now) return true;
+      
+      // Если платная консультация и есть активная бесплатная
+      if (isPaid && activeFreeConsultation) {
+        const freeDate = new Date(activeFreeConsultation.scheduled_at);
+        freeDate.setHours(0, 0, 0, 0);
+        
+        // Блокируем даты раньше даты бесплатной консультации
+        if (checkDate < freeDate) return true;
+      }
+      
+      return false;
+    };
+  }, [isPaid, activeFreeConsultation]);
+
+  // Фильтруем доступное время для платных консультаций
+  const availableTimeSlots = useMemo(() => {
+    if (!isPaid || !activeFreeConsultation || !selectedDate) {
+      return TIME_SLOTS;
+    }
+    
+    const freeDate = new Date(activeFreeConsultation.scheduled_at);
+    const selectedDateOnly = new Date(selectedDate);
+    selectedDateOnly.setHours(0, 0, 0, 0);
+    const freeDateOnly = new Date(freeDate);
+    freeDateOnly.setHours(0, 0, 0, 0);
+    
+    // Если выбрана дата бесплатной консультации
+    if (selectedDateOnly.getTime() === freeDateOnly.getTime()) {
+      // Время должно быть после времени бесплатной консультации
+      const freeTime = freeDate.getHours() * 60 + freeDate.getMinutes();
+      return TIME_SLOTS.filter(time => {
+        const [hours, minutes] = time.split(":").map(Number);
+        const timeMinutes = hours * 60 + minutes;
+        return timeMinutes > freeTime;
+      });
+    }
+    
+    return TIME_SLOTS;
+  }, [isPaid, activeFreeConsultation, selectedDate]);
 
   const handleConfirm = async () => {
     if (!appointmentTypeId || !selectedDate || !selectedTime) {
@@ -75,7 +132,7 @@ export default function AppointmentBooking() {
       const appointment = await createAppointment.mutateAsync({
         appointmentTypeId,
         scheduledAt: scheduledAt.toISOString(),
-        profileId: selectedProfileId || null,
+        profileId: selectedProfileId === "__parent__" ? null : selectedProfileId || null,
       });
 
       // Если консультация бесплатная, переходим сразу к подтверждению
@@ -111,6 +168,39 @@ export default function AppointmentBooking() {
           <Card className="p-8 text-center">
             <p className="text-muted-foreground mb-4">
               Тип консультации не найден
+            </p>
+            <Button onClick={() => navigate("/appointments")}>
+              Вернуться к выбору типа
+            </Button>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Если платная консультация и нет активной бесплатной - показываем ошибку
+  if (isBlocked) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto max-w-4xl px-4 py-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/appointments")}
+            className="mb-6"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Назад
+          </Button>
+          <Card className="p-8 text-center">
+            <div className="mb-4 flex justify-center">
+              <AlertCircle className="h-12 w-12 text-destructive" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-4">
+              Сначала запишитесь на бесплатную консультацию
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Платные консультации доступны только после записи на бесплатную консультацию.
             </p>
             <Button onClick={() => navigate("/appointments")}>
               Вернуться к выбору типа
@@ -172,10 +262,15 @@ export default function AppointmentBooking() {
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
-              disabled={(date) => date < new Date()}
+              disabled={isDateDisabled}
               locale={ru}
               className="rounded-md border"
             />
+            {isPaid && activeFreeConsultation && (
+              <p className="text-sm text-muted-foreground mt-4">
+                Минимальная доступная дата: {format(new Date(activeFreeConsultation.scheduled_at), "d MMMM yyyy", { locale: ru })}
+              </p>
+            )}
           </Card>
 
           {/* Выбор времени и профиля */}
@@ -191,13 +286,37 @@ export default function AppointmentBooking() {
                   <SelectValue placeholder="Выберите время" />
                 </SelectTrigger>
                 <SelectContent>
-                  {TIME_SLOTS.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
+                  {availableTimeSlots.length > 0 ? (
+                    availableTimeSlots.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      Нет доступного времени для выбранной даты
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
+              {isPaid && activeFreeConsultation && selectedDate && (
+                (() => {
+                  const freeDate = new Date(activeFreeConsultation.scheduled_at);
+                  const selectedDateOnly = new Date(selectedDate);
+                  selectedDateOnly.setHours(0, 0, 0, 0);
+                  const freeDateOnly = new Date(freeDate);
+                  freeDateOnly.setHours(0, 0, 0, 0);
+                  
+                  if (selectedDateOnly.getTime() === freeDateOnly.getTime()) {
+                    return (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Минимальное доступное время: {format(freeDate, "HH:mm", { locale: ru })}
+                      </p>
+                    );
+                  }
+                  return null;
+                })()
+              )}
             </Card>
 
             {/* Профиль */}

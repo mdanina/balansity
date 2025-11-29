@@ -6,15 +6,34 @@ import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { useAppointmentTypes } from "@/hooks/useAppointments";
-import { Video, Check, Gift } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useAppointmentTypes, useActiveFreeConsultation, useAppointmentsWithType, useCancelAppointment } from "@/hooks/useAppointments";
+import { useProfiles } from "@/hooks/useProfiles";
+import { Video, Check, Gift, Lock, Calendar, Clock, User, X } from "lucide-react";
 import { formatAmount } from "@/lib/payment";
 import { Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { ru } from "date-fns/locale";
 
 export default function Appointments() {
   const navigate = useNavigate();
   const { data: appointmentTypes, isLoading } = useAppointmentTypes();
+  const { data: activeFreeConsultation, isLoading: freeConsultationLoading } = useActiveFreeConsultation();
+  const { data: appointmentsWithType, isLoading: appointmentsLoading } = useAppointmentsWithType();
+  const { data: profiles } = useProfiles();
+  const cancelAppointment = useCancelAppointment();
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState<string | null>(null);
 
   // Разделяем консультации на бесплатные и платные
   const { freeConsultations, paidConsultations } = useMemo(() => {
@@ -26,13 +45,52 @@ export default function Appointments() {
     return { freeConsultations: free, paidConsultations: paid };
   }, [appointmentTypes]);
 
+  // Фильтруем бесплатные консультации: скрываем если есть активная (scheduled)
+  // Показываем если активной нет или она отменена (cancelled)
+  const visibleFreeConsultations = useMemo(() => {
+    if (!freeConsultations.length) return [];
+    
+    // Если есть активная бесплатная консультация - скрываем бесплатные из списка
+    if (activeFreeConsultation) {
+      return [];
+    }
+    
+    return freeConsultations;
+  }, [freeConsultations, activeFreeConsultation]);
+
+  // Платные консультации доступны только если есть активная бесплатная
+  const paidConsultationsEnabled = !!activeFreeConsultation;
+
+  // Фильтруем предстоящие консультации (только scheduled)
+  const upcomingAppointments = useMemo(() => {
+    if (!appointmentsWithType) return [];
+    return appointmentsWithType.filter(apt => apt.status === 'scheduled');
+  }, [appointmentsWithType]);
+
+  // Функция для получения имени профиля
+  const getProfileName = (profileId: string | null) => {
+    if (!profileId) return "Для меня (родитель)";
+    const profile = profiles?.find(p => p.id === profileId);
+    if (!profile) return "Профиль не найден";
+    return `${profile.first_name}${profile.last_name ? ` ${profile.last_name}` : ''}`;
+  };
+
   const handleConfirm = () => {
     if (selectedTypeId) {
       navigate(`/appointments/booking?type=${selectedTypeId}`);
     }
   };
 
-  if (isLoading) {
+  const handleCancelAppointment = async (appointmentId: string) => {
+    try {
+      await cancelAppointment.mutateAsync(appointmentId);
+      setCancelDialogOpen(null);
+    } catch (error) {
+      // Ошибка уже обработана в хуке через toast
+    }
+  };
+
+  if (isLoading || freeConsultationLoading || appointmentsLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -52,6 +110,81 @@ export default function Appointments() {
           <h1 className="text-4xl font-bold text-foreground mb-2">Записаться на консультацию</h1>
           <p className="text-muted-foreground">Выберите тип консультации</p>
         </div>
+
+        {/* Предстоящие консультации */}
+        {upcomingAppointments.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-foreground mb-4">
+              Ваши предстоящие консультации
+            </h2>
+            <div className="space-y-4">
+              {upcomingAppointments.map((appointment) => (
+                <Card key={appointment.id} className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Дата и время</p>
+                          <p className="font-medium">
+                            {format(new Date(appointment.scheduled_at), "d MMMM yyyy 'в' HH:mm", {
+                              locale: ru,
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      {appointment.appointment_type && (
+                        <div className="flex items-center gap-3">
+                          <Clock className="h-5 w-5 text-primary" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Тип консультации</p>
+                            <p className="font-medium">
+                              {appointment.appointment_type.name} ({appointment.appointment_type.duration_minutes} минут)
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3">
+                        <User className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Для кого</p>
+                          <p className="font-medium">{getProfileName(appointment.profile_id)}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <AlertDialog open={cancelDialogOpen === appointment.id} onOpenChange={(open) => setCancelDialogOpen(open ? appointment.id : null)}>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            <X className="h-4 w-4 mr-2" />
+                            Отменить
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Отменить консультацию?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Вы уверены, что хотите отменить консультацию? Это действие нельзя отменить.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Нет, оставить</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleCancelAppointment(appointment.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Да, отменить
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Шаги */}
         <div className="mb-8 flex items-center gap-4">
@@ -75,13 +208,13 @@ export default function Appointments() {
           <RadioGroup value={selectedTypeId || undefined} onValueChange={setSelectedTypeId}>
             <div className="space-y-4 mb-8">
               {/* Бесплатные консультации */}
-              {freeConsultations.length > 0 && (
+              {visibleFreeConsultations.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                     <Gift className="h-5 w-5 text-primary" />
                     Бесплатные консультации
                   </h2>
-                  {freeConsultations.map((type) => (
+                  {visibleFreeConsultations.map((type) => (
                     <Card
                       key={type.id}
                       className={`p-6 cursor-pointer transition-all ${
@@ -137,26 +270,35 @@ export default function Appointments() {
               {/* Платные консультации */}
               {paidConsultations.length > 0 && (
                 <div className="space-y-4">
-                  {freeConsultations.length > 0 && (
+                  {visibleFreeConsultations.length > 0 && (
                     <h2 className="text-lg font-semibold text-foreground mt-6">
                       Платные консультации
                     </h2>
                   )}
-                  {paidConsultations.map((type) => (
+                  {paidConsultations.map((type) => {
+                    const isDisabled = !paidConsultationsEnabled;
+                    return (
                     <Card
                       key={type.id}
-                      className={`p-6 cursor-pointer transition-all ${
-                        selectedTypeId === type.id
-                          ? "border-2 border-primary bg-primary/5"
-                          : "border border-border hover:border-primary/50"
+                      className={`p-6 transition-all ${
+                        isDisabled
+                          ? "opacity-50 cursor-not-allowed border border-border"
+                          : selectedTypeId === type.id
+                          ? "border-2 border-primary bg-primary/5 cursor-pointer"
+                          : "border border-border hover:border-primary/50 cursor-pointer"
                       }`}
-                      onClick={() => setSelectedTypeId(type.id)}
+                      onClick={() => !isDisabled && setSelectedTypeId(type.id)}
                     >
                       <div className="flex items-start gap-4">
-                        <RadioGroupItem value={type.id} id={type.id} className="mt-1" />
+                        <RadioGroupItem 
+                          value={type.id} 
+                          id={type.id} 
+                          className="mt-1" 
+                          disabled={isDisabled}
+                        />
                         <Label
                           htmlFor={type.id}
-                          className="flex-1 cursor-pointer"
+                          className={`flex-1 ${isDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -167,21 +309,29 @@ export default function Appointments() {
                                 <span className="text-lg font-bold text-primary">
                                   {formatAmount(type.price)}
                                 </span>
+                                {isDisabled && (
+                                  <Lock className="h-4 w-4 text-muted-foreground" />
+                                )}
                               </div>
                               <p className="text-muted-foreground mb-2">
                                 {type.duration_minutes} минут
                               </p>
-                              {type.description && (
+                              {isDisabled ? (
+                                <p className="text-sm text-muted-foreground italic">
+                                  Сначала запишитесь на бесплатную консультацию
+                                </p>
+                              ) : type.description ? (
                                 <p className="text-sm text-muted-foreground">
                                   {type.description}
                                 </p>
-                              )}
+                              ) : null}
                             </div>
                             <div className="ml-4 flex items-center gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="pointer-events-none"
+                                disabled={isDisabled}
                               >
                                 <Video className="h-4 w-4 mr-2" />
                                 Видеозвонок
@@ -191,7 +341,8 @@ export default function Appointments() {
                         </Label>
                       </div>
                     </Card>
-                  ))}
+                  );
+                  })}
                 </div>
               )}
             </div>

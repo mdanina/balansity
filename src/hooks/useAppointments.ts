@@ -11,6 +11,7 @@ import {
   createAppointment,
   updateAppointment,
   cancelAppointment,
+  getActiveFreeConsultation,
 } from '@/lib/appointmentStorage';
 import type { Database } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -123,6 +124,24 @@ export function useAppointment(appointmentId: string | null) {
 }
 
 /**
+ * Хук для получения активной бесплатной консультации
+ */
+export function useActiveFreeConsultation() {
+  const { user } = useAuth();
+
+  return useQuery<(Appointment & { appointment_type: AppointmentType }) | null>({
+    queryKey: ['active-free-consultation', user?.id],
+    queryFn: getActiveFreeConsultation,
+    enabled: !!user,
+    staleTime: 1 * 60 * 1000, // 1 минута
+    gcTime: 5 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+  });
+}
+
+/**
  * Хук для создания консультации
  */
 export function useCreateAppointment() {
@@ -146,6 +165,7 @@ export function useCreateAppointment() {
       queryClient.invalidateQueries({ queryKey: ['appointments', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['upcoming-appointments', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['appointments-with-type', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['active-free-consultation', user?.id] });
       toast.success('Консультация успешно записана');
     },
     onError: (error: Error) => {
@@ -195,6 +215,7 @@ export function useCancelAppointment() {
       queryClient.invalidateQueries({ queryKey: ['appointments', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['upcoming-appointments', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['appointments-with-type', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['active-free-consultation', user?.id] });
       toast.success('Консультация отменена');
     },
     onError: (error: Error) => {

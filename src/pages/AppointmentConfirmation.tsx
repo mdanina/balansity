@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAppointment, useAppointmentType } from "@/hooks/useAppointments";
 import { usePackagePurchase, usePackage } from "@/hooks/usePackages";
+import { useProfiles } from "@/hooks/useProfiles";
 import { CheckCircle2, Calendar, Clock, User } from "lucide-react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -23,8 +24,20 @@ export default function AppointmentConfirmation() {
   const { data: packagePurchase, isLoading: packageLoading } = usePackagePurchase(packageId);
   const packageIdFromPurchase = packagePurchase?.package_id;
   const { data: pkg } = usePackage(packageIdFromPurchase || null);
+  const { data: profiles } = useProfiles();
 
   const isLoading = appointmentLoading || packageLoading;
+
+  // Находим профиль по ID для отображения имени
+  const profile = appointment?.profile_id 
+    ? profiles?.find(p => p.id === appointment.profile_id)
+    : null;
+  
+  const profileDisplayName = profile 
+    ? `${profile.first_name}${profile.last_name ? ` ${profile.last_name}` : ''}`
+    : appointment?.profile_id 
+      ? null // Если профиль не найден, но ID есть
+      : "Для меня (родитель)";
 
   useEffect(() => {
     // Если нет ни консультации, ни покупки пакета, перенаправляем
@@ -93,12 +106,12 @@ export default function AppointmentConfirmation() {
                 </div>
               )}
 
-              {appointment.profile_id && (
+              {profileDisplayName && (
                 <div className="flex items-center gap-3">
                   <User className="h-5 w-5 text-primary" />
                   <div>
                     <p className="text-sm text-muted-foreground">Для кого</p>
-                    <p className="font-medium">Профиль: {appointment.profile_id}</p>
+                    <p className="font-medium">{profileDisplayName}</p>
                   </div>
                 </div>
               )}
