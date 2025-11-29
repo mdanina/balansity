@@ -116,6 +116,7 @@ export interface Database {
           is_paid: boolean;
           payment_id: string | null;
           results_summary: Record<string, any> | null;
+          worry_tags: { child?: string[]; personal?: string[]; family?: string[] } | null;
           started_at: string;
           completed_at: string | null;
           created_at: string;
@@ -131,6 +132,7 @@ export interface Database {
           is_paid?: boolean;
           payment_id?: string | null;
           results_summary?: Record<string, any> | null;
+          worry_tags?: { child?: string[]; personal?: string[]; family?: string[] } | null;
         };
         Update: {
           status?: 'in_progress' | 'completed' | 'abandoned';
@@ -139,6 +141,7 @@ export interface Database {
           is_paid?: boolean;
           payment_id?: string | null;
           results_summary?: Record<string, any> | null;
+          worry_tags?: { child?: string[]; personal?: string[]; family?: string[] } | null;
         };
       };
       answers: {

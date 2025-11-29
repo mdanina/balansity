@@ -24,6 +24,7 @@ export interface AnswerData {
 
 /**
  * Получить или создать активную оценку для профиля
+ * Сохраняет текущие worry tags при создании новой оценки
  */
 export async function getOrCreateAssessment(
   profileId: string,
@@ -31,15 +32,74 @@ export async function getOrCreateAssessment(
   totalSteps?: number
 ): Promise<string> {
   try {
-    // Вызываем функцию для получения/создания активной оценки
-    const { data, error } = await supabase.rpc('get_active_assessment', {
-      p_profile_id: profileId,
-      p_assessment_type: assessmentType,
-    });
-
-    if (error) throw error;
-
-    const assessmentId = data as string;
+    // Сначала проверяем, есть ли уже активная оценка
+    const existingAssessment = await getActiveAssessment(profileId, assessmentType);
+    
+    let assessmentId: string;
+    
+    if (existingAssessment) {
+      // Если есть активная оценка, используем её
+      assessmentId = existingAssessment.id;
+    } else {
+      // Если нет активной оценки, создаем новую и сохраняем текущие worry tags
+      const { getProfiles } = await import('./profileStorage');
+      const profiles = await getProfiles();
+      
+      const childProfile = profiles.find(p => p.id === profileId && p.type === 'child');
+      const parentProfile = profiles.find(p => p.type === 'parent');
+      const partnerProfile = profiles.find(p => p.type === 'partner');
+      
+      // Собираем worry tags из профилей
+      const worryTags: { child?: string[]; personal?: string[]; family?: string[] } = {};
+      
+      if (childProfile?.worry_tags) {
+        worryTags.child = childProfile.worry_tags;
+      }
+      
+      if (parentProfile?.worry_tags) {
+        // Разделяем на personal и family
+        const personalWorries = [
+          "Выгорание",
+          "Тревожность",
+          "Пониженное настроение",
+          "Трудности с концентрацией внимания",
+          "Общий стресс",
+        ];
+        const familyWorries = [
+          "Разделение/развод",
+          "Семейный стресс",
+          "Отношения с партнером",
+          "Психическое здоровье партнера",
+          "Воспитание",
+          "Семейный конфликт",
+        ];
+        
+        worryTags.personal = parentProfile.worry_tags.filter(w => personalWorries.includes(w));
+        worryTags.family = parentProfile.worry_tags.filter(w => familyWorries.includes(w));
+      }
+      
+      if (partnerProfile?.worry_tags) {
+        worryTags.family = partnerProfile.worry_tags;
+      }
+      
+      // Создаем новую оценку с worry tags
+      const { data: newAssessment, error: createError } = await supabase
+        .from('assessments')
+        .insert({
+          profile_id: profileId,
+          assessment_type: assessmentType,
+          status: 'in_progress',
+          current_step: 1,
+          total_steps: totalSteps || null,
+          worry_tags: Object.keys(worryTags).length > 0 ? worryTags : null,
+        })
+        .select('id')
+        .single();
+      
+      if (createError) throw createError;
+      
+      assessmentId = newAssessment.id;
+    }
 
     // Обновляем total_steps если нужно
     if (totalSteps) {

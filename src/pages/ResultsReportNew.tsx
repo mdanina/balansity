@@ -279,7 +279,7 @@ export default function ResultsReportNew() {
         return 'Погранично';
       case 'typical':
       case 'low_impact':
-        return 'Типично';
+        return 'Все в порядке';
       default:
         return 'Неизвестно';
     }
@@ -382,9 +382,7 @@ export default function ResultsReportNew() {
         <div className="mb-12">
           <h2 className="text-3xl font-bold text-foreground mb-4">Итоги</h2>
           <p className="text-muted-foreground mb-8">
-            {profile && `Эти результаты основаны на опросе из `}
-            <span className="font-medium">31 вопроса</span>
-            {profile && ` (checkup), который вы заполнили о ${profile.first_name}.`}
+            {profile && `Эти результаты основаны на опроснике, который вы заполнили о ${profile.first_name}.`}
             {parentAssessment && ' Родительская оценка завершена.'}
             {familyAssessment && ' Семейная оценка завершена.'}
           </p>
@@ -574,7 +572,9 @@ export default function ResultsReportNew() {
               
               {/* Worries Section - только о ребенке */}
               {(() => {
-                const childWorryTags = childProfile.worry_tags?.filter(w => childWorries.includes(w)) || [];
+                // Используем теги из assessment (зафиксированные на момент чекапа), если есть, иначе из профиля
+                const assessmentWorryTags = childData.assessment?.worry_tags as { child?: string[]; personal?: string[]; family?: string[] } | null;
+                const childWorryTags = assessmentWorryTags?.child || childProfile.worry_tags?.filter(w => childWorries.includes(w)) || [];
                 if (childWorryTags.length === 0) return null;
                 
                 return (
@@ -770,20 +770,37 @@ export default function ResultsReportNew() {
                 </p>
               </div>
 
-            <Collapsible open={openSections['alice-activity-mean']} onOpenChange={() => toggleSection('alice-activity-mean')}>
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
-                <div className="flex items-center gap-3">
-                  <MessageCircle className="h-5 w-5 text-purple-600" />
-                  <span className="font-medium text-foreground">Что это значит?</span>
-                </div>
-                {openSections['alice-activity-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
-                <p className="text-foreground">
-                  Уровень активности вашего ребенка и способность концентрироваться находятся <strong>в пределах типичного диапазона для детей того же возраста.</strong> Это, вероятно, указывает на то, что ваш ребенок не подвержен значительному риску синдрома дефицита внимания и гиперактивности (СДВГ). Если вы беспокоитесь об уровне активности вашего ребенка или отвлекаемости, оценка может исключить опасения по поводу СДВГ.
-                </p>
-              </CollapsibleContent>
-            </Collapsible>
+            <div className="space-y-3">
+              <Collapsible open={openSections['alice-activity-mean']} onOpenChange={() => toggleSection('alice-activity-mean')}>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
+                  <div className="flex items-center gap-3">
+                    <MessageCircle className="h-5 w-5 text-purple-600" />
+                    <span className="font-medium text-foreground">Что это значит?</span>
+                  </div>
+                  {openSections['alice-activity-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                  <p className="text-foreground">
+                    Уровень активности вашего ребенка и способность концентрироваться находятся <strong>в пределах типичного диапазона для детей того же возраста.</strong> Это, вероятно, указывает на то, что ваш ребенок не подвержен значительному риску синдрома дефицита внимания и гиперактивности (СДВГ). Если вы беспокоитесь об уровне активности вашего ребенка или отвлекаемости, оценка может исключить опасения по поводу СДВГ.
+                  </p>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Collapsible open={openSections['alice-activity-do']} onOpenChange={() => toggleSection('alice-activity-do')}>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-blue-50 p-4 text-left hover:bg-blue-100">
+                  <div className="flex items-center gap-3">
+                    <Lightbulb className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium text-foreground">Что я могу сделать?</span>
+                  </div>
+                  {openSections['alice-activity-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                  <p className="text-foreground">
+                    Если у вас есть вопросы или беспокойства об уровне активности или концентрации вашего ребенка, рекомендуется проконсультироваться со специалистом. В Balansity мы можем помочь определить, нужна ли дополнительная оценка или поддержка.
+                  </p>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
           </div>
           )}
 
@@ -816,20 +833,45 @@ export default function ResultsReportNew() {
                 </p>
               </div>
 
-            <Collapsible open={openSections['alice-social-mean']} onOpenChange={() => toggleSection('alice-social-mean')}>
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
-                <div className="flex items-center gap-3">
-                  <MessageCircle className="h-5 w-5 text-purple-600" />
-                  <span className="font-medium text-foreground">Что это значит?</span>
-                </div>
-                {openSections['alice-social-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
-                <p className="text-foreground">
-                  У вашего ребенка <strong>больше трудностей в отношениях с другими детьми, чем у многих детей того же возраста.</strong> Социальные навыки трудны для некоторых детей. Важно попытаться понять, почему у вашего ребенка возникают трудности со сверстниками. Проблемы ментального здоровья вашего ребенка могут мешать отношениям.
-                </p>
-              </CollapsibleContent>
-            </Collapsible>
+            <div className="space-y-3">
+              <Collapsible open={openSections['alice-social-mean']} onOpenChange={() => toggleSection('alice-social-mean')}>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
+                  <div className="flex items-center gap-3">
+                    <MessageCircle className="h-5 w-5 text-purple-600" />
+                    <span className="font-medium text-foreground">Что это значит?</span>
+                  </div>
+                  {openSections['alice-social-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                  <p className="text-foreground">
+                    У вашего ребенка <strong>больше трудностей в отношениях с другими детьми, чем у многих детей того же возраста.</strong> Социальные навыки трудны для некоторых детей. Важно попытаться понять, почему у вашего ребенка возникают трудности со сверстниками. Проблемы ментального здоровья вашего ребенка могут мешать отношениям.
+                  </p>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Collapsible open={openSections['alice-social-do']} onOpenChange={() => toggleSection('alice-social-do')}>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-blue-50 p-4 text-left hover:bg-blue-100">
+                  <div className="flex items-center gap-3">
+                    <Lightbulb className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium text-foreground">Что я могу сделать?</span>
+                  </div>
+                  {openSections['alice-social-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                  <ul className="list-inside space-y-3 text-foreground">
+                    <li>
+                      <strong>Поощряйте социальные взаимодействия.</strong> Создавайте возможности для вашего ребенка играть и общаться с другими детьми в безопасной и поддерживающей обстановке.
+                    </li>
+                    <li>
+                      <strong>Учите социальным навыкам.</strong> Объясняйте и моделируйте способы общения, делиться, по очереди и решать конфликты.
+                    </li>
+                    <li>
+                      <strong>Обратитесь за поддержкой.</strong> Специалисты Balansity могут помочь вашему ребенку развить социальные навыки и справиться с трудностями в отношениях со сверстниками.
+                    </li>
+                  </ul>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
           </div>
           )}
 
@@ -847,103 +889,103 @@ export default function ResultsReportNew() {
                 {/* Влияние на ребёнка */}
                 {childResults.impact_child && (
                   <div>
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className="font-medium text-foreground">Влияние на ребёнка</span>
-                      <span className={`text-sm ${getStatusColor(childResults.impact_child.status)}`}>
-                        • {getStatusText(childResults.impact_child.status)}
+                    <h4 className="text-lg font-bold text-foreground mb-4">Влияние на ребёнка</h4>
+                    <div className="mb-6">
+                      <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(childResults.impact_child.status)}`}>
+                        {getStatusText(childResults.impact_child.status)}
                       </span>
+                      <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                        <div 
+                          className={`h-full ${
+                            childResults.impact_child.status === 'concerning' ? 'bg-red-500' :
+                            'bg-primary'
+                          }`}
+                          style={{ width: `${getProgressPercentage(childResults.impact_child.score, 3)}%` }}
+                        ></div>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Балл: {childResults.impact_child.score} / 3
+                      </p>
                     </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-muted">
-                      <div 
-                        className={`h-full ${
-                          childResults.impact_child.status === 'concerning' ? 'bg-red-500' :
-                          'bg-primary'
-                        }`}
-                        style={{ width: `${getProgressPercentage(childResults.impact_child.score, 3)}%` }}
-                      ></div>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Балл: {childResults.impact_child.score} / 3 (порог: ≥ 2)
-                    </p>
                   </div>
                 )}
 
                 {/* Влияние на родителя */}
                 {childResults.impact_parent && (
                   <div>
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className="font-medium text-foreground">Влияние на родителя</span>
-                      <span className={`text-sm ${getStatusColor(childResults.impact_parent.status)}`}>
-                        • {getStatusText(childResults.impact_parent.status)}
+                    <h4 className="text-lg font-bold text-foreground mb-4">Влияние на родителя</h4>
+                    <div className="mb-6">
+                      <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(childResults.impact_parent.status)}`}>
+                        {getStatusText(childResults.impact_parent.status)}
                       </span>
+                      <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                        <div 
+                          className={`h-full ${
+                            childResults.impact_parent.status === 'concerning' ? 'bg-red-500' :
+                            'bg-primary'
+                          }`}
+                          style={{ width: `${getProgressPercentage(childResults.impact_parent.score, 6)}%` }}
+                        ></div>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Балл: {childResults.impact_parent.score} / 6
+                      </p>
                     </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-muted">
-                      <div 
-                        className={`h-full ${
-                          childResults.impact_parent.status === 'concerning' ? 'bg-red-500' :
-                          'bg-primary'
-                        }`}
-                        style={{ width: `${getProgressPercentage(childResults.impact_parent.score, 6)}%` }}
-                      ></div>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Балл: {childResults.impact_parent.score} / 6 (порог: ≥ 3)
-                    </p>
                   </div>
                 )}
 
                 {/* Влияние на семью */}
                 {childResults.impact_family && (
                   <div>
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className="font-medium text-foreground">Влияние на семью</span>
-                      <span className={`text-sm ${getStatusColor(childResults.impact_family.status)}`}>
-                        • {getStatusText(childResults.impact_family.status)}
+                    <h4 className="text-lg font-bold text-foreground mb-4">Влияние на семью</h4>
+                    <div className="mb-6">
+                      <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(childResults.impact_family.status)}`}>
+                        {getStatusText(childResults.impact_family.status)}
                       </span>
+                      <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                        <div 
+                          className={`h-full ${
+                            childResults.impact_family.status === 'concerning' ? 'bg-red-500' :
+                            'bg-primary'
+                          }`}
+                          style={{ width: `${getProgressPercentage(childResults.impact_family.score, 18)}%` }}
+                        ></div>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Балл: {childResults.impact_family.score} / 18
+                      </p>
                     </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-muted">
-                      <div 
-                        className={`h-full ${
-                          childResults.impact_family.status === 'concerning' ? 'bg-red-500' :
-                          'bg-primary'
-                        }`}
-                        style={{ width: `${getProgressPercentage(childResults.impact_family.score, 18)}%` }}
-                      ></div>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Балл: {childResults.impact_family.score} / 18 (порог: ≥ 6)
-                    </p>
                   </div>
                 )}
 
                 {/* Обратная совместимость: старый формат impact */}
                 {childResults.impact && !childResults.impact_child && !childResults.impact_parent && !childResults.impact_family && (
                   <div>
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className="font-medium text-foreground">{childProfile.first_name}</span>
-                      <span className={`text-sm ${
-                        childResults.impact.status === 'high_impact' ? 'text-red-600' :
-                        childResults.impact.status === 'medium_impact' ? 'text-yellow-600' :
-                        'text-primary'
+                    <h4 className="text-lg font-bold text-foreground mb-4">{childProfile.first_name}</h4>
+                    <div className="mb-6">
+                      <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${
+                        childResults.impact.status === 'high_impact' ? 'text-red-600 bg-red-100' :
+                        childResults.impact.status === 'medium_impact' ? 'text-yellow-600 bg-yellow-100' :
+                        'text-primary bg-primary/10'
                       }`}>
-                        • {childResults.impact.status === 'high_impact' ? 'Высокое влияние' :
-                            childResults.impact.status === 'medium_impact' ? 'Среднее влияние' :
-                            'Низкое влияние'}
+                        {childResults.impact.status === 'high_impact' ? 'Высокое влияние' :
+                         childResults.impact.status === 'medium_impact' ? 'Среднее влияние' :
+                         'Низкое влияние'}
                       </span>
+                      <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                        <div 
+                          className={`h-full ${
+                            childResults.impact.status === 'high_impact' ? 'bg-red-500' :
+                            childResults.impact.status === 'medium_impact' ? 'bg-yellow-500' :
+                            'bg-primary'
+                          }`}
+                          style={{ width: `${getProgressPercentage(childResults.impact.score, 2)}%` }}
+                        ></div>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Балл влияния: {childResults.impact.score} / 2
+                      </p>
                     </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-muted">
-                      <div 
-                        className={`h-full ${
-                          childResults.impact.status === 'high_impact' ? 'bg-red-500' :
-                          childResults.impact.status === 'medium_impact' ? 'bg-yellow-500' :
-                          'bg-primary'
-                        }`}
-                        style={{ width: `${getProgressPercentage(childResults.impact.score, 2)}%` }}
-                      ></div>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Балл влияния: {childResults.impact.score} / 2
-                    </p>
                   </div>
                 )}
               </div>
@@ -1121,12 +1163,15 @@ export default function ResultsReportNew() {
               });
             }
             
-            const personalWorryTags = parentProfile?.worry_tags?.filter(w => personalWorries.includes(w)) || [];
+            // Используем теги из assessment (зафиксированные на момент чекапа), если есть, иначе из профиля
+            const assessmentWorryTags = parentAssessment?.worry_tags as { child?: string[]; personal?: string[]; family?: string[] } | null;
+            const personalWorryTags = assessmentWorryTags?.personal || parentProfile?.worry_tags?.filter(w => personalWorries.includes(w)) || [];
             
             // Отладка: логируем отфильтрованные worry tags
             logger.log('Filtered personal worry tags:', {
               personalWorryTags,
-              count: personalWorryTags.length
+              count: personalWorryTags.length,
+              fromAssessment: !!assessmentWorryTags?.personal
             });
             
             if (personalWorryTags.length > 0) {
@@ -1169,66 +1214,183 @@ export default function ResultsReportNew() {
                   <div className="space-y-6">
                     {parentResults.anxiety && (
                       <div className="rounded-lg border border-border bg-muted/20 p-6">
-                        <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-xl font-bold text-foreground">Тревожность</h3>
+                        <h3 className="text-xl font-bold text-foreground mb-4">Тревожность</h3>
+                        <div className="mb-6">
                           <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(parentResults.anxiety.status)}`}>
                             {getStatusText(parentResults.anxiety.status)}
                           </span>
+                          <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                            <div 
+                              className={`h-full ${
+                                parentResults.anxiety.status === 'concerning' ? 'bg-red-500' :
+                                parentResults.anxiety.status === 'borderline' ? 'bg-yellow-500' :
+                                'bg-primary'
+                              }`}
+                              style={{ width: `${getProgressPercentage(parentResults.anxiety.score, 6)}%` }}
+                            ></div>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">Балл: {parentResults.anxiety.score} / 6</p>
                         </div>
-                        <p className="text-muted-foreground">Балл: {parentResults.anxiety.score} / 6</p>
-                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
-                          <div 
-                            className={`h-full ${
-                              parentResults.anxiety.status === 'concerning' ? 'bg-red-500' :
-                              parentResults.anxiety.status === 'borderline' ? 'bg-yellow-500' :
-                              'bg-primary'
-                            }`}
-                            style={{ width: `${getProgressPercentage(parentResults.anxiety.score, 6)}%` }}
-                          ></div>
+                        <div className="space-y-3">
+                          <Collapsible open={openSections['parent-anxiety-mean']} onOpenChange={() => toggleSection('parent-anxiety-mean')}>
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
+                              <div className="flex items-center gap-3">
+                                <MessageCircle className="h-5 w-5 text-purple-600" />
+                                <span className="font-medium text-foreground">Что это значит?</span>
+                              </div>
+                              {openSections['parent-anxiety-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                              <p className="text-foreground">
+                                {parentResults.anxiety.status === 'concerning' 
+                                  ? 'Эти результаты показывают, что вы <strong>испытываете значительные симптомы тревожности.</strong> Это может влиять на вашу способность заботиться о себе и вашей семье.'
+                                  : parentResults.anxiety.status === 'borderline'
+                                  ? 'Эти результаты показывают, что вы <strong>можете испытывать некоторые симптомы тревожности.</strong> Важно обратить внимание на свое эмоциональное благополучие.'
+                                  : 'Эти результаты показывают, что вы <strong>не испытываете значительных симптомов тревожности.</strong> Один из способов поддерживать эмоциональный баланс - найти способы снизить стресс и создать радость в вашей жизни.'}
+                              </p>
+                            </CollapsibleContent>
+                          </Collapsible>
+
+                          <Collapsible open={openSections['parent-anxiety-do']} onOpenChange={() => toggleSection('parent-anxiety-do')}>
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-blue-50 p-4 text-left hover:bg-blue-100">
+                              <div className="flex items-center gap-3">
+                                <Lightbulb className="h-5 w-5 text-blue-600" />
+                                <span className="font-medium text-foreground">Что я могу сделать?</span>
+                              </div>
+                              {openSections['parent-anxiety-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                              <ul className="list-inside space-y-3 text-foreground">
+                                <li>
+                                  <strong>Заботьтесь о себе.</strong> Найдите время для отдыха, физической активности и занятий, которые приносят вам радость.
+                                </li>
+                                <li>
+                                  <strong>Обратитесь за поддержкой.</strong> Поговорите с друзьями, семьей или специалистом о своих переживаниях.
+                                </li>
+                                <li>
+                                  <strong>Рассмотрите профессиональную помощь.</strong> В Balansity мы можем помочь вам справиться с тревожностью и улучшить ваше эмоциональное благополучие.
+                                </li>
+                              </ul>
+                            </CollapsibleContent>
+                          </Collapsible>
                         </div>
                       </div>
                     )}
                     
                     {parentResults.depression && (
                       <div className="rounded-lg border border-border bg-muted/20 p-6">
-                        <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-xl font-bold text-foreground">Депрессия</h3>
+                        <h3 className="text-xl font-bold text-foreground mb-4">Депрессия</h3>
+                        <div className="mb-6">
                           <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(parentResults.depression.status)}`}>
                             {getStatusText(parentResults.depression.status)}
                           </span>
+                          <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                            <div 
+                              className={`h-full ${
+                                parentResults.depression.status === 'concerning' ? 'bg-red-500' :
+                                parentResults.depression.status === 'borderline' ? 'bg-yellow-500' :
+                                'bg-primary'
+                              }`}
+                              style={{ width: `${getProgressPercentage(parentResults.depression.score, 6)}%` }}
+                            ></div>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">Балл: {parentResults.depression.score} / 6</p>
                         </div>
-                        <p className="text-muted-foreground">Балл: {parentResults.depression.score} / 6</p>
-                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
-                          <div 
-                            className={`h-full ${
-                              parentResults.depression.status === 'concerning' ? 'bg-red-500' :
-                              parentResults.depression.status === 'borderline' ? 'bg-yellow-500' :
-                              'bg-primary'
-                            }`}
-                            style={{ width: `${getProgressPercentage(parentResults.depression.score, 6)}%` }}
-                          ></div>
+                        <div className="space-y-3">
+                          <Collapsible open={openSections['parent-depression-mean']} onOpenChange={() => toggleSection('parent-depression-mean')}>
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
+                              <div className="flex items-center gap-3">
+                                <MessageCircle className="h-5 w-5 text-purple-600" />
+                                <span className="font-medium text-foreground">Что это значит?</span>
+                              </div>
+                              {openSections['parent-depression-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                              <p className="text-foreground">
+                                {parentResults.depression.status === 'concerning' 
+                                  ? 'Эти результаты показывают, что вы <strong>испытываете высокие депрессивные симптомы.</strong> Это может влиять на вашу способность заботиться о себе и вашей семье.'
+                                  : parentResults.depression.status === 'borderline'
+                                  ? 'Эти результаты показывают, что вы <strong>можете испытывать некоторые депрессивные симптомы.</strong> Важно обратить внимание на свое эмоциональное благополучие.'
+                                  : 'Эти результаты показывают, что вы <strong>не испытываете высоких депрессивных симптомов.</strong> Продолжайте заботиться о себе и своем эмоциональном благополучии.'}
+                              </p>
+                            </CollapsibleContent>
+                          </Collapsible>
+
+                          <Collapsible open={openSections['parent-depression-do']} onOpenChange={() => toggleSection('parent-depression-do')}>
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-blue-50 p-4 text-left hover:bg-blue-100">
+                              <div className="flex items-center gap-3">
+                                <Lightbulb className="h-5 w-5 text-blue-600" />
+                                <span className="font-medium text-foreground">Что я могу сделать?</span>
+                              </div>
+                              {openSections['parent-depression-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                              <ul className="list-inside space-y-3 text-foreground">
+                                <li>
+                                  <strong>Не оставайтесь один на один с проблемой.</strong> Обратитесь к близким людям или специалисту за поддержкой.
+                                </li>
+                                <li>
+                                  <strong>Заботьтесь о физическом здоровье.</strong> Регулярная физическая активность, достаточный сон и здоровое питание могут помочь улучшить настроение.
+                                </li>
+                                <li>
+                                  <strong>Рассмотрите профессиональную помощь.</strong> В Balansity мы можем помочь вам справиться с депрессивными симптомами и улучшить ваше эмоциональное благополучие.
+                                </li>
+                              </ul>
+                            </CollapsibleContent>
+                          </Collapsible>
                         </div>
                       </div>
                     )}
                     
                     {parentResults.total && (
                       <div className="rounded-lg border border-border bg-muted/20 p-6">
-                        <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-xl font-bold text-foreground">Общий балл</h3>
+                        <h3 className="text-xl font-bold text-foreground mb-4">Общий балл</h3>
+                        <div className="mb-6">
                           <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(parentResults.total.status)}`}>
                             {getStatusText(parentResults.total.status)}
                           </span>
+                          <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                            <div 
+                              className={`h-full ${
+                                parentResults.total.status === 'concerning' ? 'bg-red-500' :
+                                parentResults.total.status === 'borderline' ? 'bg-yellow-500' :
+                                'bg-primary'
+                              }`}
+                              style={{ width: `${getProgressPercentage(parentResults.total.score, 12)}%` }}
+                            ></div>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">Балл: {parentResults.total.score} / 12</p>
                         </div>
-                        <p className="text-muted-foreground">Балл: {parentResults.total.score} / 12</p>
-                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
-                          <div 
-                            className={`h-full ${
-                              parentResults.total.status === 'concerning' ? 'bg-red-500' :
-                              parentResults.total.status === 'borderline' ? 'bg-yellow-500' :
-                              'bg-primary'
-                            }`}
-                            style={{ width: `${getProgressPercentage(parentResults.total.score, 12)}%` }}
-                          ></div>
+                        <div className="space-y-3">
+                          <Collapsible open={openSections['parent-total-mean']} onOpenChange={() => toggleSection('parent-total-mean')}>
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
+                              <div className="flex items-center gap-3">
+                                <MessageCircle className="h-5 w-5 text-purple-600" />
+                                <span className="font-medium text-foreground">Что это значит?</span>
+                              </div>
+                              {openSections['parent-total-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                              <p className="text-foreground">
+                                Общий балл отражает общее состояние вашего ментального здоровья, учитывая как тревожность, так и депрессивные симптомы. Это помогает получить целостную картину вашего эмоционального благополучия.
+                              </p>
+                            </CollapsibleContent>
+                          </Collapsible>
+
+                          <Collapsible open={openSections['parent-total-do']} onOpenChange={() => toggleSection('parent-total-do')}>
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-blue-50 p-4 text-left hover:bg-blue-100">
+                              <div className="flex items-center gap-3">
+                                <Lightbulb className="h-5 w-5 text-blue-600" />
+                                <span className="font-medium text-foreground">Что я могу сделать?</span>
+                              </div>
+                              {openSections['parent-total-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                              <p className="text-foreground">
+                                Ваше эмоциональное благополучие важно для вас и вашей семьи. Если общий балл вызывает беспокойство, рассмотрите возможность обращения за профессиональной поддержкой. В Balansity мы здесь, чтобы помочь вам чувствовать себя лучше.
+                              </p>
+                            </CollapsibleContent>
+                          </Collapsible>
                         </div>
                       </div>
                     )}
@@ -1268,7 +1430,7 @@ export default function ResultsReportNew() {
 
               <div className="mb-6">
                 <span className="inline-block rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
-                  Типично
+                  Все в порядке
                 </span>
                 <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
                   <div className="h-full w-[50%] bg-primary"></div>
@@ -1302,7 +1464,7 @@ export default function ResultsReportNew() {
 
               <div className="mb-6">
                 <span className="inline-block rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
-                  Типично
+                  Все в порядке
                 </span>
                 <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
                   <div className="h-full w-[45%] bg-primary"></div>
@@ -1335,7 +1497,7 @@ export default function ResultsReportNew() {
                 <div>
                   <div className="mb-2 flex items-center gap-2">
                     <span className="font-medium text-foreground">Тревожность</span>
-                    <span className="text-sm text-primary">• Типично</span>
+                    <span className="text-sm text-primary">• Все в порядке</span>
                   </div>
                   <div className="h-3 overflow-hidden rounded-full bg-muted">
                     <div className="h-full w-[50%] bg-primary"></div>
@@ -1345,7 +1507,7 @@ export default function ResultsReportNew() {
                 <div>
                   <div className="mb-2 flex items-center gap-2">
                     <span className="font-medium text-foreground">Депрессия</span>
-                    <span className="text-sm text-primary">• Типично</span>
+                    <span className="text-sm text-primary">• Все в порядке</span>
                   </div>
                   <div className="h-3 overflow-hidden rounded-full bg-muted">
                     <div className="h-full w-[45%] bg-primary"></div>
@@ -1368,8 +1530,10 @@ export default function ResultsReportNew() {
             
             {/* Worries Section - о семье */}
             {(() => {
-              // Ищем worry tags о семье в профиле партнера или родителя
-              const familyWorryTags = partnerProfile?.worry_tags?.filter(w => familyWorries.includes(w)) || 
+              // Используем теги из assessment (зафиксированные на момент чекапа), если есть, иначе из профилей
+              const assessmentWorryTags = familyAssessment?.worry_tags as { child?: string[]; personal?: string[]; family?: string[] } | null;
+              const familyWorryTags = assessmentWorryTags?.family || 
+                                     partnerProfile?.worry_tags?.filter(w => familyWorries.includes(w)) || 
                                      parentProfile?.worry_tags?.filter(w => familyWorries.includes(w)) || [];
               if (familyWorryTags.length === 0) return null;
               
@@ -1402,66 +1566,195 @@ export default function ResultsReportNew() {
                   <div className="space-y-6">
                     {familyResults.family_stress && (
                       <div className="rounded-lg border border-border bg-muted/20 p-6">
-                        <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-xl font-bold text-foreground">Семейный стресс</h3>
+                        <h3 className="text-xl font-bold text-foreground mb-4">Семейный стресс</h3>
+                        <div className="mb-6">
                           <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(familyResults.family_stress.status)}`}>
                             {getStatusText(familyResults.family_stress.status)}
                           </span>
+                          <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                            <div 
+                              className={`h-full ${
+                                familyResults.family_stress.status === 'concerning' ? 'bg-red-500' :
+                                familyResults.family_stress.status === 'borderline' ? 'bg-yellow-500' :
+                                'bg-primary'
+                              }`}
+                              style={{ width: `${getProgressPercentage(familyResults.family_stress.score, 4)}%` }}
+                            ></div>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">Балл: {familyResults.family_stress.score} / 4</p>
                         </div>
-                        <p className="text-muted-foreground">Балл: {familyResults.family_stress.score} / 4</p>
-                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
-                          <div 
-                            className={`h-full ${
-                              familyResults.family_stress.status === 'concerning' ? 'bg-red-500' :
-                              familyResults.family_stress.status === 'borderline' ? 'bg-yellow-500' :
-                              'bg-primary'
-                            }`}
-                            style={{ width: `${getProgressPercentage(familyResults.family_stress.score, 4)}%` }}
-                          ></div>
+                        <div className="space-y-3">
+                          <Collapsible open={openSections['family-stress-mean']} onOpenChange={() => toggleSection('family-stress-mean')}>
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
+                              <div className="flex items-center gap-3">
+                                <MessageCircle className="h-5 w-5 text-purple-600" />
+                                <span className="font-medium text-foreground">Что это значит?</span>
+                              </div>
+                              {openSections['family-stress-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                              <p className="text-foreground">
+                                {familyResults.family_stress.status === 'concerning' 
+                                  ? 'Ваша семья в настоящее время <strong>испытывает высокий уровень стресса.</strong> Это может влиять на всех членов семьи и вашу способность справляться с ежедневными задачами.'
+                                  : familyResults.family_stress.status === 'borderline'
+                                  ? 'Ваша семья может <strong>испытывать некоторый уровень стресса.</strong> Важно обратить внимание на то, как это влияет на семейную динамику.'
+                                  : 'Ваша семья в настоящее время <strong>справляется с ежедневным жизненным стрессом.</strong> Продолжайте поддерживать открытое общение и заботу друг о друге.'}
+                              </p>
+                            </CollapsibleContent>
+                          </Collapsible>
+
+                          <Collapsible open={openSections['family-stress-do']} onOpenChange={() => toggleSection('family-stress-do')}>
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-blue-50 p-4 text-left hover:bg-blue-100">
+                              <div className="flex items-center gap-3">
+                                <Lightbulb className="h-5 w-5 text-blue-600" />
+                                <span className="font-medium text-foreground">Что я могу сделать?</span>
+                              </div>
+                              {openSections['family-stress-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                              <ul className="list-inside space-y-3 text-foreground">
+                                <li>
+                                  <strong>Установите границы.</strong> Определите, что важно для вашей семьи, и научитесь говорить "нет" дополнительным обязательствам.
+                                </li>
+                                <li>
+                                  <strong>Проводите время вместе.</strong> Регулярное время для семьи без отвлекающих факторов может помочь укрепить связи.
+                                </li>
+                                <li>
+                                  <strong>Обратитесь за поддержкой.</strong> В Balansity мы можем помочь вашей семье найти способы справиться со стрессом и улучшить семейную динамику.
+                                </li>
+                              </ul>
+                            </CollapsibleContent>
+                          </Collapsible>
                         </div>
                       </div>
                     )}
                     
                     {familyResults.partner_relationship && (
                       <div className="rounded-lg border border-border bg-muted/20 p-6">
-                        <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-xl font-bold text-foreground">Отношения с партнером</h3>
+                        <h3 className="text-xl font-bold text-foreground mb-4">Отношения с партнером</h3>
+                        <div className="mb-6">
                           <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(familyResults.partner_relationship.status)}`}>
                             {getStatusText(familyResults.partner_relationship.status)}
                           </span>
+                          <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                            <div 
+                              className={`h-full ${
+                                familyResults.partner_relationship.status === 'concerning' ? 'bg-red-500' :
+                                familyResults.partner_relationship.status === 'borderline' ? 'bg-yellow-500' :
+                                'bg-primary'
+                              }`}
+                              style={{ width: `${getProgressPercentage(familyResults.partner_relationship.score, 5)}%` }}
+                            ></div>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">Балл: {familyResults.partner_relationship.score} / 5</p>
                         </div>
-                        <p className="text-muted-foreground">Балл: {familyResults.partner_relationship.score} / 5</p>
-                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
-                          <div 
-                            className={`h-full ${
-                              familyResults.partner_relationship.status === 'concerning' ? 'bg-red-500' :
-                              familyResults.partner_relationship.status === 'borderline' ? 'bg-yellow-500' :
-                              'bg-primary'
-                            }`}
-                            style={{ width: `${getProgressPercentage(familyResults.partner_relationship.score, 5)}%` }}
-                          ></div>
+                        <div className="space-y-3">
+                          <Collapsible open={openSections['family-partner-mean']} onOpenChange={() => toggleSection('family-partner-mean')}>
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
+                              <div className="flex items-center gap-3">
+                                <MessageCircle className="h-5 w-5 text-purple-600" />
+                                <span className="font-medium text-foreground">Что это значит?</span>
+                              </div>
+                              {openSections['family-partner-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                              <p className="text-foreground">
+                                {familyResults.partner_relationship.status === 'concerning' 
+                                  ? 'Вы сообщили, что в настоящее время испытываете <strong>конфликт или трудности в отношениях с вашим партнером.</strong> Это может влиять на всю семью.'
+                                  : familyResults.partner_relationship.status === 'borderline'
+                                  ? 'В ваших отношениях с партнером <strong>могут быть некоторые трудности.</strong> Важно обратить внимание на эти аспекты.'
+                                  : 'Ваши отношения с партнером <strong>выглядят стабильными.</strong> Продолжайте поддерживать открытое общение и заботу друг о друге.'}
+                              </p>
+                            </CollapsibleContent>
+                          </Collapsible>
+
+                          <Collapsible open={openSections['family-partner-do']} onOpenChange={() => toggleSection('family-partner-do')}>
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-blue-50 p-4 text-left hover:bg-blue-100">
+                              <div className="flex items-center gap-3">
+                                <Lightbulb className="h-5 w-5 text-blue-600" />
+                                <span className="font-medium text-foreground">Что я могу сделать?</span>
+                              </div>
+                              {openSections['family-partner-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                              <ul className="list-inside space-y-3 text-foreground">
+                                <li>
+                                  <strong>Общайтесь открыто.</strong> Выделяйте время для честных разговоров о потребностях и чувствах каждого партнера.
+                                </li>
+                                <li>
+                                  <strong>Ищите компромиссы.</strong> Работайте вместе над решениями, которые учитывают потребности обоих партнеров.
+                                </li>
+                                <li>
+                                  <strong>Рассмотрите парную терапию.</strong> В Balansity мы можем помочь вам улучшить общение и укрепить ваши отношения.
+                                </li>
+                              </ul>
+                            </CollapsibleContent>
+                          </Collapsible>
                         </div>
                       </div>
                     )}
                     
                     {familyResults.coparenting && (
                       <div className="rounded-lg border border-border bg-muted/20 p-6">
-                        <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-xl font-bold text-foreground">Совместное воспитание</h3>
+                        <h3 className="text-xl font-bold text-foreground mb-4">Совместное воспитание</h3>
+                        <div className="mb-6">
                           <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(familyResults.coparenting.status)}`}>
                             {getStatusText(familyResults.coparenting.status)}
                           </span>
+                          <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+                            <div 
+                              className={`h-full ${
+                                familyResults.coparenting.status === 'concerning' ? 'bg-red-500' :
+                                familyResults.coparenting.status === 'borderline' ? 'bg-yellow-500' :
+                                'bg-primary'
+                              }`}
+                              style={{ width: `${getProgressPercentage(familyResults.coparenting.score, 10)}%` }}
+                            ></div>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">Балл: {familyResults.coparenting.score} / 10</p>
                         </div>
-                        <p className="text-muted-foreground">Балл: {familyResults.coparenting.score} / 10</p>
-                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
-                          <div 
-                            className={`h-full ${
-                              familyResults.coparenting.status === 'concerning' ? 'bg-red-500' :
-                              familyResults.coparenting.status === 'borderline' ? 'bg-yellow-500' :
-                              'bg-primary'
-                            }`}
-                            style={{ width: `${getProgressPercentage(familyResults.coparenting.score, 10)}%` }}
-                          ></div>
+                        <div className="space-y-3">
+                          <Collapsible open={openSections['family-coparenting-mean']} onOpenChange={() => toggleSection('family-coparenting-mean')}>
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
+                              <div className="flex items-center gap-3">
+                                <MessageCircle className="h-5 w-5 text-purple-600" />
+                                <span className="font-medium text-foreground">Что это значит?</span>
+                              </div>
+                              {openSections['family-coparenting-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                              <p className="text-foreground">
+                                {familyResults.coparenting.status === 'concerning' 
+                                  ? 'Вы указали, что <strong>сложно работать вместе с вашим со-родителем(ями)</strong> для воспитания вашего ребенка(детей), и это может привести к конфликту.'
+                                  : familyResults.coparenting.status === 'borderline'
+                                  ? 'В совместном воспитании <strong>могут быть некоторые трудности.</strong> Важно обратить внимание на эти аспекты.'
+                                  : 'Вы <strong>эффективно работаете вместе</strong> с вашим со-родителем(ями) для воспитания вашего ребенка(детей). Продолжайте поддерживать открытое общение и сотрудничество.'}
+                              </p>
+                            </CollapsibleContent>
+                          </Collapsible>
+
+                          <Collapsible open={openSections['family-coparenting-do']} onOpenChange={() => toggleSection('family-coparenting-do')}>
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-blue-50 p-4 text-left hover:bg-blue-100">
+                              <div className="flex items-center gap-3">
+                                <Lightbulb className="h-5 w-5 text-blue-600" />
+                                <span className="font-medium text-foreground">Что я могу сделать?</span>
+                              </div>
+                              {openSections['family-coparenting-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
+                              <ul className="list-inside space-y-3 text-foreground">
+                                <li>
+                                  <strong>Установите общие правила.</strong> Работайте вместе над созданием согласованных правил и ожиданий для вашего ребенка.
+                                </li>
+                                <li>
+                                  <strong>Поддерживайте открытое общение.</strong> Регулярно обсуждайте вопросы воспитания и стремитесь к компромиссам.
+                                </li>
+                                <li>
+                                  <strong>Рассмотрите поддержку специалиста.</strong> В Balansity мы можем помочь вам улучшить совместное воспитание и создать более сплоченную семейную команду.
+                                </li>
+                              </ul>
+                            </CollapsibleContent>
+                          </Collapsible>
                         </div>
                       </div>
                     )}
@@ -1519,7 +1812,7 @@ export default function ResultsReportNew() {
 
               <div className="mb-6">
                 <span className="inline-block rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
-                  Типично
+                  Все в порядке
                 </span>
                 <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
                   <div className="h-full w-[40%] bg-primary"></div>
@@ -1620,7 +1913,7 @@ export default function ResultsReportNew() {
                 <div>
                   <div className="mb-2 flex items-center gap-2">
                     <span className="font-medium text-foreground">Семейный стресс</span>
-                    <span className="text-sm text-primary">• Типично</span>
+                    <span className="text-sm text-primary">• Все в порядке</span>
                   </div>
                   <div className="h-3 overflow-hidden rounded-full bg-muted">
                     <div className="h-full w-[40%] bg-primary"></div>
