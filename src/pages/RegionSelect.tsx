@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
 import { StepIndicator } from "@/components/StepIndicator";
@@ -35,6 +35,7 @@ const regions = [
 
 export default function RegionSelect() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [region, setRegion] = useState("");
   const [loading, setLoading] = useState(true);
@@ -69,11 +70,20 @@ export default function RegionSelect() {
         // Сохраняем регион в таблицу users
         await upsertUserData({ region });
 
-        // Simulate some regions being unavailable
-        if (region === "Омск" || region === "Волгоград") {
-          navigate("/coming-soon");
+        // Определяем, откуда пришли: редактирование из меню или первичная настройка
+        const isEditing = location.state?.from === 'dashboard';
+
+        if (isEditing) {
+          // Редактирование из меню → возвращаемся в Dashboard
+          navigate("/dashboard");
         } else {
-          navigate("/family-setup");
+          // Первичная настройка → продолжаем поток
+          // Simulate some regions being unavailable
+          if (region === "Омск" || region === "Волгоград") {
+            navigate("/coming-soon");
+          } else {
+            navigate("/family-setup");
+          }
         }
       } catch (error) {
         console.error('Error saving region:', error);
@@ -121,7 +131,15 @@ export default function RegionSelect() {
                 type="button"
                 variant="outline"
                 size="lg"
-                onClick={() => navigate("/profile")}
+                onClick={() => {
+                  // Если это редактирование, возвращаемся в Dashboard, иначе в Profile
+                  const isEditing = location.state?.from === 'dashboard';
+                  if (isEditing) {
+                    navigate("/dashboard");
+                  } else {
+                    navigate("/profile");
+                  }
+                }}
                 className="h-14 flex-1 text-base font-medium"
               >
                 Назад

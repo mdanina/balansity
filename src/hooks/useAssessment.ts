@@ -1,6 +1,7 @@
 // Хук для работы с оценками (assessments)
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useCurrentProfile } from '@/contexts/ProfileContext';
 import { getProfiles } from '@/lib/profileStorage';
@@ -24,6 +25,7 @@ interface UseAssessmentOptions {
 export function useAssessment({ assessmentType, totalSteps, profileId: providedProfileId }: UseAssessmentOptions) {
   const params = useParams<{ profileId?: string }>();
   const { currentProfileId } = useCurrentProfile();
+  const queryClient = useQueryClient();
   const [actualProfileId, setActualProfileId] = useState<string | null>(null);
   
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
@@ -172,13 +174,32 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
 
   // Завершение оценки
   const complete = async () => {
-    if (!assessmentId) {
-      logger.warn('Assessment ID not available');
+    if (!assessmentId || !actualProfileId) {
+      logger.warn('Assessment ID or Profile ID not available');
       return null;
     }
 
     try {
       const results = await completeAssessment(assessmentId);
+      
+      // Инвалидируем кеш React Query для обновления данных в Dashboard и ResultsReportNew
+      // Инвалидируем все запросы связанные с assessments
+      await queryClient.invalidateQueries({ 
+        queryKey: ['assessments'],
+        exact: false // Инвалидируем все запросы, начинающиеся с 'assessments'
+      });
+      
+      // Инвалидируем активные оценки
+      await queryClient.invalidateQueries({ 
+        queryKey: ['active-assessments'],
+        exact: false
+      });
+      
+      // Инвалидируем конкретную оценку для этого профиля
+      await queryClient.invalidateQueries({ 
+        queryKey: ['assessment', actualProfileId, assessmentType]
+      });
+      
       toast.success('Оценка завершена!');
       return results;
     } catch (error) {

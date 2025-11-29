@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
 import { StepIndicator } from "@/components/StepIndicator";
@@ -21,6 +21,7 @@ import { getProfiles, createProfile, updateProfile } from "@/lib/profileStorage"
 
 export default function Profile() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -107,7 +108,16 @@ export default function Profile() {
           toast.success("Профиль успешно создан!");
         }
 
-        navigate("/region");
+        // Определяем, откуда пришли: редактирование из меню или первичная настройка
+        const isEditing = location.state?.from === 'dashboard';
+        
+        if (isEditing) {
+          // Редактирование из меню → возвращаемся в Dashboard
+          navigate("/dashboard");
+        } else {
+          // Первичная настройка → продолжаем поток
+          navigate("/region");
+        }
       } catch (error) {
         console.error('Error saving profile:', error);
         toast.error('Ошибка при сохранении профиля');

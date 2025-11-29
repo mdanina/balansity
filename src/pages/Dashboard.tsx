@@ -231,15 +231,15 @@ export default function Dashboard() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/profile")}>
+                <DropdownMenuItem onClick={() => navigate("/profile", { state: { from: 'dashboard' } })}>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Профиль</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/region")}>
+                <DropdownMenuItem onClick={() => navigate("/region", { state: { from: 'dashboard' } })}>
                   <MapPin className="mr-2 h-4 w-4" />
                   <span>Регион</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/family-members")}>
+                <DropdownMenuItem onClick={() => navigate("/family-members", { state: { from: 'dashboard' } })}>
                   <Users className="mr-2 h-4 w-4" />
                   <span>Члены семьи</span>
                 </DropdownMenuItem>

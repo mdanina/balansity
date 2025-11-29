@@ -150,48 +150,64 @@ export default function FamilyMembers() {
           </div>
 
           <div className="flex gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={() => navigate("/family-setup")}
-              className="h-14 flex-1 text-base font-medium"
-            >
-              Назад
-            </Button>
-            <Button
-              type="button"
-              size="lg"
-              onClick={() => {
-                // Находим первого ребенка для перехода к worry tags
-                console.log('Members list:', members);
-                console.log('Members types:', members.map(m => ({ 
-                  id: m.id, 
-                  name: m.first_name, 
-                  type: m.type,
-                  dob: m.dob 
-                })));
-                
-                const children = members.filter(m => m.type === 'child');
-                const firstChild = children[0];
-                
-                if (firstChild) {
-                  console.log('Found child:', firstChild);
-                  setCurrentProfileId(firstChild.id);
-                  setCurrentProfile(firstChild);
-                  navigate(`/worries/${firstChild.id}`);
-                } else {
-                  console.log('No child found. Available members:', members);
-                  const memberTypes = members.map(m => `${m.first_name} (${m.type})`).join(', ');
-                  toast.error(
-                    `Не найден ребенок в семье. Текущие члены семьи: ${memberTypes || 'нет'}. Пожалуйста, добавьте ребенка.`
-                  );
-                }
-              }}
-              className="h-14 flex-1 text-base font-medium"
-            >
-              Далее
-            </Button>
+            {/* Определяем, откуда пришли: из меню или первичная настройка */}
+            {location.state?.from === 'dashboard' ? (
+              // Редактирование из меню → только кнопка возврата в dashboard
+              <Button
+                type="button"
+                size="lg"
+                onClick={() => navigate("/dashboard")}
+                className="h-14 w-full text-base font-medium"
+              >
+                Вернуться в кабинет
+              </Button>
+            ) : (
+              // Первичная настройка → кнопки Назад и Далее
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => navigate("/family-setup")}
+                  className="h-14 flex-1 text-base font-medium"
+                >
+                  Назад
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={() => {
+                    // Находим первого ребенка для перехода к worry tags
+                    console.log('Members list:', members);
+                    console.log('Members types:', members.map(m => ({ 
+                      id: m.id, 
+                      name: m.first_name, 
+                      type: m.type,
+                      dob: m.dob 
+                    })));
+                    
+                    const children = members.filter(m => m.type === 'child');
+                    const firstChild = children[0];
+                    
+                    if (firstChild) {
+                      console.log('Found child:', firstChild);
+                      setCurrentProfileId(firstChild.id);
+                      setCurrentProfile(firstChild);
+                      navigate(`/worries/${firstChild.id}`);
+                    } else {
+                      console.log('No child found. Available members:', members);
+                      const memberTypes = members.map(m => `${m.first_name} (${m.type})`).join(', ');
+                      toast.error(
+                        `Не найден ребенок в семье. Текущие члены семьи: ${memberTypes || 'нет'}. Пожалуйста, добавьте ребенка.`
+                      );
+                    }
+                  }}
+                  className="h-14 flex-1 text-base font-medium"
+                >
+                  Далее
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -117,6 +117,8 @@ export default function ResultsReportNew() {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   }, []);
 
+  const location = useLocation();
+  
   // Загружаем данные всех профилей пользователя и их оценки
   useEffect(() => {
     async function loadResults() {
@@ -140,8 +142,18 @@ export default function ResultsReportNew() {
         const partner = profiles.find(p => p.type === 'partner');
         const children = profiles.filter(p => p.type === 'child');
         
+        // Отладка: логируем загруженные профили
         if (parent) {
+          logger.log('Loaded parent profile:', {
+            id: parent.id,
+            first_name: parent.first_name,
+            worry_tags: parent.worry_tags,
+            worry_tags_type: typeof parent.worry_tags,
+            worry_tags_is_array: Array.isArray(parent.worry_tags)
+          });
           setParentProfile(parent);
+        } else {
+          logger.warn('Parent profile not found in loaded profiles');
         }
         if (partner) {
           setPartnerProfile(partner);
@@ -254,7 +266,7 @@ export default function ResultsReportNew() {
         setLoading(false);
       }
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, location.pathname]); // Добавляем location.pathname для обновления при возврате на страницу
 
   // Функция для получения текста статуса на русском
   const getStatusText = (status: string): string => {
@@ -1097,15 +1109,26 @@ export default function ResultsReportNew() {
           
           {/* Worries Section - о себе - показываем всегда, если есть worry tags */}
           {(() => {
-            const personalWorryTags = parentProfile?.worry_tags?.filter(w => personalWorries.includes(w)) || [];
-            // Отладка: логируем worry tags
-            if (parentProfile?.worry_tags) {
-              logger.log('Parent profile worry tags:', {
+            // Отладка: логируем все данные профиля родителя
+            if (parentProfile) {
+              logger.log('Parent profile data:', {
+                id: parentProfile.id,
+                first_name: parentProfile.first_name,
                 allWorryTags: parentProfile.worry_tags,
-                personalWorryTags,
+                worryTagsType: typeof parentProfile.worry_tags,
+                worryTagsIsArray: Array.isArray(parentProfile.worry_tags),
                 personalWorriesList: personalWorries
               });
             }
+            
+            const personalWorryTags = parentProfile?.worry_tags?.filter(w => personalWorries.includes(w)) || [];
+            
+            // Отладка: логируем отфильтрованные worry tags
+            logger.log('Filtered personal worry tags:', {
+              personalWorryTags,
+              count: personalWorryTags.length
+            });
+            
             if (personalWorryTags.length > 0) {
               return (
                 <div className="mb-8 border-l-4 border-muted pl-6">
