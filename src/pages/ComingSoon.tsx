@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import logoOtters from "@/assets/logo-otters.png";
 
 export default function ComingSoon() {
   const navigate = useNavigate();
@@ -27,12 +26,6 @@ export default function ComingSoon() {
       
       <div className="container mx-auto max-w-2xl px-4 py-12">
         <div className="space-y-8 text-center">
-          <img
-            src={logoOtters}
-            alt="Little Otter"
-            className="mx-auto h-32 w-32"
-          />
-          
           <div>
             <h1 className="mb-4 text-4xl font-bold text-foreground">
               Скоро появится в вашем регионе
@@ -95,7 +88,7 @@ export default function ComingSoon() {
 
             <p className="text-center text-xs text-muted-foreground">
               Нажимая "Присоединиться к списку ожидания", вы соглашаетесь получать маркетинговые и/или
-              транзакционные письма от Little Otter. Ознакомьтесь с нашими{" "}
+              транзакционные письма от Balansity. Ознакомьтесь с нашими{" "}
               <a href="#" className="underline">
                 Условиями использования
               </a>{" "}

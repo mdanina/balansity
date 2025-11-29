@@ -13,7 +13,6 @@ import { toast } from 'sonner';
 import { registerSchema, type RegisterInput } from '@/lib/validation/schemas';
 import { handleApiError } from '@/lib/errorHandler';
 import { logger } from '@/lib/logger';
-import logoOtters from '@/assets/logo-otters.png';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -94,8 +93,7 @@ export default function Register() {
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-6">
-              <img src={logoOtters} alt="Little Otter" className="h-12 w-12" />
-              <span className="text-2xl font-bold text-primary">Little Otter</span>
+              <span className="text-2xl font-bold text-primary">Balansity</span>
             </div>
             <h1 className="text-3xl font-bold text-foreground">Регистрация</h1>
             <p className="mt-2 text-muted-foreground">

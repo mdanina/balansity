@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { TestimonialSection } from "@/components/TestimonialSection";
-import logoOtters from "@/assets/logo-otters.png";
 import { Button } from "@/components/ui/button";
 
 export default function Index() {
@@ -13,17 +12,15 @@ export default function Index() {
       <div className="flex items-center justify-center bg-background p-8">
         <div className="w-full max-w-2xl space-y-12">
           <div className="flex items-center gap-3">
-            <img src={logoOtters} alt="Little Otter" className="h-12 w-12" />
-            <span className="text-2xl font-bold text-primary">Little Otter</span>
+            <span className="text-2xl font-bold text-primary">Balansity</span>
           </div>
 
           <div>
             <h1 className="mb-6 text-5xl font-bold leading-tight text-foreground">
-              Получите необходимую помощь простыми шагами
+              Получите необходимую помощь, сделав три простых шага
             </h1>
             <p className="text-xl text-muted-foreground">
-              Мы вместе с вами на всем пути. Little Otter здесь, чтобы предоставить вам и вашей
-              семье комплексный, персонализированный подход к психическому здоровью, независимо
+              Мы вместе с вами на всем пути. Balansity здесь, чтобы предоставить вашему ребенку и семье комплексный, персонализированный подход к психическому здоровью, независимо
               от того, на каком этапе вы находитесь.
             </p>
           </div>
@@ -52,7 +49,7 @@ export default function Index() {
                   Запланируйте вводный звонок
                 </h3>
                 <p className="text-muted-foreground">
-                  Обсудите потребности вашей семьи с вашим специализированным навигатором по уходу.
+                  Обсудите потребности вашей семьи с вашим персональным координатором. Бесплатно.
                 </p>
               </div>
             </div>
@@ -63,10 +60,10 @@ export default function Index() {
               </div>
               <div>
                 <h3 className="mb-2 text-xl font-semibold text-foreground">
-                  Начните лечение
+                  Начните работу со специалистом
                 </h3>
                 <p className="text-muted-foreground">
-                  Получите индивидуальный план ухода и начните работать с нашей командой экспертов.
+                  Получите индивидуальный план решения проблемы и начните работать с нашей командой специалистов.
                 </p>
               </div>
             </div>

@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import logoOtters from "@/assets/logo-otters.png";
 import otterReading from "@/assets/otter-reading.png";
 import otterHearts from "@/assets/otter-hearts.png";
 import { Button } from "@/components/ui/button";
@@ -67,6 +66,13 @@ export default function Dashboard() {
   }, [profiles, assessmentsMap, activeAssessmentsMap]);
 
   const loading = profilesLoading || assessmentsLoading || activeAssessmentsLoading;
+
+  // Получаем имя родителя для приветствия
+  const parentName = useMemo(() => {
+    if (!profiles || !Array.isArray(profiles)) return null;
+    const parentProfile = profiles.find(p => p.type === 'parent');
+    return parentProfile?.first_name || null;
+  }, [profiles]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -201,8 +207,7 @@ export default function Dashboard() {
       <header className="border-b border-border bg-background px-6 py-4">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src={logoOtters} alt="Little Otter" className="h-8 w-8" />
-            <span className="text-xl font-bold text-foreground">Little Otter</span>
+            <span className="text-xl font-bold text-foreground">Balansity</span>
           </div>
           
           {user && (
@@ -262,7 +267,7 @@ export default function Dashboard() {
         
         <div className="container mx-auto relative z-10 max-w-5xl">
           <h1 className="mb-4 text-4xl font-bold md:text-5xl">
-            Привет{user?.email ? `, ${user.email.split('@')[0]}` : ''}
+            Привет{parentName ? `, ${parentName}` : user?.email ? `, ${user.email.split('@')[0]}` : ''}
           </h1>
           <p className="text-xl md:text-2xl opacity-90">Как вы себя чувствуете сегодня?</p>
         </div>
@@ -275,7 +280,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between gap-8">
             <div className="flex-1">
               <h2 className="mb-3 text-3xl font-bold text-foreground">
-                Добро пожаловать в ваш новый Care Den
+                Добро пожаловать в ваш личный кабинет
               </h2>
               <p className="text-lg text-muted-foreground">
                 Немного потерялись?... Позвольте нам помочь, нажмите кнопку, чтобы посмотреть наше вступительное видео.
@@ -302,11 +307,10 @@ export default function Dashboard() {
             <div className="flex flex-col items-center text-center">
               <img 
                 src={otterReading} 
-                alt="Little Otter Portal" 
+                alt="Balansity Portal" 
                 className="mb-6 h-40 w-auto object-contain"
               />
-              <h3 className="mb-2 text-2xl font-bold text-foreground">Little Otter</h3>
-              <p className="text-lg font-medium text-muted-foreground">PORTAL</p>
+              <h3 className="mb-2 text-2xl font-bold text-foreground">Получить консультацию</h3>
             </div>
           </Card>
 
@@ -357,15 +361,15 @@ export default function Dashboard() {
               <h3 className={`mb-2 text-2xl font-bold text-foreground transition-colors pointer-events-none ${
                 canStartCheckup.allowed ? 'group-hover:text-pink-600' : 'text-muted-foreground'
               }`}>
-                Психическое здоровье семьи
+                Психологический чекап семьи
               </h3>
-              <p className={`text-lg font-medium pointer-events-none ${
-                canStartCheckup.allowed ? 'text-muted-foreground' : 'text-muted-foreground/70'
-              }`}>
-                {canStartCheckup.allowed && canStartCheckup.reason === 'active_checkup_exists' 
-                  ? 'Продолжить проверку' 
-                  : 'Проверка'}
-              </p>
+              {canStartCheckup.allowed && canStartCheckup.reason === 'active_checkup_exists' && (
+                <p className={`text-lg font-medium pointer-events-none ${
+                  canStartCheckup.allowed ? 'text-muted-foreground' : 'text-muted-foreground/70'
+                }`}>
+                  Продолжить проверку
+                </p>
+              )}
               {!canStartCheckup.allowed && canStartCheckup.reason === 'too_soon' && (
                 <p className="mt-3 text-sm text-muted-foreground/80 pointer-events-none">
                   {canStartCheckup.daysRemaining 

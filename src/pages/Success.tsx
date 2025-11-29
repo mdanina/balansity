@@ -1,7 +1,6 @@
 import { Header } from "@/components/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Grid } from "lucide-react";
-import logoOtters from "@/assets/logo-otters.png";
 
 export default function Success() {
   return (
@@ -10,12 +9,6 @@ export default function Success() {
       
       <div className="container mx-auto max-w-2xl px-4 py-12">
         <div className="space-y-8 text-center">
-          <img
-            src={logoOtters}
-            alt="Little Otter"
-            className="mx-auto h-32 w-32"
-          />
-          
           <div>
             <h1 className="mb-4 text-4xl font-bold text-foreground">
               Вы в списке!
@@ -55,7 +48,7 @@ export default function Success() {
                     Центр ресурсов
                   </h3>
                   <p className="text-muted-foreground">
-                    Little Otter предоставляет ресурсы, чтобы узнать, когда беспокоиться и как
+                    Balansity предоставляет ресурсы, чтобы узнать, когда беспокоиться и как
                     поддержать психическое здоровье детей и благополучие семьи.
                   </p>
                 </div>

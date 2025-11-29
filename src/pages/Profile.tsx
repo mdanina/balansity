@@ -263,7 +263,7 @@ export default function Profile() {
                 />
                 <Label htmlFor="sms" className="text-sm leading-relaxed">
                   Установив этот флажок, вы соглашаетесь получать SMS-уведомления о вашем лечении
-                  от Little Otter Health. Частота сообщений варьируется. Могут применяться тарифы
+                  от Balansity. Частота сообщений варьируется. Могут применяться тарифы
                   на сообщения и данные. Вы можете ответить STOP, чтобы отказаться в любое время.
                   Политика конфиденциальности.
                 </Label>
@@ -277,7 +277,7 @@ export default function Profile() {
                 />
                 <Label htmlFor="marketing" className="text-sm leading-relaxed">
                   Я согласен получать <strong>периодические маркетинговые</strong> письма о
-                  программах, предложениях и обновлениях Little Otter.
+                  программах, предложениях и обновлениях Balansity.
                 </Label>
               </div>
             </div>
