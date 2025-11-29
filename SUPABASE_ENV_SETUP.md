@@ -92,3 +92,5 @@ nano /opt/supabase/.env
 - Подробная инструкция: `DISABLE_EMAIL_CONFIRMATION.md`
 - Пример файла: `supabase.env.example`
 
+
+

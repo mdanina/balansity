@@ -136,3 +136,5 @@ AND routine_type = 'FUNCTION';
 - [ ] Проверены таблицы в Table Editor
 - [ ] Проверены функции через SQL запрос
 
+
+

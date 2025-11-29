@@ -53,3 +53,5 @@ services:
 Обратитесь в поддержку Beget с просьбой:
 "Пожалуйста, перезапустите Docker-контейнер supabase-auth на сервере. Команда: `cd /opt/beget/supabase && docker-compose restart auth`"
 
+
+

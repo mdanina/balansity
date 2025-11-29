@@ -32,3 +32,5 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIs
 1. Установите зависимость: `npm install @supabase/supabase-js`
 2. Примените SQL миграции в Supabase (см. инструкцию ниже)
 
+
+

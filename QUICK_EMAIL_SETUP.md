@@ -117,3 +117,5 @@ GOTRUE_MAILER_URLPATHS_CONFIRMATION=/email-confirm
 
 3. **Свяжитесь с поддержкой Beget** - они подскажут, где находятся файлы конфигурации
 
+
+

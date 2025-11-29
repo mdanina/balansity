@@ -79,3 +79,5 @@ services:
 - Подробная инструкция: `LOCAL_SUPABASE_SETUP.md`
 - Пример файла: `supabase.env.example`
 
+
+

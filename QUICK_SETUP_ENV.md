@@ -65,3 +65,5 @@ Copy-Item supabase/env.local.example supabase/.env
 - Подробная инструкция: `CREATE_SUPABASE_ENV.md`
 - Пример файла: `supabase.env.example`
 
+
+

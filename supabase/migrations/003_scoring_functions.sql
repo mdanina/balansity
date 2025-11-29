@@ -192,3 +192,5 @@ begin
 end;
 $$ language plpgsql security definer;
 
+
+

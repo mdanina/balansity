@@ -135,3 +135,5 @@ const results = await completeAssessment(assessmentId);
 - Уникальность ответов: один ответ на один вопрос в одной сессии
 - Автоматическое обновление `updated_at` через триггеры
 
+
+

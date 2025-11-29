@@ -180,3 +180,5 @@ export async function getFamilyMembersWithFallback() {
 
 Интеграция завершена. После выполнения шагов выше приложение будет работать с Supabase!
 
+
+

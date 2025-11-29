@@ -39,3 +39,5 @@ where id in (
   for update skip locked
 );
 
+
+

@@ -105,3 +105,5 @@ public.answers (assessment_id = checkup-1)
 - RLS политики гарантируют безопасность
 - Все связи корректны
 
+
+

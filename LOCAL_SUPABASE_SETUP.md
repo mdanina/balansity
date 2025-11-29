@@ -102,3 +102,5 @@ GOTRUE_SITE_URL=http://localhost:8080
 - Пример файла: `supabase.env.example`
 - Подробная инструкция: `DISABLE_EMAIL_CONFIRMATION.md`
 
+
+

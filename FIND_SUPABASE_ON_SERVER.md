@@ -113,3 +113,5 @@ docker-compose restart auth
    find / -type d -name "*supabase*" 2>/dev/null
    ```
 
+
+

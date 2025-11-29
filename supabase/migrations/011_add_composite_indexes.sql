@@ -37,3 +37,5 @@ COMMENT ON INDEX idx_answers_assessment_value_type IS
 COMMENT ON INDEX idx_assessments_type_status_profile IS 
   'Оптимизирует поиск завершенных оценок определенного типа для профиля';
 
+
+

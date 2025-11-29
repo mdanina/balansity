@@ -91,3 +91,5 @@ GOTRUE_MAILER_AUTOCONFIRM=false
 - Убедитесь, что `GOTRUE_SITE_URL` указывает на правильный домен
 - Для продакшена рекомендуется включить подтверждение email (`GOTRUE_MAILER_AUTOCONFIRM=false`) и настроить SMTP
 
+
+

@@ -114,3 +114,5 @@ AND routine_name = 'calculate_checkup_scores';
 2. Проверьте, что функция `calculate_checkup_scores` существует
 3. Если функция уже существует, миграция просто обновит её (это нормально)
 
+
+
