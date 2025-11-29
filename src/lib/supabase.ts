@@ -47,6 +47,7 @@ export interface Database {
           phone: string | null;
           region: string | null;
           marketing_consent: boolean;
+          free_consultation_created: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -56,12 +57,14 @@ export interface Database {
           phone?: string | null;
           region?: string | null;
           marketing_consent?: boolean;
+          free_consultation_created?: boolean;
         };
         Update: {
           email?: string | null;
           phone?: string | null;
           region?: string | null;
           marketing_consent?: boolean;
+          free_consultation_created?: boolean;
         };
       };
       profiles: {
@@ -174,6 +177,159 @@ export interface Database {
           value?: number;
           answer_type?: string | null;
           step_number?: number | null;
+        };
+      };
+      appointment_types: {
+        Row: {
+          id: string;
+          name: string;
+          duration_minutes: number;
+          price: number;
+          description: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          duration_minutes: number;
+          price: number;
+          description?: string | null;
+          is_active?: boolean;
+        };
+        Update: {
+          name?: string;
+          duration_minutes?: number;
+          price?: number;
+          description?: string | null;
+          is_active?: boolean;
+        };
+      };
+      appointments: {
+        Row: {
+          id: string;
+          user_id: string;
+          profile_id: string | null;
+          appointment_type_id: string;
+          scheduled_at: string;
+          status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+          payment_id: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          profile_id?: string | null;
+          appointment_type_id: string;
+          scheduled_at: string;
+          status?: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+          payment_id?: string | null;
+          notes?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          profile_id?: string | null;
+          appointment_type_id?: string;
+          scheduled_at?: string;
+          status?: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+          payment_id?: string | null;
+          notes?: string | null;
+        };
+      };
+      packages: {
+        Row: {
+          id: string;
+          name: string;
+          session_count: number;
+          appointment_type_id: string;
+          price: number;
+          description: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          session_count: number;
+          appointment_type_id: string;
+          price: number;
+          description?: string | null;
+          is_active?: boolean;
+        };
+        Update: {
+          name?: string;
+          session_count?: number;
+          appointment_type_id?: string;
+          price?: number;
+          description?: string | null;
+          is_active?: boolean;
+        };
+      };
+      package_purchases: {
+        Row: {
+          id: string;
+          user_id: string;
+          package_id: string;
+          sessions_remaining: number;
+          payment_id: string | null;
+          purchased_at: string;
+          expires_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          package_id: string;
+          sessions_remaining: number;
+          payment_id?: string | null;
+          purchased_at?: string;
+          expires_at?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          package_id?: string;
+          sessions_remaining?: number;
+          payment_id?: string | null;
+          purchased_at?: string;
+          expires_at?: string | null;
+        };
+      };
+      payments: {
+        Row: {
+          id: string;
+          user_id: string;
+          amount: number;
+          currency: string;
+          status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'refunded';
+          payment_method: string | null;
+          external_payment_id: string | null;
+          metadata: Record<string, any> | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          amount: number;
+          currency?: string;
+          payment_method?: string | null;
+          external_payment_id?: string | null;
+          metadata?: Record<string, any> | null;
+          status?: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'refunded';
+        };
+        Update: {
+          user_id?: string;
+          amount?: number;
+          currency?: string;
+          status?: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'refunded';
+          payment_method?: string | null;
+          external_payment_id?: string | null;
+          metadata?: Record<string, any> | null;
         };
       };
     };

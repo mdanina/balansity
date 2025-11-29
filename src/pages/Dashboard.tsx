@@ -307,14 +307,27 @@ export default function Dashboard() {
 
         {/* Portal Cards */}
         <div className="mb-12 grid gap-6 md:grid-cols-2">
-          <Card className="group cursor-pointer overflow-hidden border-2 bg-gradient-to-br from-purple-50 to-white p-8 shadow-md transition-all hover:shadow-xl">
+          <Card 
+            className="group cursor-pointer overflow-hidden border-2 bg-gradient-to-br from-purple-50 to-white p-8 shadow-md transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+            onClick={() => navigate("/appointments")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate("/appointments");
+              }
+            }}
+          >
             <div className="flex flex-col items-center text-center">
               <img 
                 src={otterReading} 
                 alt="Balansity Portal" 
-                className="mb-6 h-40 w-auto object-contain"
+                className="mb-6 h-40 w-auto object-contain transition-transform pointer-events-none group-hover:scale-110"
               />
-              <h3 className="mb-2 text-2xl font-bold text-foreground">Получить консультацию</h3>
+              <h3 className="mb-2 text-2xl font-bold text-foreground transition-colors pointer-events-none group-hover:text-purple-600">
+                Получить консультацию
+              </h3>
             </div>
           </Card>
 

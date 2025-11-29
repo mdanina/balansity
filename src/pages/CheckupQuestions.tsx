@@ -213,6 +213,16 @@ export default function CheckupQuestions() {
                 // Завершаем чекап и ждем обновления кеша
                 await complete();
                 
+                // Проверяем, это ли первый завершенный чекап пользователя
+                // Если да, создаем бесплатную консультацию
+                try {
+                  const { createFreeConsultationAfterFirstCheckup } = await import('@/lib/appointmentStorage');
+                  await createFreeConsultationAfterFirstCheckup();
+                } catch (consultationError) {
+                  // Не прерываем процесс, если не удалось создать консультацию
+                  console.error('Error creating free consultation:', consultationError);
+                }
+                
                 // Проверяем, есть ли еще дети без завершенного чекапа
                 const allProfiles = await getProfiles();
                 const children = allProfiles.filter(p => p.type === 'child' && p.id !== profileId);
@@ -290,6 +300,16 @@ export default function CheckupQuestions() {
         // После последнего вопроса завершаем checkup assessment
         if (profileId) {
           await complete();
+          
+          // Проверяем, это ли первый завершенный чекап пользователя
+          // Если да, создаем бесплатную консультацию
+          try {
+            const { createFreeConsultationAfterFirstCheckup } = await import('@/lib/appointmentStorage');
+            await createFreeConsultationAfterFirstCheckup();
+          } catch (consultationError) {
+            // Не прерываем процесс, если не удалось создать консультацию
+            console.error('Error creating free consultation:', consultationError);
+          }
           
           // Проверяем, есть ли еще дети без завершенного чекапа
           try {

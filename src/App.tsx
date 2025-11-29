@@ -39,6 +39,11 @@ const ResultsReport = lazy(() => import("./pages/ResultsReport"));
 const ResultsReportNew = lazy(() => import("./pages/ResultsReportNew"));
 const CheckupHistory = lazy(() => import("./pages/CheckupHistory"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Appointments = lazy(() => import("./pages/Appointments"));
+const AppointmentBooking = lazy(() => import("./pages/AppointmentBooking"));
+const Packages = lazy(() => import("./pages/Packages"));
+const Payment = lazy(() => import("./pages/Payment"));
+const AppointmentConfirmation = lazy(() => import("./pages/AppointmentConfirmation"));
 
 // Компонент загрузки
 const PageLoader = () => (
@@ -102,6 +107,13 @@ const App = () => (
                   <Route path="/results-report/:profileId?" element={<ProtectedRoute><ResultsReportNew /></ProtectedRoute>} />
                   <Route path="/checkup-history" element={<ProtectedRoute><CheckupHistory /></ProtectedRoute>} />
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  
+                  {/* Консультации и оплата */}
+                  <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
+                  <Route path="/appointments/booking" element={<ProtectedRoute><AppointmentBooking /></ProtectedRoute>} />
+                  <Route path="/appointments/confirmation" element={<ProtectedRoute><AppointmentConfirmation /></ProtectedRoute>} />
+                  <Route path="/packages" element={<ProtectedRoute><Packages /></ProtectedRoute>} />
+                  <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
