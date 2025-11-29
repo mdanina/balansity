@@ -21,7 +21,7 @@ declare
   impact_family_score int := 0;     -- Вопросы 24, 25, 26, 27, 28, 29
 begin
   -- 4.3.1. Эмоциональные проблемы: вопросы 2, 3, 4, 5, 6
-  -- Пороговое значение: 7 и выше
+  -- Максимум: 20 (5 вопросов × 4). Пороговое значение: 12 и выше (60% от максимума)
   select coalesce(sum(value), 0) into emotional_score
   from public.answers
   where assessment_id = assessment_uuid
@@ -30,7 +30,7 @@ begin
     and value >= 0;
   
   -- 4.3.2. Поведенческие проблемы: вопросы 7, 8, 9, 10, 11
-  -- Пороговое значение: 4 и выше
+  -- Максимум: 20 (5 вопросов × 4). Пороговое значение: 12 и выше (60% от максимума)
   -- Вопрос 7 - обратный (isReverse: true), reverse scoring уже применен при сохранении
   -- Вопрос 8 - прямой (не обратный), несмотря на указание в схеме
   select coalesce(sum(value), 0) into conduct_score
@@ -41,7 +41,7 @@ begin
     and value >= 0;
   
   -- 4.3.3. Гиперактивность и внимание: вопросы 12, 13, 14, 15 (обратная), 16 (обратная)
-  -- Пороговое значение: 7 и выше
+  -- Максимум: 20 (5 вопросов × 4). Пороговое значение: 12 и выше (60% от максимума)
   -- Вопросы 15, 16 - обратные, но reverse scoring уже применен при сохранении
   select coalesce(sum(value), 0) into hyperactivity_score
   from public.answers
@@ -51,7 +51,7 @@ begin
     and value >= 0;
   
   -- 4.3.4. Проблемы со сверстниками: вопросы 17, 18, 19, 20 (обратная), 21 (обратная)
-  -- Пороговое значение: 4 и выше
+  -- Максимум: 24 (6 вопросов × 4). Пороговое значение: 15 и выше (60% от максимума, округлено вверх)
   -- Вопросы 20, 21 - обратные, но reverse scoring уже применен при сохранении
   select coalesce(sum(value), 0) into peer_problems_score
   from public.answers
@@ -96,28 +96,28 @@ begin
     'emotional', jsonb_build_object(
       'score', emotional_score,
       'status', case
-        when emotional_score >= 7 then 'concerning'  -- Требует внимания
+        when emotional_score >= 12 then 'concerning'  -- Требует внимания (60% от максимума 20)
         else 'typical'  -- Типично (норма)
       end
     ),
     'conduct', jsonb_build_object(
       'score', conduct_score,
       'status', case
-        when conduct_score >= 4 then 'concerning'  -- Требует внимания
+        when conduct_score >= 12 then 'concerning'  -- Требует внимания (60% от максимума 20)
         else 'typical'  -- Типично (норма)
       end
     ),
     'hyperactivity', jsonb_build_object(
       'score', hyperactivity_score,
       'status', case
-        when hyperactivity_score >= 7 then 'concerning'  -- Требует внимания
+        when hyperactivity_score >= 12 then 'concerning'  -- Требует внимания (60% от максимума 20)
         else 'typical'  -- Типично (норма)
       end
     ),
     'peer_problems', jsonb_build_object(
       'score', peer_problems_score,
       'status', case
-        when peer_problems_score >= 4 then 'concerning'  -- Требует внимания
+        when peer_problems_score >= 15 then 'concerning'  -- Требует внимания (60% от максимума 24)
         else 'typical'  -- Типично (норма)
       end
     ),
@@ -143,6 +143,7 @@ begin
       end
     ),
     'total_difficulties', emotional_score + conduct_score + hyperactivity_score + peer_problems_score,
+    -- Максимум Total Difficulties: 84 (20+20+20+24). Порог "Есть проблемы": 51 (60% от 84, округлено вверх)
     'calculated_at', now()
   );
   
@@ -163,7 +164,7 @@ declare
   total_score int := 0;
 begin
   -- 4.5.1. Тревожность (GAD-2): вопросы 3, 4
-  -- Максимальный балл: 6. Пороговое значение: 3 и выше
+  -- Максимальный балл: 6. Пороговое значение: 4 и выше (60% от максимума, округлено вверх)
   -- В схеме указаны вопросы 3, 4, но в коде parentQuestions вопросы имеют id: 2, 3
   -- Проверяю: в parentQuestions.ts id: 2="Чувство нервозности...", id: 3="Невозможность остановить..."
   -- Значит, это вопросы с id 2, 3 (но в схеме указаны 3, 4)
@@ -180,7 +181,7 @@ begin
     and value >= 0;
   
   -- 4.5.2. Депрессия (PHQ-2): вопросы 5, 6
-  -- Максимальный балл: 6. Пороговое значение: 3 и выше
+  -- Максимальный балл: 6. Пороговое значение: 4 и выше (60% от максимума, округлено вверх)
   -- В коде id: 4, 5 (вопросы про депрессию)
   select coalesce(sum(value), 0) into depression_score
   from public.answers
@@ -196,21 +197,21 @@ begin
     'anxiety', jsonb_build_object(
       'score', anxiety_score,
       'status', case
-        when anxiety_score >= 3 then 'concerning'  -- Требует внимания
+        when anxiety_score >= 4 then 'concerning'  -- Требует внимания (60% от максимума 6)
         else 'typical'  -- Типично (норма)
       end
     ),
     'depression', jsonb_build_object(
       'score', depression_score,
       'status', case
-        when depression_score >= 3 then 'concerning'  -- Требует внимания
+        when depression_score >= 4 then 'concerning'  -- Требует внимания (60% от максимума 6)
         else 'typical'  -- Типично (норма)
       end
     ),
     'total', jsonb_build_object(
       'score', total_score,
       'status', case
-        when total_score >= 6 then 'concerning'  -- Требует внимания (сумма двух подшкал)
+        when total_score >= 8 then 'concerning'  -- Требует внимания (60% от максимума 12, округлено вверх)
         else 'typical'  -- Типично (норма)
       end
     ),
@@ -242,7 +243,7 @@ declare
 begin
   -- 4.6.1. Семейный стресс: вопрос 2 (в схеме)
   -- В коде: id=1 - "Как дела у вашей семьи?"
-  -- Пороговое значение: 3 и выше (скоро не сможем справляться или в кризисе)
+  -- Максимум: 4. Пороговое значение: 3 и выше (60% от максимума, округлено вверх)
   select coalesce(value, 0) into wellbeing_value
   from public.answers
   where assessment_id = assessment_uuid
@@ -304,21 +305,21 @@ begin
     'family_stress', jsonb_build_object(
       'score', family_stress_score,
       'status', case
-        when family_stress_score >= 3 then 'concerning'  -- Требует внимания
+        when family_stress_score >= 3 then 'concerning'  -- Требует внимания (60% от максимума 4)
         else 'typical'  -- Типично (норма)
       end
     ),
     'partner_relationship', jsonb_build_object(
       'score', partner_relationship_score,
       'status', case
-        when partner_relationship_score >= 6 then 'concerning'  -- Требует внимания
+        when partner_relationship_score >= 6 then 'concerning'  -- Требует внимания (60% от максимума 10)
         else 'typical'  -- Типично (норма)
       end
     ),
     'coparenting', jsonb_build_object(
       'score', coparenting_score,
       'status', case
-        when coparenting_score >= 6 then 'concerning'  -- Требует внимания
+        when coparenting_score >= 6 then 'concerning'  -- Требует внимания (60% от максимума 10)
         else 'typical'  -- Типично (норма)
       end
     ),

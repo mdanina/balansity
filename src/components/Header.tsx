@@ -1,4 +1,4 @@
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
@@ -6,11 +6,7 @@ import { LogOut, User } from "lucide-react";
 export const Header = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   
-  // Делаем логотип некликабельным на странице отчетов
-  const isResultsPage = location.pathname.startsWith('/results-report');
-
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
@@ -20,13 +16,7 @@ export const Header = () => {
     <header className="border-b border-border bg-background">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          {isResultsPage ? (
-            <span className="text-xl font-bold text-primary">Balansity</span>
-          ) : (
-            <Link to="/" className="flex items-center gap-2">
-              <span className="text-xl font-bold text-primary">Balansity</span>
-            </Link>
-          )}
+          <span className="text-xl font-bold text-primary">Balansity</span>
           
           {user && (
             <div className="flex items-center gap-4">

@@ -380,11 +380,8 @@ export default function ResultsReportNew() {
 
         {/* Summary Section */}
         <div className="mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-4">Итоги</h2>
           <p className="text-muted-foreground mb-8">
-            {profile && `Эти результаты основаны на опроснике, который вы заполнили о ${profile.first_name}.`}
-            {parentAssessment && ' Родительская оценка завершена.'}
-            {familyAssessment && ' Семейная оценка завершена.'}
+            Эти результаты основаны на опроснике, который вы заполнили о своей семье.
           </p>
 
           {/* Cards Carousel */}
@@ -414,7 +411,7 @@ export default function ResultsReportNew() {
                           <span className={`font-medium ${getStatusColor(childResults.emotional.status).split(' ')[0]}`}>
                             {getStatusText(childResults.emotional.status)}
                           </span>
-                          <p className="text-sm text-muted-foreground">Эмоции (балл: {childResults.emotional.score})</p>
+                          <p className="text-sm text-muted-foreground">Эмоции</p>
                         </div>
                       )}
                       {childResults.conduct && (
@@ -422,7 +419,7 @@ export default function ResultsReportNew() {
                           <span className={`font-medium ${getStatusColor(childResults.conduct.status).split(' ')[0]}`}>
                             {getStatusText(childResults.conduct.status)}
                           </span>
-                          <p className="text-sm text-muted-foreground">Поведение (балл: {childResults.conduct.score})</p>
+                          <p className="text-sm text-muted-foreground">Поведение</p>
                         </div>
                       )}
                       {childResults.peer_problems && (
@@ -430,7 +427,7 @@ export default function ResultsReportNew() {
                           <span className={`font-medium ${getStatusColor(childResults.peer_problems.status).split(' ')[0]}`}>
                             {getStatusText(childResults.peer_problems.status)}
                           </span>
-                          <p className="text-sm text-muted-foreground">Социальное (балл: {childResults.peer_problems.score})</p>
+                          <p className="text-sm text-muted-foreground">Социальное</p>
                         </div>
                       )}
                       {childResults.hyperactivity && (
@@ -438,7 +435,7 @@ export default function ResultsReportNew() {
                           <span className={`font-medium ${getStatusColor(childResults.hyperactivity.status).split(' ')[0]}`}>
                             {getStatusText(childResults.hyperactivity.status)}
                           </span>
-                          <p className="text-sm text-muted-foreground">Активность (балл: {childResults.hyperactivity.score})</p>
+                          <p className="text-sm text-muted-foreground">Активность</p>
                         </div>
                       )}
                     </div>
@@ -463,7 +460,7 @@ export default function ResultsReportNew() {
                                 <span className={`font-medium ${getStatusColor(parentResults.anxiety.status).split(' ')[0]}`}>
                                   {getStatusText(parentResults.anxiety.status)}
                                 </span>
-                                <p className="text-sm text-muted-foreground">Тревожность (балл: {parentResults.anxiety.score})</p>
+                                <p className="text-sm text-muted-foreground">Тревожность</p>
                               </div>
                             )}
                             {parentResults.depression && (
@@ -471,15 +468,7 @@ export default function ResultsReportNew() {
                                 <span className={`font-medium ${getStatusColor(parentResults.depression.status).split(' ')[0]}`}>
                                   {getStatusText(parentResults.depression.status)}
                                 </span>
-                                <p className="text-sm text-muted-foreground">Депрессия (балл: {parentResults.depression.score})</p>
-                              </div>
-                            )}
-                            {parentResults.total && (
-                              <div>
-                                <span className={`font-medium ${getStatusColor(parentResults.total.status).split(' ')[0]}`}>
-                                  {getStatusText(parentResults.total.status)}
-                                </span>
-                                <p className="text-sm text-muted-foreground">Общий балл: {parentResults.total.score}</p>
+                                <p className="text-sm text-muted-foreground">Депрессия</p>
                               </div>
                             )}
                           </>
@@ -518,7 +507,7 @@ export default function ResultsReportNew() {
                                 <span className={`font-medium ${getStatusColor(familyResults.family_stress.status).split(' ')[0]}`}>
                                   {getStatusText(familyResults.family_stress.status)}
                                 </span>
-                                <p className="text-sm text-muted-foreground">Семейный стресс (балл: {familyResults.family_stress.score})</p>
+                                <p className="text-sm text-muted-foreground">Семейный стресс</p>
                               </div>
                             )}
                             {familyResults.partner_relationship && (
@@ -526,7 +515,7 @@ export default function ResultsReportNew() {
                                 <span className={`font-medium ${getStatusColor(familyResults.partner_relationship.status).split(' ')[0]}`}>
                                   {getStatusText(familyResults.partner_relationship.status)}
                                 </span>
-                                <p className="text-sm text-muted-foreground">Отношения с партнером (балл: {familyResults.partner_relationship.score})</p>
+                                <p className="text-sm text-muted-foreground">Отношения с партнером</p>
                               </div>
                             )}
                             {familyResults.coparenting && (
@@ -534,7 +523,7 @@ export default function ResultsReportNew() {
                                 <span className={`font-medium ${getStatusColor(familyResults.coparenting.status).split(' ')[0]}`}>
                                   {getStatusText(familyResults.coparenting.status)}
                                 </span>
-                                <p className="text-sm text-muted-foreground">Совместное воспитание (балл: {familyResults.coparenting.score})</p>
+                                <p className="text-sm text-muted-foreground">Совместное воспитание</p>
                               </div>
                             )}
                           </>
@@ -620,12 +609,9 @@ export default function ResultsReportNew() {
                       childResults.emotional.status === 'borderline' ? 'bg-yellow-500' :
                       'bg-primary'
                     }`}
-                    style={{ width: `${getProgressPercentage(childResults.emotional.score, 10)}%` }}
+                    style={{ width: `${getProgressPercentage(childResults.emotional.score, 20)}%` }}
                   ></div>
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Балл: {childResults.emotional.score} / 10
-                </p>
               </div>
 
             <div className="space-y-3">
@@ -691,12 +677,9 @@ export default function ResultsReportNew() {
                       childResults.conduct.status === 'borderline' ? 'bg-yellow-500' :
                       'bg-primary'
                     }`}
-                    style={{ width: `${getProgressPercentage(childResults.conduct.score, 10)}%` }}
+                    style={{ width: `${getProgressPercentage(childResults.conduct.score, 20)}%` }}
                   ></div>
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Балл: {childResults.conduct.score} / 10
-                </p>
               </div>
 
             <div className="space-y-3">
@@ -762,12 +745,9 @@ export default function ResultsReportNew() {
                       childResults.hyperactivity.status === 'borderline' ? 'bg-yellow-500' :
                       'bg-primary'
                     }`}
-                    style={{ width: `${getProgressPercentage(childResults.hyperactivity.score, 10)}%` }}
+                    style={{ width: `${getProgressPercentage(childResults.hyperactivity.score, 20)}%` }}
                   ></div>
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Балл: {childResults.hyperactivity.score} / 10
-                </p>
               </div>
 
             <div className="space-y-3">
@@ -825,12 +805,9 @@ export default function ResultsReportNew() {
                       childResults.peer_problems.status === 'borderline' ? 'bg-yellow-500' :
                       'bg-primary'
                     }`}
-                    style={{ width: `${getProgressPercentage(childResults.peer_problems.score, 6)}%` }}
+                    style={{ width: `${getProgressPercentage(childResults.peer_problems.score, 24)}%` }}
                   ></div>
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Балл: {childResults.peer_problems.score} / 6
-                </p>
               </div>
 
             <div className="space-y-3">
@@ -903,9 +880,6 @@ export default function ResultsReportNew() {
                           style={{ width: `${getProgressPercentage(childResults.impact_child.score, 3)}%` }}
                         ></div>
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Балл: {childResults.impact_child.score} / 3
-                      </p>
                     </div>
                   </div>
                 )}
@@ -927,9 +901,6 @@ export default function ResultsReportNew() {
                           style={{ width: `${getProgressPercentage(childResults.impact_parent.score, 6)}%` }}
                         ></div>
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Балл: {childResults.impact_parent.score} / 6
-                      </p>
                     </div>
                   </div>
                 )}
@@ -951,9 +922,6 @@ export default function ResultsReportNew() {
                           style={{ width: `${getProgressPercentage(childResults.impact_family.score, 18)}%` }}
                         ></div>
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Балл: {childResults.impact_family.score} / 18
-                      </p>
                     </div>
                   </div>
                 )}
@@ -982,9 +950,6 @@ export default function ResultsReportNew() {
                           style={{ width: `${getProgressPercentage(childResults.impact.score, 2)}%` }}
                         ></div>
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Балл влияния: {childResults.impact.score} / 2
-                      </p>
                     </div>
                   </div>
                 )}
@@ -1048,7 +1013,7 @@ export default function ResultsReportNew() {
                         childResults.emotional.status === 'borderline' ? 'bg-yellow-500' :
                         'bg-primary'
                       }`}
-                      style={{ width: `${getProgressPercentage(childResults.emotional.score, 10)}%` }}
+                      style={{ width: `${getProgressPercentage(childResults.emotional.score, 20)}%` }}
                     ></div>
                   </div>
                 </div>
@@ -1073,7 +1038,7 @@ export default function ResultsReportNew() {
                         childResults.conduct.status === 'borderline' ? 'bg-yellow-500' :
                         'bg-primary'
                       }`}
-                      style={{ width: `${getProgressPercentage(childResults.conduct.score, 10)}%` }}
+                      style={{ width: `${getProgressPercentage(childResults.conduct.score, 20)}%` }}
                     ></div>
                   </div>
                 </div>
@@ -1098,7 +1063,7 @@ export default function ResultsReportNew() {
                         childResults.hyperactivity.status === 'borderline' ? 'bg-yellow-500' :
                         'bg-primary'
                       }`}
-                      style={{ width: `${getProgressPercentage(childResults.hyperactivity.score, 10)}%` }}
+                      style={{ width: `${getProgressPercentage(childResults.hyperactivity.score, 20)}%` }}
                     ></div>
                   </div>
                 </div>
@@ -1123,7 +1088,7 @@ export default function ResultsReportNew() {
                         childResults.peer_problems.status === 'borderline' ? 'bg-yellow-500' :
                         'bg-primary'
                       }`}
-                      style={{ width: `${getProgressPercentage(childResults.peer_problems.score, 6)}%` }}
+                      style={{ width: `${getProgressPercentage(childResults.peer_problems.score, 24)}%` }}
                     ></div>
                   </div>
                 </div>
@@ -1132,10 +1097,7 @@ export default function ResultsReportNew() {
               {childResults.total_difficulties !== undefined && (
                 <div className="mt-4 pt-4 border-t">
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="font-medium text-foreground">Общий балл трудностей</span>
-                    <span className="text-sm text-muted-foreground">
-                      {childResults.total_difficulties} / 40
-                    </span>
+                    <span className="font-medium text-foreground">Общие трудности</span>
                   </div>
                 </div>
               )}
@@ -1229,7 +1191,6 @@ export default function ResultsReportNew() {
                               style={{ width: `${getProgressPercentage(parentResults.anxiety.score, 6)}%` }}
                             ></div>
                           </div>
-                          <p className="mt-2 text-sm text-muted-foreground">Балл: {parentResults.anxiety.score} / 6</p>
                         </div>
                         <div className="space-y-3">
                           <Collapsible open={openSections['parent-anxiety-mean']} onOpenChange={() => toggleSection('parent-anxiety-mean')}>
@@ -1294,7 +1255,6 @@ export default function ResultsReportNew() {
                               style={{ width: `${getProgressPercentage(parentResults.depression.score, 6)}%` }}
                             ></div>
                           </div>
-                          <p className="mt-2 text-sm text-muted-foreground">Балл: {parentResults.depression.score} / 6</p>
                         </div>
                         <div className="space-y-3">
                           <Collapsible open={openSections['parent-depression-mean']} onOpenChange={() => toggleSection('parent-depression-mean')}>
@@ -1336,59 +1296,6 @@ export default function ResultsReportNew() {
                                   <strong>Рассмотрите профессиональную помощь.</strong> В Balansity мы можем помочь вам справиться с депрессивными симптомами и улучшить ваше эмоциональное благополучие.
                                 </li>
                               </ul>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {parentResults.total && (
-                      <div className="rounded-lg border border-border bg-muted/20 p-6">
-                        <h3 className="text-xl font-bold text-foreground mb-4">Общий балл</h3>
-                        <div className="mb-6">
-                          <span className={`inline-block rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(parentResults.total.status)}`}>
-                            {getStatusText(parentResults.total.status)}
-                          </span>
-                          <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
-                            <div 
-                              className={`h-full ${
-                                parentResults.total.status === 'concerning' ? 'bg-red-500' :
-                                parentResults.total.status === 'borderline' ? 'bg-yellow-500' :
-                                'bg-primary'
-                              }`}
-                              style={{ width: `${getProgressPercentage(parentResults.total.score, 12)}%` }}
-                            ></div>
-                          </div>
-                          <p className="mt-2 text-sm text-muted-foreground">Балл: {parentResults.total.score} / 12</p>
-                        </div>
-                        <div className="space-y-3">
-                          <Collapsible open={openSections['parent-total-mean']} onOpenChange={() => toggleSection('parent-total-mean')}>
-                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-purple-50 p-4 text-left hover:bg-purple-100">
-                              <div className="flex items-center gap-3">
-                                <MessageCircle className="h-5 w-5 text-purple-600" />
-                                <span className="font-medium text-foreground">Что это значит?</span>
-                              </div>
-                              {openSections['parent-total-mean'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
-                              <p className="text-foreground">
-                                Общий балл отражает общее состояние вашего ментального здоровья, учитывая как тревожность, так и депрессивные симптомы. Это помогает получить целостную картину вашего эмоционального благополучия.
-                              </p>
-                            </CollapsibleContent>
-                          </Collapsible>
-
-                          <Collapsible open={openSections['parent-total-do']} onOpenChange={() => toggleSection('parent-total-do')}>
-                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-blue-50 p-4 text-left hover:bg-blue-100">
-                              <div className="flex items-center gap-3">
-                                <Lightbulb className="h-5 w-5 text-blue-600" />
-                                <span className="font-medium text-foreground">Что я могу сделать?</span>
-                              </div>
-                              {openSections['parent-total-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="mt-2 rounded-lg bg-muted/30 p-4">
-                              <p className="text-foreground">
-                                Ваше эмоциональное благополучие важно для вас и вашей семьи. Если общий балл вызывает беспокойство, рассмотрите возможность обращения за профессиональной поддержкой. В Balansity мы здесь, чтобы помочь вам чувствовать себя лучше.
-                              </p>
                             </CollapsibleContent>
                           </Collapsible>
                         </div>
@@ -1581,7 +1488,6 @@ export default function ResultsReportNew() {
                               style={{ width: `${getProgressPercentage(familyResults.family_stress.score, 4)}%` }}
                             ></div>
                           </div>
-                          <p className="mt-2 text-sm text-muted-foreground">Балл: {familyResults.family_stress.score} / 4</p>
                         </div>
                         <div className="space-y-3">
                           <Collapsible open={openSections['family-stress-mean']} onOpenChange={() => toggleSection('family-stress-mean')}>
@@ -1643,10 +1549,9 @@ export default function ResultsReportNew() {
                                 familyResults.partner_relationship.status === 'borderline' ? 'bg-yellow-500' :
                                 'bg-primary'
                               }`}
-                              style={{ width: `${getProgressPercentage(familyResults.partner_relationship.score, 5)}%` }}
+                              style={{ width: `${getProgressPercentage(familyResults.partner_relationship.score, 10)}%` }}
                             ></div>
                           </div>
-                          <p className="mt-2 text-sm text-muted-foreground">Балл: {familyResults.partner_relationship.score} / 5</p>
                         </div>
                         <div className="space-y-3">
                           <Collapsible open={openSections['family-partner-mean']} onOpenChange={() => toggleSection('family-partner-mean')}>
@@ -1711,7 +1616,6 @@ export default function ResultsReportNew() {
                               style={{ width: `${getProgressPercentage(familyResults.coparenting.score, 10)}%` }}
                             ></div>
                           </div>
-                          <p className="mt-2 text-sm text-muted-foreground">Балл: {familyResults.coparenting.score} / 10</p>
                         </div>
                         <div className="space-y-3">
                           <Collapsible open={openSections['family-coparenting-mean']} onOpenChange={() => toggleSection('family-coparenting-mean')}>
