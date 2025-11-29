@@ -20,7 +20,7 @@ export function useAssessmentsForProfiles(
     gcTime: 10 * 60 * 1000, // 10 минут (было cacheTime в v4)
     retry: 2,
     refetchOnWindowFocus: false,
-    refetchOnMount: true, // Обновляем данные при монтировании компонента
+    refetchOnMount: false, // Использовать кеш при монтировании (данные обновятся в фоне, если устарели)
   });
 }
 
@@ -39,7 +39,7 @@ export function useActiveAssessmentsForProfiles(
     gcTime: 10 * 60 * 1000, // 10 минут (было cacheTime в v4)
     retry: 2,
     refetchOnWindowFocus: false,
-    refetchOnMount: true, // Обновляем данные при монтировании компонента
+    refetchOnMount: false, // Использовать кеш при монтировании (данные обновятся в фоне, если устарели)
   });
 }
 

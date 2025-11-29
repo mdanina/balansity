@@ -17,7 +17,7 @@ export function useProfiles() {
     gcTime: 10 * 60 * 1000, // 10 минут - данные в кеше (было cacheTime в v4)
     retry: 2, // Повторить при ошибке 2 раза
     refetchOnWindowFocus: false, // Не обновлять при фокусе окна
-    refetchOnMount: true, // Обновляем данные при монтировании компонента
+    refetchOnMount: false, // Использовать кеш при монтировании (данные обновятся в фоне, если устарели)
   });
 }
 

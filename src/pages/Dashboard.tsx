@@ -5,13 +5,27 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { User, CheckCircle2, Clock, MapPin, Users, LogOut, Tag, History } from "lucide-react";
+import { User, CheckCircle2, Clock, MapPin, Users, LogOut, Tag, History, Calendar, X } from "lucide-react";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/profileStorage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
 import { useProfiles } from "@/hooks/useProfiles";
 import { useAssessmentsForProfiles, useActiveAssessmentsForProfiles } from "@/hooks/useAssessments";
+import { useAppointmentsWithType, useCancelAppointment } from "@/hooks/useAppointments";
+import { format } from "date-fns";
+import { ru } from "date-fns/locale";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { logger } from "@/lib/logger";
 import {
   DropdownMenu,
@@ -35,6 +49,9 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { setCurrentProfileId, setCurrentProfile } = useCurrentProfile();
+  const { data: appointmentsWithType } = useAppointmentsWithType();
+  const cancelAppointment = useCancelAppointment();
+  const [cancelDialogOpen, setCancelDialogOpen] = useState<string | null>(null);
   
   // Используем React Query для кеширования
   const { data: profiles, isLoading: profilesLoading, error: profilesError } = useProfiles();
@@ -65,7 +82,12 @@ export default function Dashboard() {
     }));
   }, [profiles, assessmentsMap, activeAssessmentsMap]);
 
-  const loading = profilesLoading || assessmentsLoading || activeAssessmentsLoading;
+  // Показываем загрузку только если нет данных И идет загрузка
+  // Если есть кешированные данные, показываем контент сразу
+  const isLoadingProfiles = profilesLoading && !profiles;
+  const isLoadingAssessments = assessmentsLoading && assessmentsMap === undefined && profileIds.length > 0;
+  const isLoadingActiveAssessments = activeAssessmentsLoading && activeAssessmentsMap === undefined && profileIds.length > 0;
+  const loading = isLoadingProfiles || isLoadingAssessments || isLoadingActiveAssessments;
 
   // Получаем имя родителя для приветствия
   const parentName = useMemo(() => {
@@ -73,6 +95,29 @@ export default function Dashboard() {
     const parentProfile = profiles.find(p => p.type === 'parent');
     return parentProfile?.first_name || null;
   }, [profiles]);
+
+  // Фильтруем предстоящие консультации (только scheduled)
+  const upcomingAppointments = useMemo(() => {
+    if (!appointmentsWithType) return [];
+    return appointmentsWithType.filter(apt => apt.status === 'scheduled');
+  }, [appointmentsWithType]);
+
+  // Функция для получения имени профиля
+  const getProfileName = useCallback((profileId: string | null) => {
+    if (!profileId) return "Для меня (родитель)";
+    const profile = profiles?.find(p => p.id === profileId);
+    if (!profile) return "Профиль не найден";
+    return `${profile.first_name}${profile.last_name ? ` ${profile.last_name}` : ''}`;
+  }, [profiles]);
+
+  const handleCancelAppointment = async (appointmentId: string) => {
+    try {
+      await cancelAppointment.mutateAsync(appointmentId);
+      setCancelDialogOpen(null);
+    } catch (error) {
+      // Ошибка уже обработана в хуке через toast
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -279,6 +324,81 @@ export default function Dashboard() {
 
       {/* Main Content */}
         <div className="container mx-auto max-w-5xl px-6 py-8">
+        {/* Предстоящие консультации */}
+        {upcomingAppointments.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-foreground mb-4">
+              Ваши предстоящие консультации
+            </h2>
+            <div className="space-y-4">
+              {upcomingAppointments.map((appointment) => (
+                <Card key={appointment.id} className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Дата и время</p>
+                          <p className="font-medium">
+                            {format(new Date(appointment.scheduled_at), "d MMMM yyyy 'в' HH:mm", {
+                              locale: ru,
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      {appointment.appointment_type && (
+                        <div className="flex items-center gap-3">
+                          <Clock className="h-5 w-5 text-primary" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Тип консультации</p>
+                            <p className="font-medium">
+                              {appointment.appointment_type.name} ({appointment.appointment_type.duration_minutes} минут)
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3">
+                        <User className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Для кого</p>
+                          <p className="font-medium">{getProfileName(appointment.profile_id)}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <AlertDialog open={cancelDialogOpen === appointment.id} onOpenChange={(open) => setCancelDialogOpen(open ? appointment.id : null)}>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            <X className="h-4 w-4 mr-2" />
+                            Отменить
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Отменить консультацию?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Вы уверены, что хотите отменить консультацию? Это действие нельзя отменить.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Нет, оставить</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleCancelAppointment(appointment.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Да, отменить
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Welcome Card */}
         <Card className="mb-8 overflow-hidden border-2 bg-card p-8 shadow-lg">
           <div className="flex items-center justify-between gap-8">
