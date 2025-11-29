@@ -16,7 +16,7 @@ export default function Index() {
           </div>
 
           <div>
-            <h1 className="mb-6 text-5xl font-bold leading-tight text-foreground">
+            <h1 className="mb-6 font-serif text-5xl font-bold leading-tight text-foreground">
               Получите необходимую помощь, сделав три простых шага
             </h1>
             <p className="text-xl text-muted-foreground">
@@ -31,7 +31,7 @@ export default function Index() {
                 1
               </div>
               <div>
-                <h3 className="mb-2 text-xl font-semibold text-foreground">
+                <h3 className="mb-2 font-serif text-xl font-semibold text-foreground">
                   Создайте учетную запись
                 </h3>
                 <p className="text-muted-foreground">
@@ -45,7 +45,7 @@ export default function Index() {
                 2
               </div>
               <div>
-                <h3 className="mb-2 text-xl font-semibold text-foreground">
+                <h3 className="mb-2 font-serif text-xl font-semibold text-foreground">
                   Запланируйте вводный звонок
                 </h3>
                 <p className="text-muted-foreground">
@@ -59,7 +59,7 @@ export default function Index() {
                 3
               </div>
               <div>
-                <h3 className="mb-2 text-xl font-semibold text-foreground">
+                <h3 className="mb-2 font-serif text-xl font-semibold text-foreground">
                   Начните работу со специалистом
                 </h3>
                 <p className="text-muted-foreground">

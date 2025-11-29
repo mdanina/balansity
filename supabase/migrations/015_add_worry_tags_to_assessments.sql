@@ -15,3 +15,4 @@ comment on column public.assessments.worry_tags is
 -- Создаем индекс для быстрого поиска
 create index if not exists idx_assessments_worry_tags on public.assessments using gin (worry_tags);
 
+

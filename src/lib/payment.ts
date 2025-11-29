@@ -298,3 +298,4 @@ export function formatAmount(amount: number, currency: string = 'RUB'): string {
   return formatter.format(amount);
 }
 
+

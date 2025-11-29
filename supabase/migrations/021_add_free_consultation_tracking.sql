@@ -9,3 +9,4 @@ ADD COLUMN IF NOT EXISTS free_consultation_created boolean DEFAULT false;
 -- Создаем индекс для быстрого поиска
 CREATE INDEX IF NOT EXISTS idx_users_free_consultation_created ON public.users(free_consultation_created);
 
+

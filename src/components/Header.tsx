@@ -16,7 +16,7 @@ export const Header = () => {
     <header className="border-b border-border bg-background">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <span className="text-xl font-bold text-primary">Balansity</span>
+          <span className="font-serif text-xl font-bold text-primary">Balansity</span>
           
           {user && (
             <div className="flex items-center gap-4">

@@ -412,7 +412,7 @@ export default function Dashboard() {
             </div>
             <Button 
               size="lg" 
-              className="shrink-0 bg-purple-600 hover:bg-purple-700 text-white px-8 py-6 text-lg"
+              className="shrink-0 bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-6 text-lg"
             >
               Смотреть видео
             </Button>
@@ -428,7 +428,7 @@ export default function Dashboard() {
         {/* Portal Cards */}
         <div className="mb-12 grid gap-6 md:grid-cols-2">
           <Card 
-            className="group cursor-pointer overflow-hidden border-2 bg-gradient-to-br from-purple-50 to-white p-8 shadow-md transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+            className="group cursor-pointer overflow-hidden border-2 bg-gradient-to-br from-accent/10 to-white p-8 shadow-md transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
             onClick={() => navigate("/appointments")}
             role="button"
             tabIndex={0}
@@ -445,7 +445,7 @@ export default function Dashboard() {
                 alt="Balansity Portal" 
                 className="mb-6 h-40 w-auto object-contain transition-transform pointer-events-none group-hover:scale-110"
               />
-              <h3 className="mb-2 text-2xl font-bold text-foreground transition-colors pointer-events-none group-hover:text-purple-600">
+              <h3 className="mb-2 text-2xl font-bold text-foreground transition-colors pointer-events-none group-hover:text-accent">
                 Получить консультацию
               </h3>
             </div>
@@ -454,7 +454,7 @@ export default function Dashboard() {
           <Card 
             className={`group overflow-hidden border-2 p-8 shadow-md transition-all ${
               canStartCheckup.allowed
-                ? 'cursor-pointer border-pink-200 bg-gradient-to-br from-pink-50 to-white hover:shadow-xl hover:border-pink-400 hover:scale-[1.02] active:scale-[0.98]'
+                ? 'cursor-pointer border-soft-pink/30 bg-gradient-to-br from-soft-pink/10 to-white hover:shadow-xl hover:border-soft-pink/50 hover:scale-[1.02] active:scale-[0.98]'
                 : 'cursor-not-allowed border-gray-300 bg-gradient-to-br from-gray-50 to-white opacity-75'
             }`}
             onClick={(e) => {
@@ -496,7 +496,7 @@ export default function Dashboard() {
                 }`}
               />
               <h3 className={`mb-2 text-2xl font-bold text-foreground transition-colors pointer-events-none ${
-                canStartCheckup.allowed ? 'group-hover:text-pink-600' : 'text-muted-foreground'
+                canStartCheckup.allowed ? 'group-hover:text-soft-pink' : 'text-muted-foreground'
               }`}>
                 Психологический чекап семьи
               </h3>
@@ -545,7 +545,7 @@ export default function Dashboard() {
                     key={member.id}
                     className="flex items-center gap-4 border-2 bg-card p-6 shadow-sm transition-all hover:shadow-md"
                   >
-                    <Avatar className="h-16 w-16 bg-gradient-to-br from-blue-400 to-blue-600">
+                    <Avatar className="h-16 w-16 bg-gradient-to-br from-sky-blue/80 to-sky-blue">
                       <div className="flex h-full w-full items-center justify-center text-white">
                         <User className="h-8 w-8" />
                       </div>

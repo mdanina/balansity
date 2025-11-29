@@ -13,11 +13,17 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['"Geist"', '"Geist Fallback"', "ui-sans-serif", "system-ui", "sans-serif"],
+        serif: ["ui-serif", "Georgia", '"Times New Roman"', "serif"],
+        mono: ['"Geist Mono"', '"Geist Mono Fallback"', "ui-monospace", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
+        "background-light": "hsl(var(--background-light))",
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
@@ -57,11 +63,28 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        chart: {
+          1: "hsl(var(--chart-1))",
+          2: "hsl(var(--chart-2))",
+          3: "hsl(var(--chart-3))",
+          4: "hsl(var(--chart-4))",
+          5: "hsl(var(--chart-5))",
+        },
+        /* Little Otter brand colors - direct access */
+        "deep-teal": "hsl(203 60% 15%)", /* #0f2b3d */
+        "teal-blue": "hsl(188 30% 52%)", /* #5a9ca6 */
+        "medium-purple": "hsl(280 20% 52%)", /* #8b6b9c */
+        "cream": "hsl(30 14% 96%)", /* #f5f3f0 */
+        "coral": "hsl(0 100% 71%)", /* #ff6b6b */
+        "sky-blue": "hsl(207 58% 63%)", /* #6ba4d6 */
+        "lavender": "hsl(285 40% 78%)", /* #d4b5de */
+        "soft-pink": "hsl(348 100% 89%)", /* #ffc9d4 */
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 4px)",
       },
       keyframes: {
         "accordion-down": {
