@@ -259,13 +259,25 @@ export async function getUpcomingAppointments(): Promise<Appointment[]> {
 
 /**
  * Получить консультации с информацией о типе
+ * @param userId - ID пользователя (опционально, если не указан, будет получен из сессии)
  */
-export async function getAppointmentsWithType(): Promise<(Appointment & { appointment_type: AppointmentType })[]> {
+export async function getAppointmentsWithType(userId?: string): Promise<(Appointment & { appointment_type: AppointmentType })[]> {
   try {
-    const user = await getCurrentUser();
+    let user;
+    if (userId) {
+      // Если userId передан, используем его
+      user = { id: userId } as any;
+    } else {
+      // Иначе получаем из сессии
+      user = await getCurrentUser();
+    }
+    
     if (!user) {
+      logger.warn('getAppointmentsWithType: User not authenticated');
       throw new Error('User not authenticated');
     }
+
+    logger.log('getAppointmentsWithType: Fetching appointments for user:', user.id);
 
     const { data, error } = await supabase
       .from('appointments')
@@ -276,8 +288,26 @@ export async function getAppointmentsWithType(): Promise<(Appointment & { appoin
       .eq('user_id', user.id)
       .order('scheduled_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      logger.error('getAppointmentsWithType: Supabase error:', error);
+      logger.error('getAppointmentsWithType: Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
+    }
 
+    logger.log('getAppointmentsWithType: Query completed. Data:', data);
+    logger.log('getAppointmentsWithType: Successfully loaded', data?.length || 0, 'appointments');
+    
+    if (data && data.length > 0) {
+      logger.log('getAppointmentsWithType: Appointment IDs:', data.map(a => a.id));
+    } else {
+      logger.warn('getAppointmentsWithType: No appointments found for user:', user.id);
+    }
+    
     // Преобразуем данные для удобства
     return (data || []).map((appointment: any) => ({
       ...appointment,

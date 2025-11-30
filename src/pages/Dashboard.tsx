@@ -64,13 +64,27 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { setCurrentProfileId, setCurrentProfile } = useCurrentProfile();
-  const { data: appointmentsWithType } = useAppointmentsWithType();
   const cancelAppointment = useCancelAppointment();
   const [cancelDialogOpen, setCancelDialogOpen] = useState<string | null>(null);
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   
   // Используем React Query для кеширования
   const { data: profiles, isLoading: profilesLoading, error: profilesError } = useProfiles();
+  const { data: appointmentsWithType, isLoading: appointmentsLoading, error: appointmentsError } = useAppointmentsWithType();
+  
+  // Отладочное логирование
+  useEffect(() => {
+    logger.log('Dashboard data state:', {
+      profiles: profiles?.length || 0,
+      profilesLoading,
+      profilesError: profilesError?.message,
+      appointments: appointmentsWithType?.length || 0,
+      appointmentsLoading,
+      appointmentsError: appointmentsError?.message,
+      user: user?.id
+    });
+  }, [profiles, profilesLoading, profilesError, appointmentsWithType, appointmentsLoading, appointmentsError, user]);
+  
   const profileIds = useMemo(() => {
     if (!profiles || !Array.isArray(profiles)) return [];
     return profiles.map(p => p.id);
@@ -398,6 +412,33 @@ export default function Dashboard() {
 
       {/* Main Content */}
         <div className="container mx-auto max-w-5xl px-6 py-8">
+        {/* Отображение ошибок загрузки */}
+        {(profilesError || appointmentsError) && (
+          <div className="mb-6 rounded-lg border border-destructive bg-destructive/10 p-4">
+            <p className="text-sm font-medium text-destructive mb-2">
+              {profilesError && `Ошибка загрузки профилей: ${profilesError instanceof Error ? profilesError.message : 'Неизвестная ошибка'}`}
+              {appointmentsError && `Ошибка загрузки консультаций: ${appointmentsError instanceof Error ? appointmentsError.message : 'Неизвестная ошибка'}`}
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.reload()}
+            >
+              Обновить страницу
+            </Button>
+          </div>
+        )}
+        
+        {/* Отладочная информация (только в dev режиме) */}
+        {import.meta.env.DEV && (
+          <div className="mb-4 rounded-lg border border-muted bg-muted/50 p-4 text-xs">
+            <p>Профили: {profiles?.length || 0} (загрузка: {profilesLoading ? 'да' : 'нет'})</p>
+            <p>Консультации: {appointmentsWithType?.length || 0} (загрузка: {appointmentsLoading ? 'да' : 'нет'})</p>
+            <p>Предстоящие: {upcomingAppointments.length}</p>
+            <p>User ID: {user?.id || 'нет'}</p>
+          </div>
+        )}
+        
         {/* Предстоящие консультации */}
         {upcomingAppointments.length > 0 && (
           <div className="mb-8">

@@ -6,7 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProfileProvider } from "@/contexts/ProfileContext";
+import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Loader2 } from "lucide-react";
 // Легкие страницы загружаем сразу
@@ -46,6 +49,16 @@ const Packages = lazy(() => import("./pages/Packages"));
 const Payment = lazy(() => import("./pages/Payment"));
 const AppointmentConfirmation = lazy(() => import("./pages/AppointmentConfirmation"));
 
+// Админ-страницы
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const UsersManagement = lazy(() => import("./pages/admin/UsersManagement"));
+const AssessmentsManagement = lazy(() => import("./pages/admin/AssessmentsManagement"));
+const AppointmentsManagement = lazy(() => import("./pages/admin/AppointmentsManagement"));
+const PaymentsManagement = lazy(() => import("./pages/admin/PaymentsManagement"));
+const ContentManagement = lazy(() => import("./pages/admin/ContentManagement"));
+const SupportTools = lazy(() => import("./pages/admin/SupportTools"));
+
 // Компонент загрузки
 const PageLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
@@ -74,55 +87,76 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ProfileProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-              {/* Публичные маршруты */}
-              <Route path="/" element={<Landing />} />
-              <Route path="/service" element={<ServiceIntro />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/welcome" element={<Welcome />} />
-              <Route path="/coming-soon" element={<ComingSoon />} />
-              
-                  {/* Защищенные маршруты (требуют авторизации) */}
-                  <Route path="/success" element={<ProtectedRoute><Success /></ProtectedRoute>} />
-                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                  <Route path="/region" element={<ProtectedRoute><RegionSelect /></ProtectedRoute>} />
-                  <Route path="/family-setup" element={<ProtectedRoute><FamilySetup /></ProtectedRoute>} />
-                  <Route path="/family-members" element={<ProtectedRoute><FamilyMembers /></ProtectedRoute>} />
-                  <Route path="/add-family-member" element={<ProtectedRoute><AddFamilyMember /></ProtectedRoute>} />
-                  <Route path="/edit-family-member/:id" element={<ProtectedRoute><EditFamilyMember /></ProtectedRoute>} />
-                  <Route path="/worries/:profileId?" element={<ProtectedRoute><Worries /></ProtectedRoute>} />
-                  <Route path="/checkup-intro/:profileId?" element={<ProtectedRoute><CheckupIntro /></ProtectedRoute>} />
-                  <Route path="/checkup" element={<ProtectedRoute><Checkup /></ProtectedRoute>} />
-                  <Route path="/checkup-questions/:profileId?" element={<ProtectedRoute><CheckupQuestions /></ProtectedRoute>} />
-                  <Route path="/checkup-interlude/:profileId?" element={<ProtectedRoute><CheckupInterlude /></ProtectedRoute>} />
-                  <Route path="/parent-intro" element={<ProtectedRoute><ParentIntro /></ProtectedRoute>} />
-                  <Route path="/parent-questions/:profileId?" element={<ProtectedRoute><ParentQuestions /></ProtectedRoute>} />
-                  <Route path="/family-intro" element={<ProtectedRoute><FamilyIntro /></ProtectedRoute>} />
-                  <Route path="/family-questions/:profileId?" element={<ProtectedRoute><FamilyQuestions /></ProtectedRoute>} />
-                  <Route path="/checkup-results" element={<ProtectedRoute><CheckupResults /></ProtectedRoute>} />
-                  <Route path="/results-report/:profileId?" element={<ProtectedRoute><ResultsReportNew /></ProtectedRoute>} />
-                  <Route path="/checkup-history" element={<ProtectedRoute><CheckupHistory /></ProtectedRoute>} />
-                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                  
-                  {/* Консультации и оплата */}
-                  <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
-                  <Route path="/appointments/booking" element={<ProtectedRoute><AppointmentBooking /></ProtectedRoute>} />
-                  <Route path="/appointments/confirmation" element={<ProtectedRoute><AppointmentConfirmation /></ProtectedRoute>} />
-                  <Route path="/packages" element={<ProtectedRoute><Packages /></ProtectedRoute>} />
-                  <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
-                  
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </BrowserRouter>
-          </TooltipProvider>
+          <AdminAuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    {/* Публичные маршруты */}
+                    <Route path="/" element={<Landing />} />
+                    <Route path="/service" element={<ServiceIntro />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/welcome" element={<Welcome />} />
+                    <Route path="/coming-soon" element={<ComingSoon />} />
+                    
+                    {/* Админ-маршруты */}
+                    <Route path="/admin/login" element={<AdminLogin />} />
+                    <Route
+                      path="/admin/*"
+                      element={
+                        <AdminProtectedRoute>
+                          <AdminLayout />
+                        </AdminProtectedRoute>
+                      }
+                    >
+                      <Route index element={<AdminDashboard />} />
+                      <Route path="users" element={<UsersManagement />} />
+                      <Route path="assessments" element={<AssessmentsManagement />} />
+                      <Route path="appointments" element={<AppointmentsManagement />} />
+                      <Route path="payments" element={<PaymentsManagement />} />
+                      <Route path="content" element={<ContentManagement />} />
+                      <Route path="support" element={<SupportTools />} />
+                    </Route>
+                    
+                    {/* Защищенные маршруты (требуют авторизации) */}
+                    <Route path="/success" element={<ProtectedRoute><Success /></ProtectedRoute>} />
+                    <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                    <Route path="/region" element={<ProtectedRoute><RegionSelect /></ProtectedRoute>} />
+                    <Route path="/family-setup" element={<ProtectedRoute><FamilySetup /></ProtectedRoute>} />
+                    <Route path="/family-members" element={<ProtectedRoute><FamilyMembers /></ProtectedRoute>} />
+                    <Route path="/add-family-member" element={<ProtectedRoute><AddFamilyMember /></ProtectedRoute>} />
+                    <Route path="/edit-family-member/:id" element={<ProtectedRoute><EditFamilyMember /></ProtectedRoute>} />
+                    <Route path="/worries/:profileId?" element={<ProtectedRoute><Worries /></ProtectedRoute>} />
+                    <Route path="/checkup-intro/:profileId?" element={<ProtectedRoute><CheckupIntro /></ProtectedRoute>} />
+                    <Route path="/checkup" element={<ProtectedRoute><Checkup /></ProtectedRoute>} />
+                    <Route path="/checkup-questions/:profileId?" element={<ProtectedRoute><CheckupQuestions /></ProtectedRoute>} />
+                    <Route path="/checkup-interlude/:profileId?" element={<ProtectedRoute><CheckupInterlude /></ProtectedRoute>} />
+                    <Route path="/parent-intro" element={<ProtectedRoute><ParentIntro /></ProtectedRoute>} />
+                    <Route path="/parent-questions/:profileId?" element={<ProtectedRoute><ParentQuestions /></ProtectedRoute>} />
+                    <Route path="/family-intro" element={<ProtectedRoute><FamilyIntro /></ProtectedRoute>} />
+                    <Route path="/family-questions/:profileId?" element={<ProtectedRoute><FamilyQuestions /></ProtectedRoute>} />
+                    <Route path="/checkup-results" element={<ProtectedRoute><CheckupResults /></ProtectedRoute>} />
+                    <Route path="/results-report/:profileId?" element={<ProtectedRoute><ResultsReportNew /></ProtectedRoute>} />
+                    <Route path="/checkup-history" element={<ProtectedRoute><CheckupHistory /></ProtectedRoute>} />
+                    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                    
+                    {/* Консультации и оплата */}
+                    <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
+                    <Route path="/appointments/booking" element={<ProtectedRoute><AppointmentBooking /></ProtectedRoute>} />
+                    <Route path="/appointments/confirmation" element={<ProtectedRoute><AppointmentConfirmation /></ProtectedRoute>} />
+                    <Route path="/packages" element={<ProtectedRoute><Packages /></ProtectedRoute>} />
+                    <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
+                    
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </BrowserRouter>
+            </TooltipProvider>
+          </AdminAuthProvider>
         </ProfileProvider>
       </AuthProvider>
     </QueryClientProvider>

@@ -77,8 +77,13 @@ export function useAppointmentsWithType() {
 
   return useQuery({
     queryKey: ['appointments-with-type', user?.id],
-    queryFn: getAppointmentsWithType,
-    enabled: !!user,
+    queryFn: () => {
+      if (!user?.id) {
+        throw new Error('User ID is required');
+      }
+      return getAppointmentsWithType(user.id);
+    },
+    enabled: !!user?.id, // Запрос только если пользователь авторизован и есть ID
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: 2,

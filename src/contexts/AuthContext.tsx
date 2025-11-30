@@ -22,66 +22,133 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-      // Получаем текущую сессию
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        logger.error('Error getting session:', error);
-        // Если ошибка при получении сессии, очищаем состояние
-        setSession(null);
-        setUser(null);
-        setLoading(false);
-        return;
-      }
+    let mounted = true;
+    let isInitialized = false;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    // Функция для обновления состояния сессии
+    const updateSession = (newSession: Session | null) => {
+      if (!mounted) return;
       
-      // Проверяем, что сессия валидная и не истекла
-      if (session) {
-        if (isSessionExpired(session)) {
+      if (newSession) {
+        if (isSessionExpired(newSession)) {
           logger.warn('Session expired, clearing...');
           supabase.auth.signOut();
           setSession(null);
           setUser(null);
         } else {
-          setSession(session);
-          setUser(session.user ?? null);
+          setSession(newSession);
+          setUser(newSession.user ?? null);
         }
       } else {
         setSession(null);
         setUser(null);
       }
       
-      setLoading(false);
+      // Устанавливаем loading в false только после первой инициализации
+      if (!isInitialized) {
+        isInitialized = true;
+        setLoading(false);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      }
+    };
+
+    // Получаем текущую сессию
+    const sessionPromise = supabase.auth.getSession();
+    
+    // Fallback таймаут - гарантированно устанавливает loading = false через 10 секунд
+    // Это защита от зависания, если что-то пошло не так
+    timeoutId = setTimeout(() => {
+      if (!isInitialized && mounted) {
+        logger.warn('Session loading timeout - forcing initialization');
+        isInitialized = true;
+        setLoading(false);
+      }
+    }, 10000);
+
+    sessionPromise.then(({ data: { session }, error }) => {
+      if (!mounted) return;
+      
+      if (error) {
+        logger.error('Error getting session:', error);
+        setSession(null);
+        setUser(null);
+        if (!isInitialized) {
+          isInitialized = true;
+          setLoading(false);
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        return;
+      }
+      
+      // Если сессия null, все равно инициализируем
+      if (!session && !isInitialized) {
+        isInitialized = true;
+        setLoading(false);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      }
+      
+      updateSession(session);
+    }).catch((error) => {
+      // Обработка неожиданных ошибок
+      if (!mounted) return;
+      logger.error('Unexpected error getting session:', error);
+      setSession(null);
+      setUser(null);
+      if (!isInitialized) {
+        isInitialized = true;
+        setLoading(false);
+      }
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     });
 
     // Слушаем изменения авторизации
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      logger.log('Auth state changed:', event, session?.user?.email);
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (!mounted) return;
       
-      // Если сессия истекла или была удалена, очищаем состояние
-      if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
-        setSession(null);
-        setUser(null);
-      } else if (session) {
-        // Проверяем валидность сессии
-        if (isSessionExpired(session)) {
-          logger.warn('Session expired in state change, clearing...');
-          supabase.auth.signOut();
-          setSession(null);
-          setUser(null);
-        } else {
-          setSession(session);
-          setUser(session.user ?? null);
+      logger.log('Auth state changed:', event, newSession?.user?.email);
+      
+      // Обрабатываем INITIAL_SESSION - это может прийти раньше, чем getSession завершится
+      if (event === 'INITIAL_SESSION') {
+        if (newSession) {
+          updateSession(newSession);
+        } else if (!isInitialized) {
+          // Если сессии нет, все равно инициализируем
+          isInitialized = true;
+          setLoading(false);
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
         }
-      } else {
-        setSession(null);
-        setUser(null);
+        return;
       }
       
-      setLoading(false);
+      // Если сессия истекла или была удалена, очищаем состояние
+      if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !newSession)) {
+        setSession(null);
+        setUser(null);
+      } else {
+        updateSession(newSession);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

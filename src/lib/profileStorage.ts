@@ -23,28 +23,64 @@ export interface FamilyMemberInput {
  * Получить текущего пользователя
  */
 export async function getCurrentUser() {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  // Используем getSession вместо getUser для более надежной работы
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user ?? null;
 }
 
 /**
  * Получить все профили текущего пользователя
+ * @param userId - ID пользователя (опционально, если не указан, будет получен из сессии)
  */
-export async function getProfiles(): Promise<Profile[]> {
+export async function getProfiles(userId?: string): Promise<Profile[]> {
   try {
-    const user = await getCurrentUser();
+    let user;
+    if (userId) {
+      // Если userId передан, используем его
+      user = { id: userId } as any;
+    } else {
+      // Иначе получаем из сессии
+      user = await getCurrentUser();
+    }
+    
     if (!user) {
+      logger.warn('getProfiles: User not authenticated');
       throw new Error('User not authenticated');
     }
 
+    logger.log('getProfiles: Fetching profiles for user:', user.id);
+    logger.log('getProfiles: Supabase client initialized:', !!supabase);
+
+    const startTime = Date.now();
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true });
+    const duration = Date.now() - startTime;
+    
+    logger.log(`getProfiles: Query completed in ${duration}ms`);
 
-    if (error) throw error;
+    if (error) {
+      logger.error('getProfiles: Supabase error:', error);
+      logger.error('getProfiles: Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
+    }
 
+    logger.log('getProfiles: Query completed. Data:', data);
+    logger.log('getProfiles: Successfully loaded', data?.length || 0, 'profiles');
+    
+    if (data && data.length > 0) {
+      logger.log('getProfiles: Profile IDs:', data.map(p => p.id));
+    } else {
+      logger.warn('getProfiles: No profiles found for user:', user.id);
+    }
+    
     return data || [];
   } catch (error) {
     logger.error('Error getting profiles:', error);

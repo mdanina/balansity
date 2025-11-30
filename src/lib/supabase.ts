@@ -48,6 +48,7 @@ export interface Database {
           region: string | null;
           marketing_consent: boolean;
           free_consultation_created: boolean;
+          role: 'user' | 'support' | 'admin' | 'super_admin';
           created_at: string;
           updated_at: string;
         };
@@ -58,6 +59,7 @@ export interface Database {
           region?: string | null;
           marketing_consent?: boolean;
           free_consultation_created?: boolean;
+          role?: 'user' | 'support' | 'admin' | 'super_admin';
         };
         Update: {
           email?: string | null;
@@ -65,6 +67,7 @@ export interface Database {
           region?: string | null;
           marketing_consent?: boolean;
           free_consultation_created?: boolean;
+          role?: 'user' | 'support' | 'admin' | 'super_admin';
         };
       };
       profiles: {
