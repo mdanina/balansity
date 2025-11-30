@@ -7,8 +7,7 @@ import { useAppointment, useAppointmentType } from "@/hooks/useAppointments";
 import { usePackagePurchase, usePackage } from "@/hooks/usePackages";
 import { useProfiles } from "@/hooks/useProfiles";
 import { CheckCircle2, Calendar, Clock, User } from "lucide-react";
-import { format } from "date-fns";
-import { ru } from "date-fns/locale";
+import { formatAppointmentTime } from "@/lib/moscowTime";
 import { Loader2 } from "lucide-react";
 
 export default function AppointmentConfirmation() {
@@ -87,9 +86,7 @@ export default function AppointmentConfirmation() {
                 <div>
                   <p className="text-sm text-muted-foreground">Дата и время</p>
                   <p className="font-medium">
-                    {format(new Date(appointment.scheduled_at), "d MMMM yyyy 'в' HH:mm", {
-                      locale: ru,
-                    })}
+                    {formatAppointmentTime(appointment.scheduled_at)}
                   </p>
                 </div>
               </div>

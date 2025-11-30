@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 import type { Database } from './supabase';
 import { logger } from './logger';
 import { getCurrentUser } from './profileStorage';
+import { createMoscowDateTime } from './moscowTime';
 
 type Appointment = Database['public']['Tables']['appointments']['Row'];
 type AppointmentInsert = Database['public']['Tables']['appointments']['Insert'];
@@ -352,15 +353,15 @@ export async function createFreeConsultationAfterFirstCheckup(): Promise<Appoint
     }
 
     // Создаем консультацию без даты (пользователь выберет позже)
-    // Устанавливаем scheduled_at на неделю вперед как placeholder
-    const scheduledAt = new Date();
-    scheduledAt.setDate(scheduledAt.getDate() + 7);
-    scheduledAt.setHours(10, 0, 0, 0);
+    // Устанавливаем scheduled_at на неделю вперед как placeholder в московском времени
+    const placeholderDate = new Date();
+    placeholderDate.setDate(placeholderDate.getDate() + 7);
+    const scheduledAt = createMoscowDateTime(placeholderDate, 10, 0); // 10:00 MSK
 
     const appointmentData: AppointmentInsert = {
       user_id: user.id,
       appointment_type_id: appointmentType.id,
-      scheduled_at: scheduledAt.toISOString(),
+      scheduled_at: scheduledAt,
       status: 'scheduled',
       profile_id: null, // Для родителя
       notes: 'Бесплатная консультация после первого чекапа',

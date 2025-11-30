@@ -8,6 +8,7 @@ import { useAppointment, useAppointmentType } from "@/hooks/useAppointments";
 import { usePackage } from "@/hooks/usePackages";
 import { useCreatePayment, usePayment } from "@/hooks/usePayments";
 import { formatAmount } from "@/lib/payment";
+import { formatAppointmentTime } from "@/lib/moscowTime";
 import { Loader2, CreditCard, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -152,7 +153,7 @@ export default function Payment() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Дата и время:</span>
                   <span className="font-medium">
-                    {new Date(appointment.scheduled_at).toLocaleString("ru-RU")}
+                    {formatAppointmentTime(appointment.scheduled_at)}
                   </span>
                 </div>
               )}

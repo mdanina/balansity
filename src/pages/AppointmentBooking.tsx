@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,15 @@ import { useProfiles } from "@/hooks/useProfiles";
 import { useCreateAppointment } from "@/hooks/useAppointments";
 import { markFreeConsultationAsUsed } from "@/lib/appointmentStorage";
 import { formatAmount } from "@/lib/payment";
-import { Loader2, ArrowLeft, Calendar as CalendarIcon, Clock, AlertCircle } from "lucide-react";
+import {
+  createMoscowDateTime,
+  formatAppointmentTime,
+  formatAppointmentTimeOnly,
+  getMoscowNow,
+  TIMEZONES,
+  getUserTimezone,
+} from "@/lib/moscowTime";
+import { Loader2, ArrowLeft, Calendar as CalendarIcon, Clock, AlertCircle, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 
@@ -48,6 +56,16 @@ export default function AppointmentBooking() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
+  const [selectedTimezone, setSelectedTimezone] = useState<string>(() => {
+    // Загружаем сохраненную временную зону или используем локальную
+    const saved = localStorage.getItem("appointment_timezone");
+    return saved || getUserTimezone();
+  });
+
+  // Сохраняем выбранную временную зону в localStorage
+  useEffect(() => {
+    localStorage.setItem("appointment_timezone", selectedTimezone);
+  }, [selectedTimezone]);
 
   const isLoading = typeLoading || profilesLoading || freeConsultationLoading;
   
@@ -69,46 +87,66 @@ export default function AppointmentBooking() {
     ];
   }, [profiles]);
 
-  // Фильтруем доступные даты для платных консультаций
+  // Фильтруем доступные даты для платных консультаций (используем московское время)
   const isDateDisabled = useMemo(() => {
     return (date: Date) => {
-      const now = new Date();
-      now.setHours(0, 0, 0, 0);
+      const moscowNow = getMoscowNow();
+      moscowNow.setHours(0, 0, 0, 0);
       const checkDate = new Date(date);
       checkDate.setHours(0, 0, 0, 0);
       
-      // Блокируем прошлые даты
-      if (checkDate < now) return true;
+      // Блокируем прошлые даты (сравниваем даты без времени)
+      const checkDateOnly = new Date(checkDate.getFullYear(), checkDate.getMonth(), checkDate.getDate());
+      const moscowNowOnly = new Date(moscowNow.getFullYear(), moscowNow.getMonth(), moscowNow.getDate());
+      
+      if (checkDateOnly < moscowNowOnly) return true;
       
       // Если платная консультация и есть активная бесплатная
       if (isPaid && activeFreeConsultation) {
         const freeDate = new Date(activeFreeConsultation.scheduled_at);
-        freeDate.setHours(0, 0, 0, 0);
+        const freeDateOnly = new Date(freeDate.getFullYear(), freeDate.getMonth(), freeDate.getDate());
         
         // Блокируем даты раньше даты бесплатной консультации
-        if (checkDate < freeDate) return true;
+        if (checkDateOnly < freeDateOnly) return true;
       }
       
       return false;
     };
   }, [isPaid, activeFreeConsultation]);
 
-  // Фильтруем доступное время для платных консультаций
+  // Фильтруем доступное время для платных консультаций (используем московское время)
   const availableTimeSlots = useMemo(() => {
     if (!isPaid || !activeFreeConsultation || !selectedDate) {
       return TIME_SLOTS;
     }
     
     const freeDate = new Date(activeFreeConsultation.scheduled_at);
+    // Получаем время бесплатной консультации в московском времени
+    const freeDateMoscow = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Moscow',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(freeDate);
+    
+    const freeYear = parseInt(freeDateMoscow.find(p => p.type === 'year')?.value || '0');
+    const freeMonth = parseInt(freeDateMoscow.find(p => p.type === 'month')?.value || '0') - 1;
+    const freeDay = parseInt(freeDateMoscow.find(p => p.type === 'day')?.value || '0');
+    const freeHour = parseInt(freeDateMoscow.find(p => p.type === 'hour')?.value || '0');
+    const freeMinute = parseInt(freeDateMoscow.find(p => p.type === 'minute')?.value || '0');
+    
     const selectedDateOnly = new Date(selectedDate);
     selectedDateOnly.setHours(0, 0, 0, 0);
-    const freeDateOnly = new Date(freeDate);
+    const freeDateOnly = new Date(freeYear, freeMonth, freeDay);
     freeDateOnly.setHours(0, 0, 0, 0);
     
     // Если выбрана дата бесплатной консультации
     if (selectedDateOnly.getTime() === freeDateOnly.getTime()) {
-      // Время должно быть после времени бесплатной консультации
-      const freeTime = freeDate.getHours() * 60 + freeDate.getMinutes();
+      // Время должно быть после времени бесплатной консультации (в московском времени)
+      const freeTime = freeHour * 60 + freeMinute;
       return TIME_SLOTS.filter(time => {
         const [hours, minutes] = time.split(":").map(Number);
         const timeMinutes = hours * 60 + minutes;
@@ -124,15 +162,14 @@ export default function AppointmentBooking() {
       return;
     }
 
-    // Объединяем дату и время
+    // Интерпретируем выбранное время как московское время
     const [hours, minutes] = selectedTime.split(":").map(Number);
-    const scheduledAt = new Date(selectedDate);
-    scheduledAt.setHours(hours, minutes, 0, 0);
+    const scheduledAt = createMoscowDateTime(selectedDate, hours, minutes);
 
     try {
       const appointment = await createAppointment.mutateAsync({
         appointmentTypeId,
-        scheduledAt: scheduledAt.toISOString(),
+        scheduledAt,
         profileId: selectedProfileId === "__parent__" ? null : selectedProfileId || null,
       });
 
@@ -275,9 +312,32 @@ export default function AppointmentBooking() {
             />
             {isPaid && activeFreeConsultation && (
               <p className="text-sm text-muted-foreground mt-4">
-                Минимальная доступная дата: {format(new Date(activeFreeConsultation.scheduled_at), "d MMMM yyyy", { locale: ru })}
+                Минимальная доступная дата: {formatAppointmentTime(activeFreeConsultation.scheduled_at, selectedTimezone).split(' в ')[0]}
               </p>
             )}
+            
+            {/* Селектор временной зоны */}
+            <div className="mt-4 space-y-2">
+              <Label className="text-sm flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                Временная зона для отображения
+              </Label>
+              <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Время записи сохраняется в московском времени (MSK, UTC+3)
+              </p>
+            </div>
           </Card>
 
           {/* Выбор времени и профиля */}
@@ -309,15 +369,27 @@ export default function AppointmentBooking() {
               {isPaid && activeFreeConsultation && selectedDate && (
                 (() => {
                   const freeDate = new Date(activeFreeConsultation.scheduled_at);
+                  // Получаем дату бесплатной консультации в московском времени
+                  const freeDateMoscow = new Intl.DateTimeFormat('en-US', {
+                    timeZone: 'Europe/Moscow',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                  }).formatToParts(freeDate);
+                  
+                  const freeYear = parseInt(freeDateMoscow.find(p => p.type === 'year')?.value || '0');
+                  const freeMonth = parseInt(freeDateMoscow.find(p => p.type === 'month')?.value || '0') - 1;
+                  const freeDay = parseInt(freeDateMoscow.find(p => p.type === 'day')?.value || '0');
+                  
                   const selectedDateOnly = new Date(selectedDate);
                   selectedDateOnly.setHours(0, 0, 0, 0);
-                  const freeDateOnly = new Date(freeDate);
+                  const freeDateOnly = new Date(freeYear, freeMonth, freeDay);
                   freeDateOnly.setHours(0, 0, 0, 0);
                   
                   if (selectedDateOnly.getTime() === freeDateOnly.getTime()) {
                     return (
                       <p className="text-sm text-muted-foreground mt-2">
-                        Минимальное доступное время: {format(freeDate, "HH:mm", { locale: ru })}
+                        Минимальное доступное время: {formatAppointmentTimeOnly(activeFreeConsultation.scheduled_at, selectedTimezone)}
                       </p>
                     );
                   }
@@ -352,7 +424,15 @@ export default function AppointmentBooking() {
               <Card className="p-6 bg-muted/50">
                 <h3 className="font-semibold mb-2">Выбранное время:</h3>
                 <p className="text-muted-foreground">
-                  {format(selectedDate, "d MMMM yyyy", { locale: ru})} в {selectedTime}
+                  {(() => {
+                    // Создаем временную метку для предпросмотра
+                    const [hours, minutes] = selectedTime.split(":").map(Number);
+                    const previewDate = createMoscowDateTime(selectedDate, hours, minutes);
+                    return formatAppointmentTime(previewDate, selectedTimezone);
+                  })()}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Время будет сохранено как {selectedTime} (MSK, UTC+3)
                 </p>
               </Card>
             )}

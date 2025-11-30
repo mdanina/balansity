@@ -20,8 +20,7 @@ import { useProfiles } from "@/hooks/useProfiles";
 import { useAssessmentsForProfiles, useActiveAssessmentsForProfiles } from "@/hooks/useAssessments";
 import { useAppointmentsWithType, useCancelAppointment } from "@/hooks/useAppointments";
 import { supabase } from "@/lib/supabase";
-import { format } from "date-fns";
-import { ru } from "date-fns/locale";
+import { formatAppointmentTime } from "@/lib/moscowTime";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -404,9 +403,7 @@ export default function Dashboard() {
                         <div>
                           <p className="text-sm text-muted-foreground">Дата и время</p>
                           <p className="font-medium">
-                            {format(new Date(appointment.scheduled_at), "d MMMM yyyy 'в' HH:mm", {
-                              locale: ru,
-                            })}
+                            {formatAppointmentTime(appointment.scheduled_at)}
                           </p>
                           {appointment.status === 'in_progress' && (
                             <div className="flex items-center gap-2 mt-2">
