@@ -163,7 +163,7 @@ export default function CheckupHistory() {
             className="mb-4"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Назад к дашборду
+            Назад в личный кабинет
           </Button>
           
           <div className="flex items-center gap-3 mb-2">
