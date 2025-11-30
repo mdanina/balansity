@@ -1,14 +1,27 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { getProfiles } from "@/lib/profileStorage";
-import otterHearts from "@/assets/otter-hearts.png";
+import type { Database } from "@/lib/supabase";
+import parentFemaleAvatar from "@/assets/friendly-and-clean-face-of-an-adult-person--gender.png";
+import parentMaleAvatar from "@/assets/friendly-and-clean-face-of-an-adult-person--gender (1).png";
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export default function ParentIntro() {
   const navigate = useNavigate();
   const [parentProfileId, setParentProfileId] = useState<string | null>(null);
+  const [parentProfile, setParentProfile] = useState<Profile | null>(null);
+
+  // Функция для выбора аватара на основе пола родителя
+  const getAvatarImage = useCallback((profile: Profile | null) => {
+    if (!profile) {
+      return parentFemaleAvatar; // Fallback
+    }
+    return profile.gender === 'male' ? parentMaleAvatar : parentFemaleAvatar;
+  }, []);
 
   useEffect(() => {
     async function loadParentProfile() {
@@ -17,6 +30,7 @@ export default function ParentIntro() {
         const parent = profiles.find(p => p.type === 'parent');
         if (parent) {
           setParentProfileId(parent.id);
+          setParentProfile(parent);
         }
       } catch (error) {
         console.error('Error loading parent profile:', error);
@@ -41,9 +55,9 @@ export default function ParentIntro() {
       <div className="container mx-auto max-w-2xl px-4 py-20">
         <div className="space-y-12">
           <img
-            src={otterHearts}
-            alt="Выдры с сердцами"
-            className="mx-auto h-64 w-64 object-contain"
+            src={getAvatarImage(parentProfile)}
+            alt={parentProfile ? parentProfile.first_name : "Родитель"}
+            className="mx-auto h-64 w-64 rounded-full object-cover"
           />
           
           <div className="space-y-6">

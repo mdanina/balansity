@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { getProfiles } from "@/lib/profileStorage";
-import otterReading from "@/assets/otter-reading.png";
+import familyIllustration from "@/assets/friendly-vector-style-illustration-of-a-family-gro.png";
 
 export default function FamilyIntro() {
   const navigate = useNavigate();
@@ -41,8 +41,8 @@ export default function FamilyIntro() {
       <div className="container mx-auto max-w-2xl px-4 py-20">
         <div className="space-y-12">
           <img
-            src={otterReading}
-            alt="Выдра читает"
+            src={familyIllustration}
+            alt="Семья"
             className="mx-auto h-64 w-64 object-contain"
           />
           
