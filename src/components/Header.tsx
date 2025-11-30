@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
+import logo from "@/assets/noroot (2).png";
 
 export const Header = () => {
   const { user, signOut } = useAuth();
@@ -16,7 +17,7 @@ export const Header = () => {
     <header className="border-b border-border bg-background">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <span className="font-serif text-xl font-bold text-primary">Balansity</span>
+          <img src={logo} alt="Balansity" className="h-8 w-auto" />
           
           {user && (
             <div className="flex items-center gap-4">

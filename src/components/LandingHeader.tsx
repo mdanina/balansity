@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import logo from "@/assets/noroot (2).png";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   NavigationMenu,
@@ -51,7 +52,7 @@ export const LandingHeader = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center space-x-2">
-            <span className="font-serif text-2xl font-bold text-primary">Balansity</span>
+            <img src={logo} alt="Balansity" className="h-8 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}

@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import consultationIllustration from "@/assets/friendly-and-clean-vector-style-illustration-of-a-.png";
 import checkupIllustration from "@/assets/minimalistic-and-friendly-vector-style-illustratio (1).png";
 import abstractBackground from "@/assets/abstract-vector-style-background-with-soft-organic.png";
+import logo from "@/assets/noroot (2).png";
 import parentFemaleAvatar from "@/assets/friendly-and-clean-face-of-an-adult-person--gender.png";
 import parentMaleAvatar from "@/assets/friendly-and-clean-face-of-an-adult-person--gender (1).png";
 import childFemaleAvatar from "@/assets/friendly-and-clean-face-of-a-white-girl-7-yo--soft.png";
@@ -268,7 +269,7 @@ export default function Dashboard() {
       <header className="border-b border-border bg-background px-6 py-4">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xl font-serif font-bold text-foreground">Balansity</span>
+            <img src={logo} alt="Balansity" className="h-8 w-auto" />
           </div>
           
           {user && (

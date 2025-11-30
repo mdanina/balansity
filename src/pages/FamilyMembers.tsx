@@ -5,7 +5,7 @@ import { StepIndicator } from "@/components/StepIndicator";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { User, Plus, Pencil, Trash2 } from "lucide-react";
-import otterRelaxed from "@/assets/otter-relaxed.png";
+import familyIllustration from "@/assets/minimalistic-and-friendly-vector-style-illustratio — копия.png";
 import parentFemaleAvatar from "@/assets/friendly-and-clean-face-of-an-adult-person--gender.png";
 import parentMaleAvatar from "@/assets/friendly-and-clean-face-of-an-adult-person--gender (1).png";
 import childFemaleAvatar from "@/assets/friendly-and-clean-face-of-a-white-girl-7-yo--soft.png";
@@ -85,8 +85,8 @@ export default function FamilyMembers() {
         <div className="space-y-8">
           <div className="text-center">
             <img
-              src={otterRelaxed}
-              alt="Выдра"
+              src={familyIllustration}
+              alt="Семья"
               className="mx-auto mb-6 h-32 w-32 object-contain"
             />
             <h1 className="mb-4 text-4xl font-bold text-foreground">

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { TestimonialSection } from "@/components/TestimonialSection";
 import { Button } from "@/components/ui/button";
+import logo from "@/assets/noroot (2).png";
 
 export default function ServiceIntro() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export default function ServiceIntro() {
       <div className="flex items-center justify-center bg-background p-8">
         <div className="w-full max-w-2xl space-y-12">
           <div className="flex items-center gap-3">
-            <span className="text-2xl font-serif font-bold text-primary">Balansity</span>
+            <img src={logo} alt="Balansity" className="h-10 w-auto" />
           </div>
 
           <div>

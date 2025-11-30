@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { registerSchema, type RegisterInput } from '@/lib/validation/schemas';
 import { handleApiError } from '@/lib/errorHandler';
 import { logger } from '@/lib/logger';
+import logo from "@/assets/noroot (2).png";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -93,7 +94,7 @@ export default function Register() {
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-6">
-              <span className="text-2xl font-serif font-bold text-primary">Balansity</span>
+              <img src={logo} alt="Balansity" className="h-10 w-auto" />
             </div>
             <h1 className="text-3xl font-bold text-foreground">Регистрация</h1>
             <p className="mt-2 text-muted-foreground">
