@@ -2,6 +2,10 @@ import { useNavigate } from "react-router-dom";
 import consultationIllustration from "@/assets/friendly-and-clean-vector-style-illustration-of-a-.png";
 import checkupIllustration from "@/assets/minimalistic-and-friendly-vector-style-illustratio (1).png";
 import abstractBackground from "@/assets/abstract-vector-style-background-with-soft-organic.png";
+import parentFemaleAvatar from "@/assets/friendly-and-clean-face-of-an-adult-person--gender.png";
+import parentMaleAvatar from "@/assets/friendly-and-clean-face-of-an-adult-person--gender (1).png";
+import childFemaleAvatar from "@/assets/friendly-and-clean-face-of-a-white-girl-7-yo--soft.png";
+import childMaleAvatar from "@/assets/friendly-and-clean-face-of-a-white-boy-7-yo--soft- (1).png";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
@@ -96,6 +100,17 @@ export default function Dashboard() {
     const parentProfile = profiles.find(p => p.type === 'parent');
     return parentProfile?.first_name || null;
   }, [profiles]);
+
+  // Функция для выбора аватара на основе типа профиля и пола
+  const getAvatarImage = useCallback((member: MemberWithAssessment) => {
+    if (member.type === 'parent') {
+      return member.gender === 'male' ? parentMaleAvatar : parentFemaleAvatar;
+    } else if (member.type === 'child') {
+      return member.gender === 'male' ? childMaleAvatar : childFemaleAvatar;
+    }
+    // Fallback на женский аватар для других типов
+    return parentFemaleAvatar;
+  }, []);
 
   // Фильтруем предстоящие консультации (только scheduled)
   const upcomingAppointments = useMemo(() => {
@@ -558,11 +573,11 @@ export default function Dashboard() {
                     key={member.id}
                     className="flex items-center gap-4 border-2 bg-card p-6 shadow-sm transition-all hover:shadow-md"
                   >
-                    <Avatar className="h-16 w-16 bg-gradient-to-br from-sky-blue/80 to-sky-blue">
-                      <div className="flex h-full w-full items-center justify-center text-white">
-                        <User className="h-8 w-8" />
-                      </div>
-                    </Avatar>
+                    <img 
+                      src={getAvatarImage(member)}
+                      alt={`${member.first_name} ${member.last_name || ''}`}
+                      className="h-16 w-16 rounded-full object-cover"
+                    />
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-1">
                         <h3 className="text-xl font-bold text-foreground">
