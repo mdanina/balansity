@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import leafDecoration from "@/assets/leaf-decoration.png";
 import { ChevronLeft, ChevronRight, Download, MessageCircle, Lightbulb, Minus, Plus, Save } from "lucide-react";
 
 export default function ResultsReport() {
@@ -19,19 +18,8 @@ export default function ResultsReport() {
       <Header />
 
       <div className="container mx-auto max-w-5xl px-4 py-12">
-        {/* Header with decoration */}
+        {/* Header */}
         <div className="relative mb-12">
-          <img 
-            src={leafDecoration} 
-            alt="" 
-            className="absolute left-0 top-0 h-24 w-24 object-contain opacity-50"
-          />
-          <img 
-            src={leafDecoration} 
-            alt="" 
-            className="absolute right-0 top-0 h-24 w-24 object-contain opacity-50"
-          />
-          
           <div className="text-center">
             <h1 className="text-5xl font-bold text-foreground mb-4">
               Ваши результаты
