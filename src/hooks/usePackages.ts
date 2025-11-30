@@ -153,9 +153,15 @@ export function usePurchasePackage() {
       expiresAt?: string | null;
     }) => createPackagePurchase(packageId, paymentId, expiresAt),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['package-purchases', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['active-package-purchases', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['package-purchases-with-package', user?.id] });
+      // Инвалидируем кеш пакетов групповой инвалидацией
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return key === 'package-purchases' || 
+                 key === 'active-package-purchases' ||
+                 key === 'package-purchases-with-package';
+        }
+      });
       toast.success('Пакет успешно приобретен');
     },
     onError: (error: Error) => {
@@ -174,9 +180,15 @@ export function useUsePackageSession() {
   return useMutation({
     mutationFn: (purchaseId: string) => usePackageSession(purchaseId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['package-purchases', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['active-package-purchases', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['package-purchases-with-package', user?.id] });
+      // Инвалидируем кеш пакетов групповой инвалидацией
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return key === 'package-purchases' || 
+                 key === 'active-package-purchases' ||
+                 key === 'package-purchases-with-package';
+        }
+      });
       toast.success('Сессия использована');
     },
     onError: (error: Error) => {

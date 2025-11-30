@@ -99,7 +99,7 @@ export default function Worries() {
         setSelectedWorries(uniqueWorryTags);
         initialWorriesRef.current = uniqueWorryTags; // Сохраняем начальные теги
       } catch (error) {
-        console.error('Error loading worry tags:', error);
+        logger.error('Error loading worry tags:', error);
       }
     }
     loadWorryTags();
@@ -265,7 +265,7 @@ export default function Worries() {
                   }
                   // Если из Dashboard и нет детей - просто продолжаем, сохраним только personal и family tags
                 } catch (error) {
-                  console.error('Error loading profiles:', error);
+                  logger.error('Error loading profiles:', error);
                   if (!isFromDashboard) {
                     toast.error('Ошибка при загрузке профилей');
                     navigate("/family-members");
@@ -340,7 +340,7 @@ export default function Worries() {
                     ...finalFamilyWorries  // Family worry tags (новые или существующие)
                   ])];
                   
-                  console.log('Saving parent worry tags:', {
+                  logger.log('Saving parent worry tags:', {
                     personalWorryTags,
                     familyWorryTags,
                     hasPartner: !!partnerProfile,
@@ -361,7 +361,7 @@ export default function Worries() {
                       setCurrentProfile(updatedChildProfile);
                     }
                   } catch (error) {
-                    console.error('Error updating profile in context:', error);
+                    logger.error('Error updating profile in context:', error);
                   }
                 }
 
@@ -385,7 +385,7 @@ export default function Worries() {
                 // Всегда возвращаемся в Dashboard (при редактировании из меню или после первоначальной настройки)
                 navigate("/dashboard");
               } catch (error) {
-                console.error('Error saving worry tags:', error);
+                logger.error('Error saving worry tags:', error);
                 toast.error('Ошибка при сохранении беспокойств');
               } finally {
                 setLoading(false);

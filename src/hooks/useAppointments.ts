@@ -161,11 +161,16 @@ export function useCreateAppointment() {
       notes?: string;
     }) => createAppointment(appointmentTypeId, scheduledAt, profileId, notes),
     onSuccess: () => {
-      // Инвалидируем кеш консультаций
-      queryClient.invalidateQueries({ queryKey: ['appointments', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['upcoming-appointments', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['appointments-with-type', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['active-free-consultation', user?.id] });
+      // Инвалидируем кеш консультаций групповой инвалидацией
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return key === 'appointments' || 
+                 key === 'upcoming-appointments' ||
+                 key === 'appointments-with-type' ||
+                 key === 'active-free-consultation';
+        }
+      });
       toast.success('Консультация успешно записана');
     },
     onError: (error: Error) => {
@@ -190,10 +195,17 @@ export function useUpdateAppointment() {
       updates: Parameters<typeof updateAppointment>[1];
     }) => updateAppointment(appointmentId, updates),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['appointments', user?.id] });
+      // Инвалидируем конкретную консультацию и групповые запросы
       queryClient.invalidateQueries({ queryKey: ['appointment', variables.appointmentId] });
-      queryClient.invalidateQueries({ queryKey: ['upcoming-appointments', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['appointments-with-type', user?.id] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return key === 'appointments' || 
+                 key === 'upcoming-appointments' ||
+                 key === 'appointments-with-type' ||
+                 key === 'active-free-consultation';
+        }
+      });
       toast.success('Консультация обновлена');
     },
     onError: (error: Error) => {
@@ -212,10 +224,16 @@ export function useCancelAppointment() {
   return useMutation({
     mutationFn: (appointmentId: string) => cancelAppointment(appointmentId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['appointments', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['upcoming-appointments', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['appointments-with-type', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['active-free-consultation', user?.id] });
+      // Инвалидируем кеш консультаций групповой инвалидацией
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return key === 'appointments' || 
+                 key === 'upcoming-appointments' ||
+                 key === 'appointments-with-type' ||
+                 key === 'active-free-consultation';
+        }
+      });
       toast.success('Консультация отменена');
     },
     onError: (error: Error) => {

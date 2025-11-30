@@ -15,6 +15,7 @@ import { useCurrentProfile } from "@/contexts/ProfileContext";
 import type { Database } from "@/lib/supabase";
 type Profile = Database['public']['Tables']['profiles']['Row'];
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,21 +36,35 @@ export default function FamilyMembers() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+    
     async function loadMembers() {
       try {
-        setLoading(true);
+        if (!cancelled) {
+          setLoading(true);
+        }
         const profiles = await getProfiles();
-        console.log('Loaded profiles:', profiles);
-        console.log('Profiles with types:', profiles.map(p => ({ name: p.first_name, type: p.type })));
+        if (cancelled) return;
+        
+        logger.log('Loaded profiles:', profiles);
+        logger.log('Profiles with types:', profiles.map(p => ({ name: p.first_name, type: p.type })));
         setMembers(profiles);
       } catch (error) {
-        console.error('Error loading family members:', error);
-        toast.error('Ошибка при загрузке членов семьи');
+        if (!cancelled) {
+          logger.error('Error loading family members:', error);
+          toast.error('Ошибка при загрузке членов семьи');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
     loadMembers();
+    
+    return () => {
+      cancelled = true;
+    };
   }, [location.pathname]); // Перезагружаем при изменении маршрута
 
   // Функция для выбора аватара на основе типа профиля и пола
@@ -70,7 +85,7 @@ export default function FamilyMembers() {
       setDeleteId(null);
       toast.success("Член семьи удален");
     } catch (error) {
-      console.error('Error deleting profile:', error);
+      logger.error('Error deleting profile:', error);
       toast.error('Ошибка при удалении члена семьи');
     }
   };
@@ -193,8 +208,8 @@ export default function FamilyMembers() {
                   size="lg"
                   onClick={() => {
                     // Находим первого ребенка для перехода к worry tags
-                    console.log('Members list:', members);
-                    console.log('Members types:', members.map(m => ({ 
+                    logger.log('Members list:', members);
+                    logger.log('Members types:', members.map(m => ({ 
                       id: m.id, 
                       name: m.first_name, 
                       type: m.type,
@@ -205,12 +220,12 @@ export default function FamilyMembers() {
                     const firstChild = children[0];
                     
                     if (firstChild) {
-                      console.log('Found child:', firstChild);
+                      logger.log('Found child:', firstChild);
                       setCurrentProfileId(firstChild.id);
                       setCurrentProfile(firstChild);
                       navigate(`/worries/${firstChild.id}`);
                     } else {
-                      console.log('No child found. Available members:', members);
+                      logger.log('No child found. Available members:', members);
                       const memberTypes = members.map(m => `${m.first_name} (${m.type})`).join(', ');
                       toast.error(
                         `Не найден ребенок в семье. Текущие члены семьи: ${memberTypes || 'нет'}. Пожалуйста, добавьте ребенка.`

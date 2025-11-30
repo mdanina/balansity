@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Progress } from "@/components/ui/progress";
@@ -8,6 +8,7 @@ import { useAssessment } from "@/hooks/useAssessment";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
 import { getProfile, getProfiles } from "@/lib/profileStorage";
 import { getCompletedAssessment } from "@/lib/assessmentStorage";
+import { logger } from "@/lib/logger";
 import type { Database } from "@/lib/supabase";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -59,17 +60,27 @@ export default function CheckupQuestions() {
 
   // Загружаем профиль для отображения имени
   useEffect(() => {
+    let cancelled = false;
+    
     async function loadProfile() {
       if (profileId) {
         try {
           const loadedProfile = await getProfile(profileId);
-          setProfile(loadedProfile);
+          if (!cancelled) {
+            setProfile(loadedProfile);
+          }
         } catch (error) {
-          console.error('Error loading profile:', error);
+          if (!cancelled) {
+            logger.error('Error loading profile:', error);
+          }
         }
       }
     }
     loadProfile();
+    
+    return () => {
+      cancelled = true;
+    };
   }, [profileId]);
 
   // Восстанавливаем индекс вопроса из URL параметра start (приоритет) или из сохраненного шага
@@ -86,6 +97,9 @@ export default function CheckupQuestions() {
       value: null 
     }))
   );
+  
+  // Ref для хранения таймеров, чтобы можно было их очистить
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Восстанавливаем ответы при загрузке (только один раз после загрузки)
   useEffect(() => {
@@ -127,7 +141,7 @@ export default function CheckupQuestions() {
 
   // Проверка на существование вопроса
   if (!checkupQuestions || checkupQuestions.length === 0) {
-    console.error('checkupQuestions is not defined or empty');
+    logger.error('checkupQuestions is not defined or empty');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -148,13 +162,20 @@ export default function CheckupQuestions() {
     return null;
   }
 
-  const progress = ((currentQuestionIndex + 1) / checkupQuestions.length) * 100;
-  const currentAnswerOptions = currentQuestion.answerType === 'impact' ? impactAnswerOptions : answerOptions;
+  const progress = useMemo(() => 
+    ((currentQuestionIndex + 1) / checkupQuestions.length) * 100,
+    [currentQuestionIndex, checkupQuestions.length]
+  );
+  
+  const currentAnswerOptions = useMemo(() => 
+    currentQuestion.answerType === 'impact' ? impactAnswerOptions : answerOptions,
+    [currentQuestion.answerType]
+  );
 
   const handleAnswer = async (value: number) => {
     try {
       if (!currentQuestion) {
-        console.error('Current question is not defined');
+        logger.error('Current question is not defined');
         return;
       }
 
@@ -181,13 +202,18 @@ export default function CheckupQuestions() {
             currentQuestionIndex + 1
           );
         } catch (error) {
-          console.error('Error saving answer:', error);
+          logger.error('Error saving answer:', error);
           // Продолжаем выполнение даже если сохранение не удалось
         }
       }
 
       // Автоматически переходим к следующему вопросу
-      setTimeout(() => {
+      // Очищаем предыдущий таймер, если он есть
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => {
         // Если это вопрос 21, переходим на промежуточный экран
         if (currentQuestionIndex === INTERLUDE_QUESTION_INDEX) {
           if (profileId) {
@@ -237,7 +263,7 @@ export default function CheckupQuestions() {
                   navigate("/parent-intro");
                 }
               } catch (error) {
-                console.error('Error completing assessment or checking next child:', error);
+                logger.error('Error completing assessment or checking next child:', error);
                 // В случае ошибки переходим к вопросам о родителе
                 navigate("/parent-intro");
               }
@@ -249,9 +275,10 @@ export default function CheckupQuestions() {
             navigate("/parent-intro");
           }
         }
+        timeoutRef.current = null;
       }, TRANSITION_DELAY_MS);
     } catch (error) {
-      console.error('Error in handleAnswer:', error);
+      logger.error('Error in handleAnswer:', error);
     }
   };
 
@@ -277,7 +304,12 @@ export default function CheckupQuestions() {
     setAnswers(newAnswers);
 
     // Переходим к следующему вопросу
-    setTimeout(async () => {
+    // Очищаем предыдущий таймер, если он есть
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(async () => {
       if (currentQuestionIndex === INTERLUDE_QUESTION_INDEX) {
         if (profileId) {
           navigate(`/checkup-interlude/${profileId}`);
@@ -316,7 +348,7 @@ export default function CheckupQuestions() {
               navigate("/parent-intro");
             }
           } catch (error) {
-            console.error('Error checking next child:', error);
+            logger.error('Error checking next child:', error);
             // В случае ошибки переходим к вопросам о родителе
             navigate("/parent-intro");
           }
@@ -324,6 +356,7 @@ export default function CheckupQuestions() {
           navigate("/parent-intro");
         }
       }
+      timeoutRef.current = null;
     }, TRANSITION_DELAY_MS);
   };
 
@@ -331,6 +364,15 @@ export default function CheckupQuestions() {
     // Прокручиваем вверх при смене вопроса
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentQuestionIndex]);
+  
+  // Cleanup таймеров при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   if (loading) {
     return (

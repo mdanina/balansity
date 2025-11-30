@@ -1,91 +1,18 @@
-import { useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useState, useCallback, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronLeft, ChevronRight, Download, MessageCircle, Lightbulb, Minus, Plus, Save, Gift } from "lucide-react";
-import { getCompletedAssessment, getAssessmentResults, recalculateAssessmentResults, getCompletedAssessmentsForProfiles } from "@/lib/assessmentStorage";
-import { getProfile, getProfiles } from "@/lib/profileStorage";
+import { Save, Gift } from "lucide-react";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
-import { logger } from "@/lib/logger";
 import { useActiveFreeConsultation } from "@/hooks/useAppointments";
+import { useResultsData } from "@/hooks/useResultsData";
+import { SummaryCards } from "@/components/ResultsReport/SummaryCards";
+import { ChildCheckupSection } from "@/components/ResultsReport/ChildCheckupSection";
+import { ParentSection } from "@/components/ResultsReport/ParentSection";
+import { FamilySection } from "@/components/ResultsReport/FamilySection";
 
-// Категории worry tags (должны совпадать с Worries.tsx)
-const childWorries = [
-  "Фокус и внимание",
-  "Грусть и плач",
-  "Тревоги и беспокойства",
-  "Питание",
-  "Сон и режим",
-  "Туалет",
-  "Сенсорная чувствительность",
-  "Гнев и агрессия",
-  "Импульсивность",
-  "Травма",
-  "Горе и потеря",
-  "Буллинг",
-  "Самооценка",
-  "Школа/детский сад",
-  "Удары, укусы или пинки",
-  "Гендерная или сексуальная идентичность",
-  "Сотрудничество",
-];
-
-const personalWorries = [
-  "Выгорание",
-  "Тревожность",
-  "Пониженное настроение",
-  "Трудности с концентрацией внимания",
-  "Общий стресс",
-];
-
-const familyWorries = [
-  "Разделение/развод",
-  "Семейный стресс",
-  "Отношения с партнером",
-  "Психическое здоровье партнера",
-  "Воспитание",
-  "Семейный конфликт",
-];
 import { toast } from "sonner";
-import type { Database } from "@/lib/supabase";
-type Profile = Database['public']['Tables']['profiles']['Row'];
-type Assessment = Database['public']['Tables']['assessments']['Row'];
-
-interface CheckupResults {
-  emotional?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
-  conduct?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
-  hyperactivity?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
-  peer_problems?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
-  prosocial?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
-  // Три субдомена влияния согласно авторской схеме
-  impact_child?: { score: number; status: 'concerning' | 'typical' };
-  impact_parent?: { score: number; status: 'concerning' | 'typical' };
-  impact_family?: { score: number; status: 'concerning' | 'typical' };
-  // Обратная совместимость для старых данных
-  impact?: { score: number; status: 'high_impact' | 'medium_impact' | 'low_impact' };
-  total_difficulties?: number;
-}
-
-interface ParentResults {
-  anxiety?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
-  depression?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
-  total?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
-}
-
-interface FamilyResults {
-  family_stress?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
-  partner_relationship?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
-  coparenting?: { score: number; status: 'concerning' | 'borderline' | 'typical' };
-}
-
-interface ChildCheckupData {
-  profile: Profile;
-  assessment: Assessment;
-  results: CheckupResults;
-}
 
 export default function ResultsReportNew() {
   const navigate = useNavigate();
@@ -95,12 +22,16 @@ export default function ResultsReportNew() {
   const { user, loading: authLoading } = useAuth();
   
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(true);
-  const [parentProfile, setParentProfile] = useState<Profile | null>(null);
-  const [partnerProfile, setPartnerProfile] = useState<Profile | null>(null);
-  const [childrenCheckups, setChildrenCheckups] = useState<ChildCheckupData[]>([]);
-  const [parentAssessment, setParentAssessment] = useState<Assessment | null>(null);
-  const [familyAssessment, setFamilyAssessment] = useState<Assessment | null>(null);
+  
+  // Используем хук для загрузки данных
+  const {
+    loading,
+    parentProfile,
+    partnerProfile,
+    childrenCheckups,
+    parentAssessment,
+    familyAssessment,
+  } = useResultsData(user, authLoading);
   
   // Для обратной совместимости: если передан profileId, показываем данные этого ребенка
   const selectedProfileId = params.profileId || searchParams.get('profileId') || currentProfileId;
@@ -116,8 +47,6 @@ export default function ResultsReportNew() {
   const toggleSection = useCallback((section: string) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   }, []);
-
-  const location = useLocation();
   
   // Проверяем активную бесплатную консультацию
   const { data: activeFreeConsultation } = useActiveFreeConsultation();
@@ -129,194 +58,6 @@ export default function ResultsReportNew() {
   
   // Показываем кнопку если есть завершенный чекап и нет активной консультации
   const showFreeConsultationButton = hasCompletedCheckup && !activeFreeConsultation;
-  
-  // Загружаем данные всех профилей пользователя и их оценки
-  useEffect(() => {
-    async function loadResults() {
-      if (authLoading) {
-        return; // Ждем завершения загрузки авторизации
-      }
-      
-      if (!user) {
-        navigate("/dashboard");
-        return;
-      }
-
-      try {
-        setLoading(true);
-        
-        // Загружаем все профили пользователя
-        const profiles = await getProfiles();
-        
-        // Находим профиль родителя и партнера
-        const parent = profiles.find(p => p.type === 'parent');
-        const partner = profiles.find(p => p.type === 'partner');
-        const children = profiles.filter(p => p.type === 'child');
-        
-        // Отладка: логируем загруженные профили
-        if (parent) {
-          logger.log('Loaded parent profile:', {
-            id: parent.id,
-            first_name: parent.first_name,
-            worry_tags: parent.worry_tags,
-            worry_tags_type: typeof parent.worry_tags,
-            worry_tags_is_array: Array.isArray(parent.worry_tags)
-          });
-          setParentProfile(parent);
-        } else {
-          logger.warn('Parent profile not found in loaded profiles');
-        }
-        if (partner) {
-          setPartnerProfile(partner);
-        }
-        
-        // ОДИН запрос для ВСЕХ завершенных оценок пользователя
-        // Это исправляет катастрофическую проблему N+1 запросов!
-        const profileIds = profiles.map(p => p.id);
-        const { data: allAssessments, error: assessmentsError } = await supabase
-          .from('assessments')
-          .select('*')
-          .in('profile_id', profileIds)
-          .eq('status', 'completed')
-          .in('assessment_type', ['parent', 'family', 'checkup']);
-
-        if (assessmentsError) {
-          throw assessmentsError;
-        }
-
-        // Разделение по типам оценок
-        const parentAssessments = allAssessments?.filter(a => a.assessment_type === 'parent') || [];
-        const familyAssessments = allAssessments?.filter(a => a.assessment_type === 'family') || [];
-        const checkupAssessments = allAssessments?.filter(a => a.assessment_type === 'checkup') || [];
-
-        // Находим parent и family оценки (приоритет - по профилю родителя, если есть)
-        let foundParentAssess: Assessment | null = null;
-        let foundFamilyAssess: Assessment | null = null;
-
-        if (parent) {
-          // Ищем по профилю родителя
-          foundParentAssess = parentAssessments.find(a => a.profile_id === parent.id) || null;
-          foundFamilyAssess = familyAssessments.find(a => a.profile_id === parent.id) || null;
-        }
-
-        // Если не нашли, берем любую найденную
-        if (!foundParentAssess && parentAssessments.length > 0) {
-          foundParentAssess = parentAssessments[0]; // Берем первую найденную
-        }
-        if (!foundFamilyAssess && familyAssessments.length > 0) {
-          foundFamilyAssess = familyAssessments[0]; // Берем первую найденную
-        }
-
-        // Пересчитываем результаты, если нужно
-        const recalculateIfNeeded = async (assessment: Assessment | null): Promise<Assessment | null> => {
-          if (!assessment) return null;
-          
-          const needsRecalc = !assessment.results_summary || 
-            Object.keys(assessment.results_summary).length === 0 || 
-            (assessment.results_summary as any).status === 'completed';
-          
-          if (needsRecalc) {
-            try {
-              await recalculateAssessmentResults(assessment.id);
-              // Перезагружаем оценку после пересчета
-              const updated = await getCompletedAssessment(assessment.profile_id, assessment.assessment_type);
-              return updated;
-            } catch (error) {
-              logger.error(`Error recalculating ${assessment.assessment_type} assessment:`, error);
-              return assessment; // Возвращаем оригинальную, если пересчет не удался
-            }
-          }
-          return assessment;
-        };
-
-        foundParentAssess = await recalculateIfNeeded(foundParentAssess);
-        foundFamilyAssess = await recalculateIfNeeded(foundFamilyAssess);
-        
-        // Устанавливаем найденные оценки в state
-        if (foundParentAssess) {
-          setParentAssessment(foundParentAssess);
-        }
-        if (foundFamilyAssess) {
-          setFamilyAssessment(foundFamilyAssess);
-        }
-        
-        // Обрабатываем checkup оценки для детей (уже загружены одним запросом!)
-        const checkupsMap = new Map(checkupAssessments.map(a => [a.profile_id, a]));
-        const childrenData: ChildCheckupData[] = [];
-        
-        for (const child of children) {
-          const checkupAssessment = checkupsMap.get(child.id);
-          if (checkupAssessment && checkupAssessment.results_summary) {
-            childrenData.push({
-              profile: child,
-              assessment: checkupAssessment,
-              results: checkupAssessment.results_summary as CheckupResults,
-            });
-          }
-        }
-        
-        setChildrenCheckups(childrenData);
-        
-        // Если нет ни одной завершенной оценки, показываем ошибку
-        if (childrenData.length === 0 && !foundParentAssess && !foundFamilyAssess) {
-          toast.error('Завершенные оценки не найдены');
-          navigate("/dashboard");
-        }
-      } catch (error) {
-        logger.error('Error loading results:', error);
-        toast.error('Ошибка при загрузке результатов');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (!authLoading) {
-      if (user) {
-        loadResults();
-      } else {
-        setLoading(false);
-      }
-    }
-  }, [user, authLoading, navigate, location.pathname]); // Добавляем location.pathname для обновления при возврате на страницу
-
-  // Функция для получения текста статуса на русском
-  const getStatusText = (status: string): string => {
-    switch (status) {
-      case 'concerning':
-      case 'high_impact':
-        return 'Тревожно';
-      case 'borderline':
-      case 'medium_impact':
-        return 'Погранично';
-      case 'typical':
-      case 'low_impact':
-        return 'Все в порядке';
-      default:
-        return 'Неизвестно';
-    }
-  };
-
-  // Функция для получения цвета статуса
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'concerning':
-      case 'high_impact':
-        return 'text-white bg-coral';
-      case 'borderline':
-      case 'medium_impact':
-        return 'text-white bg-yellow-400';
-      case 'typical':
-      case 'low_impact':
-        return 'text-white bg-secondary';
-      default:
-        return 'text-white bg-secondary';
-    }
-  };
-
-  // Функция для расчета процента прогресс-бара (0-100%)
-  const getProgressPercentage = (score: number, maxScore: number): number => {
-    return Math.min((score / maxScore) * 100, 100);
-  };
 
   if (loading) {
     return (
@@ -396,173 +137,25 @@ export default function ResultsReportNew() {
           <p className="text-muted-foreground mb-8">
             Эти результаты основаны на опроснике, который вы заполнили о своей семье.
           </p>
-
-          {/* Cards Carousel */}
-          <div className="relative">
-            <div className="flex gap-4 overflow-x-auto pb-4">
-              {/* Child Cards - показываем всех детей */}
-              {childrenCheckups.map((childData) => {
-                const childProfile = childData.profile;
-                const childResults = childData.results;
-                const childAge = childProfile.dob 
-                  ? new Date().getFullYear() - new Date(childProfile.dob).getFullYear()
-                  : null;
-                
-                return (
-                  <div key={childProfile.id} className="min-w-[320px] flex-1 rounded-lg bg-lavender p-6">
-                    <div className="mb-4">
-                      <h3 className="text-xl font-bold text-white">
-                        {childProfile.first_name} {childProfile.last_name || ''}
-                      </h3>
-                      {childAge !== null && (
-                        <p className="text-sm text-white/90">{childAge} лет</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      {childResults.emotional && (
-                        <div>
-                          <span className="font-medium text-white">
-                            {getStatusText(childResults.emotional.status)}
-                          </span>
-                          <p className="text-sm text-white/90">Эмоции</p>
-                        </div>
-                      )}
-                      {childResults.conduct && (
-                        <div>
-                          <span className="font-medium text-white">
-                            {getStatusText(childResults.conduct.status)}
-                          </span>
-                          <p className="text-sm text-white/90">Поведение</p>
-                        </div>
-                      )}
-                      {childResults.peer_problems && (
-                        <div>
-                          <span className="font-medium text-white">
-                            {getStatusText(childResults.peer_problems.status)}
-                          </span>
-                          <p className="text-sm text-white/90">Социальное</p>
-                        </div>
-                      )}
-                      {childResults.hyperactivity && (
-                        <div>
-                          <span className="font-medium text-white">
-                            {getStatusText(childResults.hyperactivity.status)}
-                          </span>
-                          <p className="text-sm text-white/90">Активность</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* You Card */}
-              {parentAssessment && (
-                <div className="min-w-[320px] flex-1 rounded-lg bg-secondary p-6">
-                  <div className="mb-4">
-                    <h3 className="text-xl font-bold text-white">Вы</h3>
-                  </div>
-                  <div className="space-y-2">
-                    {parentAssessment.results_summary ? (
-                      (() => {
-                        const parentResults = parentAssessment.results_summary as ParentResults;
-                        return (
-                          <>
-                            {parentResults.anxiety && (
-                              <div>
-                                <span className="font-medium text-white">
-                                  {getStatusText(parentResults.anxiety.status)}
-                                </span>
-                                <p className="text-sm text-white/90">Тревожность</p>
-                              </div>
-                            )}
-                            {parentResults.depression && (
-                              <div>
-                                <span className="font-medium text-white">
-                                  {getStatusText(parentResults.depression.status)}
-                                </span>
-                                <p className="text-sm text-white/90">Депрессия</p>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()
-                    ) : (
-                      <>
-                        <p className="text-sm text-white/90">
-                          Родительская оценка завершена
-                        </p>
-                        {parentAssessment.completed_at && (
-                          <p className="text-xs text-white/80">
-                            {new Date(parentAssessment.completed_at).toLocaleDateString('ru-RU')}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Family Card */}
-              {familyAssessment && (
-                <div className="min-w-[320px] flex-1 rounded-lg bg-sky-blue p-6">
-                  <div className="mb-4">
-                    <h3 className="text-xl font-bold text-white">Семья</h3>
-                  </div>
-                  <div className="space-y-2">
-                    {familyAssessment.results_summary ? (
-                      (() => {
-                        const familyResults = familyAssessment.results_summary as FamilyResults;
-                        return (
-                          <>
-                            {familyResults.family_stress && (
-                              <div>
-                                <span className="font-medium text-white">
-                                  {getStatusText(familyResults.family_stress.status)}
-                                </span>
-                                <p className="text-sm text-white/90">Семейный стресс</p>
-                              </div>
-                            )}
-                            {familyResults.partner_relationship && (
-                              <div>
-                                <span className="font-medium text-white">
-                                  {getStatusText(familyResults.partner_relationship.status)}
-                                </span>
-                                <p className="text-sm text-white/90">Отношения с партнером</p>
-                              </div>
-                            )}
-                            {familyResults.coparenting && (
-                              <div>
-                                <span className="font-medium text-white">
-                                  {getStatusText(familyResults.coparenting.status)}
-                                </span>
-                                <p className="text-sm text-white/90">Совместное воспитание</p>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()
-                    ) : (
-                      <>
-                        <p className="text-sm text-white/90">
-                          Семейная оценка завершена
-                        </p>
-                        {familyAssessment.completed_at && (
-                          <p className="text-xs text-white/80">
-                            {new Date(familyAssessment.completed_at).toLocaleDateString('ru-RU')}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <SummaryCards
+            childrenCheckups={childrenCheckups}
+            parentAssessment={parentAssessment}
+            familyAssessment={familyAssessment}
+          />
         </div>
 
         {/* Children's Mental Health - показываем для каждого ребенка */}
-        {childrenCheckups.map((childData) => {
+        {childrenCheckups.map((childData) => (
+          <ChildCheckupSection
+            key={childData.profile.id}
+            childData={childData}
+            openSections={openSections}
+            toggleSection={toggleSection}
+          />
+        ))}
+
+        {/* Legacy code - удалить после проверки */}
+        {false && childrenCheckups.map((childData) => {
           const childProfile = childData.profile;
           const childResults = childData.results;
           
@@ -1121,6 +714,15 @@ export default function ResultsReportNew() {
         })}
 
         {/* Your Mental Health */}
+        <ParentSection
+          parentProfile={parentProfile}
+          parentAssessment={parentAssessment}
+          openSections={openSections}
+          toggleSection={toggleSection}
+        />
+
+        {/* Legacy code - удалить после проверки */}
+        {false && (
         <div className="mb-12">
           <h2 className="text-3xl font-bold text-foreground mb-8">Ваше ментальное здоровье</h2>
           
@@ -1333,6 +935,7 @@ export default function ResultsReportNew() {
           </div>
         )}
         </div>
+        )}
 
         {/* Legacy Parent Section - скрываем, если нет данных */}
         {false && (
@@ -1439,7 +1042,16 @@ export default function ResultsReportNew() {
         )}
 
         {/* Your Family's Mental Health */}
-        {familyAssessment ? (
+        <FamilySection
+          parentProfile={parentProfile}
+          partnerProfile={partnerProfile}
+          familyAssessment={familyAssessment}
+          openSections={openSections}
+          toggleSection={toggleSection}
+        />
+
+        {/* Legacy code - удалить после проверки */}
+        {false && (
           <div className="mb-12">
             <h2 className="text-3xl font-bold text-foreground mb-8">Ментальное здоровье вашей семьи</h2>
             <p className="text-foreground/70 mb-4">
@@ -1685,15 +1297,6 @@ export default function ResultsReportNew() {
                 </p>
               </div>
             )}
-          </div>
-        ) : (
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-8">Ментальное здоровье вашей семьи</h2>
-            <div className="rounded-lg border border-border bg-white p-6">
-              <p className="text-foreground/70">
-                Семейная оценка не завершена. Пройдите опрос о семье, чтобы увидеть результаты здесь.
-              </p>
-            </div>
           </div>
         )}
 
