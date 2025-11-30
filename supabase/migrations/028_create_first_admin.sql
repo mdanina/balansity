@@ -3,7 +3,10 @@
 -- ============================================
 -- Данные администратора:
 -- Email: smartbodycentre@gmail.com
--- Password: 123456
+-- Password: [УДАЛЕНО ИЗ БЕЗОПАСНОСТИ - используйте переменные окружения или Supabase Dashboard]
+-- 
+-- ВАЖНО: Не храните пароли в открытом виде в Git!
+-- Используйте Supabase Dashboard для создания пользователя или переменные окружения
 
 -- ============================================
 -- ВАРИАНТ 1: Если пользователь УЖЕ существует
@@ -28,7 +31,7 @@ WHERE email = 'smartbodycentre@gmail.com';
 -- 3. Нажмите "Add User"
 -- 4. Введите:
 --    - Email: smartbodycentre@gmail.com
---    - Password: 123456
+--    - Password: [создайте безопасный пароль через Dashboard]
 --    - Включите "Auto Confirm User" (чтобы не нужно было подтверждать email)
 -- 5. Нажмите "Create User"
 -- 6. Затем выполните UPDATE выше
@@ -52,7 +55,7 @@ BEGIN
     RAISE NOTICE 'Пользователь не найден. Создайте его через Supabase Dashboard:';
     RAISE NOTICE '1. Authentication → Users → Add User';
     RAISE NOTICE '2. Email: smartbodycentre@gmail.com';
-    RAISE NOTICE '3. Password: 123456';
+    RAISE NOTICE '3. Password: [создайте безопасный пароль]';
     RAISE NOTICE '4. Включите "Auto Confirm User"';
     RAISE NOTICE '5. Затем выполните UPDATE выше';
   ELSE

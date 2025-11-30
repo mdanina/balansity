@@ -42,6 +42,7 @@ import {
 import { Loader2, Search, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { editUserSchema, type EditUserInput } from '@/lib/validation/adminSchemas';
+import type { AdminUser } from '@/hooks/admin/useAdminUsers';
 
 export default function UsersManagement() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -81,13 +82,13 @@ export default function UsersManagement() {
     setSearchParams({ page: newPage.toString(), limit: limit.toString() });
   };
 
-  const handleEdit = (user: any) => {
+  const handleEdit = (user: AdminUser) => {
     setEditingUser(user.id);
     form.reset({
       email: user.email || '',
       phone: user.phone || '',
       region: user.region || '',
-      role: (user.role || 'user') as 'user' | 'support' | 'admin' | 'super_admin',
+      role: user.role || 'user',
       marketing_consent: user.marketing_consent || false,
     });
     setIsDialogOpen(true);
