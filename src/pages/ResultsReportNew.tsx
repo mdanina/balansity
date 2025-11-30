@@ -3,13 +3,14 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronLeft, ChevronRight, Download, MessageCircle, Lightbulb, Minus, Plus, Save } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, MessageCircle, Lightbulb, Minus, Plus, Save, Gift } from "lucide-react";
 import { getCompletedAssessment, getAssessmentResults, recalculateAssessmentResults, getCompletedAssessmentsForProfiles } from "@/lib/assessmentStorage";
 import { getProfile, getProfiles } from "@/lib/profileStorage";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/lib/logger";
+import { useActiveFreeConsultation } from "@/hooks/useAppointments";
 
 // Категории worry tags (должны совпадать с Worries.tsx)
 const childWorries = [
@@ -117,6 +118,17 @@ export default function ResultsReportNew() {
   }, []);
 
   const location = useLocation();
+  
+  // Проверяем активную бесплатную консультацию
+  const { data: activeFreeConsultation } = useActiveFreeConsultation();
+  
+  // Проверяем, есть ли хотя бы один завершенный чекап
+  const hasCompletedCheckup = useMemo(() => {
+    return childrenCheckups.length > 0;
+  }, [childrenCheckups]);
+  
+  // Показываем кнопку если есть завершенный чекап и нет активной консультации
+  const showFreeConsultationButton = hasCompletedCheckup && !activeFreeConsultation;
   
   // Загружаем данные всех профилей пользователя и их оценки
   useEffect(() => {
@@ -360,9 +372,22 @@ export default function ResultsReportNew() {
             <h1 className="text-5xl font-bold text-foreground mb-4">
               Ваши результаты
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg text-muted-foreground mb-6">
               {completedDate} {profile && `• ${profile.first_name} ${profile.last_name || ''}`}
             </p>
+            {showFreeConsultationButton && (
+              <Button
+                size="lg"
+                onClick={() => navigate("/appointments")}
+                className="w-full max-w-lg mx-auto bg-secondary hover:bg-secondary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-base font-semibold py-10 min-h-[80px]"
+              >
+                <Gift className="mr-3 h-7 w-7 flex-shrink-0" />
+                <span className="text-center leading-tight">
+                  Получить первую бесплатную консультацию<br />
+                  с вашим персональным координатором
+                </span>
+              </Button>
+            )}
           </div>
         </div>
 

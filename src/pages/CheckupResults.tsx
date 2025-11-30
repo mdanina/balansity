@@ -1,11 +1,58 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
+import { useProfiles } from "@/hooks/useProfiles";
+import { useAssessmentsForProfiles } from "@/hooks/useAssessments";
+import { useActiveFreeConsultation, useAppointmentsWithType } from "@/hooks/useAppointments";
+import { hasFreeConsultationAvailable } from "@/lib/appointmentStorage";
 
 export default function CheckupResults() {
   const navigate = useNavigate();
+  const { data: profiles } = useProfiles();
+  const { data: activeFreeConsultation, isLoading: freeConsultationLoading } = useActiveFreeConsultation();
+  const { data: appointmentsWithType } = useAppointmentsWithType();
+  const [freeConsultationAvailable, setFreeConsultationAvailable] = useState<boolean>(false);
+
+  // Получаем профили детей
+  const childProfiles = useMemo(() => {
+    if (!profiles) return [];
+    return profiles.filter(p => p.type === 'child');
+  }, [profiles]);
+
+  // Получаем завершенные чекапы для всех детей
+  const childProfileIds = useMemo(() => childProfiles.map(p => p.id), [childProfiles]);
+  const { data: completedCheckups } = useAssessmentsForProfiles(childProfileIds, 'checkup');
+
+  // Проверяем, есть ли хотя бы один завершенный чекап
+  const hasCompletedCheckup = useMemo(() => {
+    if (!completedCheckups) return false;
+    return Object.values(completedCheckups).some(
+      assessment => assessment?.status === 'completed'
+    );
+  }, [completedCheckups]);
+
+  // Проверяем доступность бесплатной консультации
+  // Обновляем при изменении activeFreeConsultation или appointmentsWithType,
+  // чтобы синхронизировать состояние после отмены консультации
+  useEffect(() => {
+    async function checkAvailability() {
+      const available = await hasFreeConsultationAvailable();
+      setFreeConsultationAvailable(available);
+    }
+    // Проверяем только если не идет загрузка
+    if (!freeConsultationLoading) {
+      checkAvailability();
+    }
+  }, [activeFreeConsultation, appointmentsWithType, freeConsultationLoading]);
+
+  // Показываем кнопку только если:
+  // 1. Есть завершенный чекап
+  // 2. Бесплатная консультация доступна (флаг не установлен)
+  // 3. Нет активной бесплатной консультации
+  const showFreeConsultationButton = hasCompletedCheckup && freeConsultationAvailable && !activeFreeConsultation;
 
   return (
     <div className="min-h-screen bg-background">
@@ -51,13 +98,22 @@ export default function CheckupResults() {
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                     2
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h4 className="mb-1 font-semibold text-foreground">
                       Запланируйте консультацию
                     </h4>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground mb-4">
                       Обсудите результаты с личным координатором бесплатно
                     </p>
+                    {showFreeConsultationButton && (
+                      <Button
+                        size="lg"
+                        onClick={() => navigate("/appointments")}
+                        className="w-full"
+                      >
+                        Получить первую бесплатную консультацию с вашим персональным координатором
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

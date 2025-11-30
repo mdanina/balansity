@@ -1,13 +1,55 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronLeft, ChevronRight, Download, MessageCircle, Lightbulb, Minus, Plus, Save } from "lucide-react";
+import { useProfiles } from "@/hooks/useProfiles";
+import { useAssessmentsForProfiles } from "@/hooks/useAssessments";
+import { useActiveFreeConsultation } from "@/hooks/useAppointments";
 
 export default function ResultsReport() {
   const navigate = useNavigate();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const { data: profiles } = useProfiles();
+  const { data: activeFreeConsultation } = useActiveFreeConsultation();
+
+  // Получаем профили детей
+  const childProfiles = useMemo(() => {
+    if (!profiles) return [];
+    return profiles.filter(p => p.type === 'child');
+  }, [profiles]);
+
+  // Получаем завершенные чекапы для всех детей
+  const childProfileIds = useMemo(() => childProfiles.map(p => p.id), [childProfiles]);
+  const { data: completedCheckups } = useAssessmentsForProfiles(childProfileIds, 'checkup');
+
+  // Проверяем, есть ли хотя бы один завершенный чекап
+  const hasCompletedCheckup = useMemo(() => {
+    if (!completedCheckups) return false;
+    return Object.values(completedCheckups).some(
+      assessment => assessment?.status === 'completed'
+    );
+  }, [completedCheckups]);
+
+  // Показываем кнопку если есть завершенный чекап и нет активной консультации
+  const showFreeConsultationButton = hasCompletedCheckup && !activeFreeConsultation;
+
+  // Отладка - для проверки значений
+  useEffect(() => {
+    console.log('🔍 ResultsReport Debug:', {
+      'childProfiles count': childProfiles.length,
+      'childProfileIds': childProfileIds,
+      'completedCheckups': completedCheckups,
+      'completedCheckups type': typeof completedCheckups,
+      'completedCheckups keys': completedCheckups ? Object.keys(completedCheckups) : 'null/undefined',
+      'completedCheckups values': completedCheckups ? Object.values(completedCheckups) : 'null/undefined',
+      'hasCompletedCheckup': hasCompletedCheckup,
+      'activeFreeConsultation': activeFreeConsultation,
+      'showFreeConsultationButton': showFreeConsultationButton,
+      'profiles count': profiles?.length
+    });
+  }, [childProfiles, childProfileIds, completedCheckups, hasCompletedCheckup, activeFreeConsultation, showFreeConsultationButton, profiles]);
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -24,9 +66,18 @@ export default function ResultsReport() {
             <h1 className="text-5xl font-bold text-foreground mb-4">
               Ваши результаты
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg text-muted-foreground mb-6">
               Сегодня • Заполнено Dan, Mar
             </p>
+            {showFreeConsultationButton && (
+              <Button
+                size="lg"
+                onClick={() => navigate("/appointments")}
+                className="w-full max-w-md mx-auto"
+              >
+                Получить первую бесплатную консультацию с вашим персональным координатором
+              </Button>
+            )}
           </div>
         </div>
 
