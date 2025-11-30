@@ -1,5 +1,5 @@
 // Контекст для управления авторизацией админов
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,8 +55,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Загружаем данные пользователя (без проверки роли - проверка происходит в AdminProtectedRoute)
-  // Делаем это лениво, только когда нужно
-  const loadUserData = async (userId: string) => {
+  const loadUserData = useCallback(async (userId: string) => {
     setUserDataLoading(true);
     try {
       const adminData = await loadAdminUser(userId);
@@ -73,14 +72,29 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       setUserDataLoading(false);
       return null;
     }
-  };
+  }, []);
 
-  // Очищаем adminUser при изменении пользователя
+  // Отслеживаем, была ли уже попытка загрузки для текущего пользователя
+  const loadingAttemptedRef = useRef<string | null>(null);
+
+  // Очищаем adminUser при изменении пользователя и загружаем данные при появлении user
   useEffect(() => {
     if (!user) {
       setAdminUser(null);
+      loadingAttemptedRef.current = null;
+      return;
     }
-  }, [user]);
+
+    // Если user есть, но adminUser еще не загружен и не идет загрузка, загружаем данные
+    // Проверяем, что мы еще не пытались загрузить данные для этого пользователя
+    if (user && !adminUser && !userDataLoading && loadingAttemptedRef.current !== user.id) {
+      loadingAttemptedRef.current = user.id;
+      loadUserData(user.id).catch((error) => {
+        logger.error('Error auto-loading admin user data:', error);
+        loadingAttemptedRef.current = null; // Разрешаем повторную попытку при ошибке
+      });
+    }
+  }, [user, adminUser, userDataLoading, loadUserData]);
 
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -119,7 +133,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         user,
         adminUser,
         session,
-        loading: userDataLoading, // Не блокируем загрузку из-за authLoading
+        loading: authLoading || userDataLoading, // Учитываем оба состояния загрузки
         isAdmin,
         isStaff,
         signIn,

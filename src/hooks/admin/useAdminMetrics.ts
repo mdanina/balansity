@@ -6,7 +6,8 @@ export function useAdminMetrics(period?: MetricsPeriod) {
     queryKey: ['admin-metrics', period],
     queryFn: () => getMetrics(period),
     staleTime: 5 * 60 * 1000, // 5 минут
-    refetchInterval: 5 * 60 * 1000, // Обновлять каждые 5 минут
+    retry: 1, // Только одна попытка повтора
+    retryDelay: 1000, // Задержка 1 секунда
   });
 }
 

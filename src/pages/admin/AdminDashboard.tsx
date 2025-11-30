@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAdminMetrics } from '@/hooks/admin/useAdminMetrics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,8 @@ export default function AdminDashboard() {
   const [customStart, setCustomStart] = useState<string>('');
   const [customEnd, setCustomEnd] = useState<string>('');
 
-  const getPeriodDates = (): { startDate: string; endDate: string } | undefined => {
+  // Мемоизируем periodDates, чтобы избежать постоянных перезапросов
+  const periodDates = useMemo((): { startDate: string; endDate: string } | undefined => {
     if (period === 'all') return undefined;
 
     const endDate = new Date();
@@ -35,9 +36,8 @@ export default function AdminDashboard() {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
     };
-  };
+  }, [period]); // Пересчитываем только при изменении period
 
-  const periodDates = getPeriodDates();
   const { data: metrics, isLoading, error } = useAdminMetrics(periodDates);
 
   if (isLoading) {

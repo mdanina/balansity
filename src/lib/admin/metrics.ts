@@ -74,7 +74,7 @@ export async function getMetrics(period?: MetricsPeriod): Promise<Metrics> {
       getAssessmentsMetrics(startDate, endDate),
       getAppointmentsMetrics(startDate, endDate),
       getPaymentsMetrics(startDate, endDate),
-      getPackagesMetrics(),
+      getPackagesMetrics(startDate, endDate),
     ]);
 
     return {
@@ -160,7 +160,8 @@ async function getUsersMetrics(startDate: string, endDate: string) {
       throw newUsersError;
     }
 
-    // Активные пользователи - те, кто создал оценку или записался на консультацию за период
+    // Активные пользователи - те, кто начал действие (создал оценку или записался на консультацию) за период
+    // Примечание: учитываются любые действия, не только завершенные
     const { data: activeAssessments, error: assessmentsError } = await supabase
       .from('assessments')
       .select('profile_id')
@@ -297,9 +298,10 @@ async function getProfilesMetrics() {
 
 async function getAssessmentsMetrics(startDate: string, endDate: string) {
   try {
+    // Загружаем все оценки, созданные в периоде (для "Всего оценок")
     const { data: allAssessments, error } = await supabase
       .from('assessments')
-      .select('id, assessment_type, status, is_paid, started_at, completed_at, worry_tags')
+      .select('id, assessment_type, status, is_paid, started_at, completed_at, updated_at, worry_tags')
       .gte('created_at', startDate)
       .lte('created_at', endDate);
 
@@ -308,55 +310,131 @@ async function getAssessmentsMetrics(startDate: string, endDate: string) {
       throw error;
     }
 
-  const completed = (allAssessments || []).filter((a) => a.status === 'completed');
-  const abandoned = (allAssessments || []).filter((a) => a.status === 'abandoned');
-  const inProgress = (allAssessments || []).filter((a) => a.status === 'in_progress');
+    // Загружаем завершенные оценки за период (по completed_at)
+    const { data: completedAssessments, error: completedError } = await supabase
+      .from('assessments')
+      .select('id, assessment_type, status, is_paid, started_at, completed_at, worry_tags')
+      .eq('status', 'completed')
+      .gte('completed_at', startDate)
+      .lte('completed_at', endDate);
 
-  const byType = (allAssessments || []).reduce((acc, assessment) => {
-    acc[assessment.assessment_type] = (acc[assessment.assessment_type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  // Конверсия
-  const total = allAssessments?.length || 0;
-  const conversionRate = total > 0 ? (completed.length / total) * 100 : 0;
-
-  // Среднее время прохождения
-  const completedWithTimes = completed.filter(
-    (a) => a.started_at && a.completed_at
-  );
-  const averageCompletionTime =
-    completedWithTimes.length > 0
-      ? completedWithTimes.reduce((sum, a) => {
-          const time = new Date(a.completed_at!).getTime() - new Date(a.started_at!).getTime();
-          return sum + time;
-        }, 0) / completedWithTimes.length / (1000 * 60) // в минутах
-      : null;
-
-  // Worry tags
-  const worryTagsCount: Record<string, number> = {};
-  (allAssessments || []).forEach((a) => {
-    if (a.worry_tags) {
-      const tags = typeof a.worry_tags === 'object' && !Array.isArray(a.worry_tags)
-        ? Object.values(a.worry_tags).flat()
-        : Array.isArray(a.worry_tags)
-        ? a.worry_tags
-        : [];
-      tags.forEach((tag: string) => {
-        worryTagsCount[tag] = (worryTagsCount[tag] || 0) + 1;
-      });
+    if (completedError) {
+      console.error('Error fetching completed assessments:', completedError);
+      // Продолжаем без завершенных
     }
-  });
+
+    // Загружаем брошенные оценки за период (по updated_at, когда статус стал abandoned)
+    const { data: abandonedAssessments, error: abandonedError } = await supabase
+      .from('assessments')
+      .select('id, assessment_type, status, is_paid, started_at, completed_at, updated_at, worry_tags')
+      .eq('status', 'abandoned')
+      .gte('updated_at', startDate)
+      .lte('updated_at', endDate);
+
+    if (abandonedError) {
+      console.error('Error fetching abandoned assessments:', abandonedError);
+      // Продолжаем без брошенных
+    }
+
+    // Фильтруем оценки, созданные в периоде
+    const completed = (allAssessments || []).filter((a) => a.status === 'completed');
+    const abandoned = (allAssessments || []).filter((a) => a.status === 'abandoned');
+    const inProgress = (allAssessments || []).filter((a) => a.status === 'in_progress');
+
+    // Для метрик используем оценки, завершенные/брошенные в периоде
+    const completedInPeriod = completedAssessments || [];
+    const abandonedInPeriod = abandonedAssessments || [];
+
+    const byType = (allAssessments || []).reduce((acc, assessment) => {
+      acc[assessment.assessment_type] = (acc[assessment.assessment_type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Конверсия: завершенные / (завершенные + брошенные)
+    // Считаем только среди оценок, которые были завершены или брошены в периоде
+    const started = completedInPeriod.length + abandonedInPeriod.length;
+    const conversionRate = started > 0 ? (completedInPeriod.length / started) * 100 : 0;
+
+  // Среднее активное время прохождения - считаем по времени между первым и последним ответом
+  // Это более точная метрика, чем календарное время между started_at и completed_at
+  const assessmentIds = completedInPeriod.map(a => a.id);
+  
+  let averageCompletionTime: number | null = null;
+  
+  if (assessmentIds.length > 0) {
+    // Получаем время первого и последнего ответа для каждой оценки
+    const { data: answersData, error: answersError } = await supabase
+      .from('answers')
+      .select('assessment_id, created_at')
+      .in('assessment_id', assessmentIds)
+      .order('created_at', { ascending: true });
+
+    if (!answersError && answersData) {
+      // Группируем ответы по assessment_id
+      const answersByAssessment = answersData.reduce((acc, answer) => {
+        if (!acc[answer.assessment_id]) {
+          acc[answer.assessment_id] = [];
+        }
+        acc[answer.assessment_id].push(new Date(answer.created_at).getTime());
+        return acc;
+      }, {} as Record<string, number[]>);
+
+      // Считаем активное время для каждой оценки (от первого до последнего ответа)
+      const activeTimes: number[] = [];
+      for (const assessmentId of assessmentIds) {
+        const times = answersByAssessment[assessmentId];
+        if (times && times.length > 1) {
+          const activeTimeMs = times[times.length - 1] - times[0];
+          const activeTimeMinutes = activeTimeMs / (1000 * 60);
+          
+          // Фильтруем выбросы: исключаем оценки, где активное время > 2 часов (120 минут)
+          // Это разумный лимит для одной сессии диагностики
+          if (activeTimeMinutes > 0 && activeTimeMinutes <= 120) {
+            activeTimes.push(activeTimeMinutes);
+          }
+        }
+      }
+
+      if (activeTimes.length > 0) {
+        averageCompletionTime = Math.round(
+          activeTimes.reduce((sum, time) => sum + time, 0) / activeTimes.length
+        );
+      }
+    }
+  }
+
+    // Worry tags считаем из всех оценок за период
+    const allAssessmentsForTags = [...(allAssessments || []), ...(completedInPeriod || []), ...(abandonedInPeriod || [])];
+    const uniqueAssessmentsForTags = Array.from(
+      new Map(allAssessmentsForTags.map(a => [a.id, a])).values()
+    );
+
+    const worryTagsCount: Record<string, number> = {};
+    uniqueAssessmentsForTags.forEach((a) => {
+      if (a.worry_tags) {
+        const tags = typeof a.worry_tags === 'object' && !Array.isArray(a.worry_tags)
+          ? Object.values(a.worry_tags).flat()
+          : Array.isArray(a.worry_tags)
+          ? a.worry_tags
+          : [];
+        tags.forEach((tag: string) => {
+          worryTagsCount[tag] = (worryTagsCount[tag] || 0) + 1;
+        });
+      }
+    });
+
+    // Оплаченные отчеты - из завершенных за период
+    const paidInPeriod = completedInPeriod.filter((a) => a.is_paid).length;
 
     return {
-      total,
-      completed: completed.length,
-      abandoned: abandoned.length,
-      inProgress: inProgress.length,
+      total: allAssessments?.length || 0, // Всего созданных в периоде
+      completed: completedInPeriod.length, // Завершенных в периоде
+      abandoned: abandonedInPeriod.length, // Брошенных в периоде
+      inProgress: inProgress.length, // В процессе (созданных в периоде)
       byType: Object.entries(byType).map(([type, count]) => ({ type, count })),
       conversionRate: Math.round(conversionRate * 10) / 10,
       averageCompletionTime: averageCompletionTime ? Math.round(averageCompletionTime) : null,
-      paid: (allAssessments || []).filter((a) => a.is_paid).length,
+      paid: paidInPeriod, // Оплаченных среди завершенных за период
       byWorryTags: Object.entries(worryTagsCount)
         .map(([tag, count]) => ({ tag, count }))
         .sort((a, b) => b.count - a.count),
@@ -475,28 +553,34 @@ async function getPaymentsMetrics(startDate: string, endDate: string) {
       throw periodPaymentsError;
     }
 
-  const successful = (allPayments || []).filter((p) => p.status === 'completed');
-  const failed = (allPayments || []).filter((p) => p.status === 'failed');
+  // Успешные платежи за все время (для общей статистики)
+  const successfulAllTime = (allPayments || []).filter((p) => p.status === 'completed');
+  // Успешные платежи за период
+  const successfulInPeriod = (periodPayments || []).filter((p) => p.status === 'completed');
+  // Неудачные платежи за период
+  const failedInPeriod = (periodPayments || []).filter((p) => p.status === 'failed');
 
-  const totalRevenue = successful.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const revenueThisPeriod = (periodPayments || [])
-    .filter((p) => p.status === 'completed')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  // Общая выручка за все время
+  const totalRevenueAllTime = successfulAllTime.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  // Выручка за период
+  const revenueThisPeriod = successfulInPeriod.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-  const averageCheck = successful.length > 0 ? totalRevenue / successful.length : 0;
+  // Средний чек за период
+  const averageCheck = successfulInPeriod.length > 0 ? revenueThisPeriod / successfulInPeriod.length : 0;
 
-  const byMethod = (allPayments || []).reduce((acc, payment) => {
+  // Распределение по методам оплаты за период
+  const byMethod = (periodPayments || []).reduce((acc, payment) => {
     const method = payment.payment_method || 'Неизвестно';
     acc[method] = (acc[method] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
     return {
-      totalRevenue: Math.round(totalRevenue * 100) / 100,
-      revenueThisPeriod: Math.round(revenueThisPeriod * 100) / 100,
-      successful: successful.length,
-      failed: failed.length,
-      averageCheck: Math.round(averageCheck * 100) / 100,
+      totalRevenue: Math.round(totalRevenueAllTime * 100) / 100, // Общая выручка за все время
+      revenueThisPeriod: Math.round(revenueThisPeriod * 100) / 100, // Выручка за период
+      successful: successfulInPeriod.length, // Успешных платежей за период
+      failed: failedInPeriod.length, // Неудачных платежей за период
+      averageCheck: Math.round(averageCheck * 100) / 100, // Средний чек за период
       byMethod: Object.entries(byMethod).map(([method, count]) => ({ method, count })),
     };
   } catch (error) {
@@ -512,20 +596,21 @@ async function getPaymentsMetrics(startDate: string, endDate: string) {
   }
 }
 
-async function getPackagesMetrics() {
+async function getPackagesMetrics(startDate: string, endDate: string) {
   try {
-    // Оптимизировано: один запрос для purchases с join к packages через package_id
-    // Загружаем все purchases с нужными данными
-    const { data: allPurchases, error: purchasesError } = await supabase
+    // Загружаем покупки пакетов за период
+    const { data: periodPurchases, error: purchasesError } = await supabase
       .from('package_purchases')
-      .select('id, package_id, sessions_remaining');
+      .select('id, package_id, sessions_remaining, created_at')
+      .gte('created_at', startDate)
+      .lte('created_at', endDate);
 
     if (purchasesError) {
       console.error('Error fetching package purchases:', purchasesError);
       throw purchasesError;
     }
 
-    if (!allPurchases || allPurchases.length === 0) {
+    if (!periodPurchases || periodPurchases.length === 0) {
       return {
         sold: 0,
         sessionsUsed: 0,
@@ -534,7 +619,7 @@ async function getPackagesMetrics() {
     }
 
     // Получаем уникальные package_id
-    const packageIds = [...new Set(allPurchases.map(p => p.package_id).filter(Boolean))];
+    const packageIds = [...new Set(periodPurchases.map(p => p.package_id).filter(Boolean))];
     
     // Загружаем packages одним запросом
     const { data: packages, error: packagesError } = await supabase
@@ -547,11 +632,12 @@ async function getPackagesMetrics() {
       throw packagesError;
     }
 
-    const totalSessions = (allPurchases || []).reduce((sum, p) => sum + p.sessions_remaining, 0);
+    // Считаем оставшиеся сессии для покупок за период
+    const totalSessions = (periodPurchases || []).reduce((sum, p) => sum + p.sessions_remaining, 0);
 
-    // Подсчитываем использованные сессии
+    // Подсчитываем использованные сессии для покупок за период
     let sessionsUsed = 0;
-    (allPurchases || []).forEach((purchase) => {
+    (periodPurchases || []).forEach((purchase) => {
       const pkg = packages?.find((p) => p.id === purchase.package_id);
       if (pkg) {
         sessionsUsed += pkg.session_count - purchase.sessions_remaining;
@@ -559,7 +645,7 @@ async function getPackagesMetrics() {
     });
 
     return {
-      sold: allPurchases.length,
+      sold: periodPurchases.length,
       sessionsUsed,
       sessionsRemaining: totalSessions,
     };
