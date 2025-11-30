@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { TestimonialSection } from "@/components/TestimonialSection";
 import { Button } from "@/components/ui/button";
 
-export default function Index() {
+export default function ServiceIntro() {
   const navigate = useNavigate();
 
   return (
@@ -81,3 +81,4 @@ export default function Index() {
     </div>
   );
 }
+

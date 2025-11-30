@@ -10,7 +10,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Loader2 } from "lucide-react";
 // Легкие страницы загружаем сразу
-import Index from "./pages/Index";
+import Landing from "./pages/Landing";
+import ServiceIntro from "./pages/ServiceIntro";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Welcome from "./pages/Welcome";
@@ -80,7 +81,8 @@ const App = () => (
               <Suspense fallback={<PageLoader />}>
                 <Routes>
               {/* Публичные маршруты */}
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/service" element={<ServiceIntro />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/welcome" element={<Welcome />} />
