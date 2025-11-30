@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAdminUsers, useUpdateUser } from '@/hooks/admin/useAdminUsers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,58 +30,92 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Loader2, Search, Edit } from 'lucide-react';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Loader2, Search, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
+import { editUserSchema, type EditUserInput } from '@/lib/validation/adminSchemas';
 
 export default function UsersManagement() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const limit = parseInt(searchParams.get('limit') || '20', 10);
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [editingUser, setEditingUser] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<{
-    email: string;
-    phone: string;
-    region: string;
-    role: string;
-    marketing_consent: boolean;
-  } | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { data: users, isLoading } = useAdminUsers();
+  const { data, isLoading } = useAdminUsers({ page, limit });
   const updateUser = useUpdateUser();
 
-  const filteredUsers = users?.filter(
+  const form = useForm<EditUserInput>({
+    resolver: zodResolver(editUserSchema),
+    defaultValues: {
+      email: '',
+      phone: '',
+      region: '',
+      role: 'user',
+      marketing_consent: false,
+    },
+  });
+
+  const users = data?.users || [];
+  const total = data?.total || 0;
+  const totalPages = data?.totalPages || 1;
+
+  const filteredUsers = users.filter(
     (user) =>
       user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.phone?.includes(searchQuery) ||
       user.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handlePageChange = (newPage: number) => {
+    setSearchParams({ page: newPage.toString(), limit: limit.toString() });
+  };
+
   const handleEdit = (user: any) => {
     setEditingUser(user.id);
-    setEditForm({
+    form.reset({
       email: user.email || '',
       phone: user.phone || '',
       region: user.region || '',
-      role: user.role || 'user',
+      role: (user.role || 'user') as 'user' | 'support' | 'admin' | 'super_admin',
       marketing_consent: user.marketing_consent || false,
     });
+    setIsDialogOpen(true);
   };
 
-  const handleSave = async () => {
-    if (!editingUser || !editForm) return;
+  const handleSave = async (data: EditUserInput) => {
+    if (!editingUser) return;
 
     await updateUser.mutateAsync({
       id: editingUser,
       updates: {
-        email: editForm.email || null,
-        phone: editForm.phone || null,
-        region: editForm.region || null,
-        role: editForm.role as any,
-        marketing_consent: editForm.marketing_consent,
+        email: data.email || null,
+        phone: data.phone || null,
+        region: data.region || null,
+        role: data.role,
+        marketing_consent: data.marketing_consent,
       },
     });
 
     setEditingUser(null);
-    setEditForm(null);
+    setIsDialogOpen(false);
+    form.reset();
+  };
+
+  const handleCancel = () => {
+    setEditingUser(null);
+    setIsDialogOpen(false);
+    form.reset();
   };
 
   if (isLoading) {
@@ -94,7 +131,7 @@ export default function UsersManagement() {
       <div>
         <h1 className="text-3xl font-bold">Управление пользователями</h1>
         <p className="text-muted-foreground mt-1">
-          Всего пользователей: {users?.length || 0}
+          Всего пользователей: {total} | Страница {page} из {totalPages}
         </p>
       </div>
 
@@ -159,7 +196,7 @@ export default function UsersManagement() {
                     {format(new Date(user.created_at), 'dd.MM.yyyy')}
                   </TableCell>
                   <TableCell>
-                    <Dialog>
+                    <Dialog open={isDialogOpen && editingUser === user.id} onOpenChange={setIsDialogOpen}>
                       <DialogTrigger asChild>
                         <Button
                           variant="ghost"
@@ -176,84 +213,106 @@ export default function UsersManagement() {
                             Измените данные пользователя
                           </DialogDescription>
                         </DialogHeader>
-                        {editForm && (
-                          <div className="space-y-4 py-4">
-                            <div>
-                              <Label>Email</Label>
-                              <Input
-                                value={editForm.email}
-                                onChange={(e) =>
-                                  setEditForm({ ...editForm, email: e.target.value })
-                                }
-                              />
-                            </div>
-                            <div>
-                              <Label>Телефон</Label>
-                              <Input
-                                value={editForm.phone}
-                                onChange={(e) =>
-                                  setEditForm({ ...editForm, phone: e.target.value })
-                                }
-                              />
-                            </div>
-                            <div>
-                              <Label>Регион</Label>
-                              <Input
-                                value={editForm.region}
-                                onChange={(e) =>
-                                  setEditForm({ ...editForm, region: e.target.value })
-                                }
-                              />
-                            </div>
-                            <div>
-                              <Label>Роль</Label>
-                              <Select
-                                value={editForm.role}
-                                onValueChange={(value) =>
-                                  setEditForm({ ...editForm, role: value })
-                                }
+                        <Form {...form}>
+                          <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4 py-4">
+                            <FormField
+                              control={form.control}
+                              name="email"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Email</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="user@example.com" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="phone"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Телефон</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="+79991234567" />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Формат: +7XXXXXXXXXX
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="region"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Регион</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="Москва" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="role"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Роль</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="user">Пользователь</SelectItem>
+                                      <SelectItem value="support">Поддержка</SelectItem>
+                                      <SelectItem value="admin">Администратор</SelectItem>
+                                      <SelectItem value="super_admin">Супер-администратор</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="marketing_consent"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <input
+                                      type="checkbox"
+                                      checked={field.value}
+                                      onChange={field.onChange}
+                                      className="mt-1"
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>Согласие на маркетинг</FormLabel>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                            <DialogFooter>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleCancel}
                               >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="user">Пользователь</SelectItem>
-                                  <SelectItem value="support">Поддержка</SelectItem>
-                                  <SelectItem value="admin">Администратор</SelectItem>
-                                  <SelectItem value="super_admin">Супер-администратор</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id="marketing"
-                                checked={editForm.marketing_consent}
-                                onChange={(e) =>
-                                  setEditForm({
-                                    ...editForm,
-                                    marketing_consent: e.target.checked,
-                                  })
-                                }
-                              />
-                              <Label htmlFor="marketing">Согласие на маркетинг</Label>
-                            </div>
-                          </div>
-                        )}
-                        <DialogFooter>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setEditingUser(null);
-                              setEditForm(null);
-                            }}
-                          >
-                            Отмена
-                          </Button>
-                          <Button onClick={handleSave} disabled={updateUser.isPending}>
-                            {updateUser.isPending ? 'Сохранение...' : 'Сохранить'}
-                          </Button>
-                        </DialogFooter>
+                                Отмена
+                              </Button>
+                              <Button type="submit" disabled={updateUser.isPending}>
+                                {updateUser.isPending ? 'Сохранение...' : 'Сохранить'}
+                              </Button>
+                            </DialogFooter>
+                          </form>
+                        </Form>
                       </DialogContent>
                     </Dialog>
                   </TableCell>
@@ -263,6 +322,62 @@ export default function UsersManagement() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Пагинация */}
+      {totalPages > 1 && (
+        <Card>
+          <CardContent className="flex items-center justify-between py-4">
+            <div className="text-sm text-muted-foreground">
+              Показано {(page - 1) * limit + 1} - {Math.min(page * limit, total)} из {total}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(page - 1)}
+                disabled={page === 1 || isLoading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Предыдущая
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={page === pageNum ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handlePageChange(pageNum)}
+                      disabled={isLoading}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(page + 1)}
+                disabled={page === totalPages || isLoading}
+              >
+                Следующая
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

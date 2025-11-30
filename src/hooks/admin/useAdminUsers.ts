@@ -13,17 +13,54 @@ export interface AdminUser {
   updated_at: string;
 }
 
-export function useAdminUsers() {
-  return useQuery<AdminUser[]>({
-    queryKey: ['admin-users'],
+export interface UseAdminUsersOptions {
+  page?: number;
+  limit?: number;
+}
+
+export interface UseAdminUsersResult {
+  users: AdminUser[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export function useAdminUsers(options: UseAdminUsersOptions = {}) {
+  const page = options.page || 1;
+  const limit = options.limit || 20;
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  return useQuery<UseAdminUsersResult>({
+    queryKey: ['admin-users', page, limit],
     queryFn: async () => {
+      // Получаем общее количество пользователей
+      const { count, error: countError } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+
+      if (countError) throw countError;
+
+      // Получаем пользователей с пагинацией
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      return data as AdminUser[];
+
+      const total = count || 0;
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        users: (data as AdminUser[]) || [],
+        total,
+        page,
+        limit,
+        totalPages,
+      };
     },
   });
 }

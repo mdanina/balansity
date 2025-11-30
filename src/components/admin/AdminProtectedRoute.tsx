@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { Loader2 } from 'lucide-react';
@@ -11,35 +11,73 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
   const { user, adminUser, loading, isStaff, loadUserData } = useAdminAuth();
   const navigate = useNavigate();
   const [isChecking, setIsChecking] = useState(true);
+  const isMountedRef = useRef(true);
+  const hasRedirectedRef = useRef(false);
 
+  // Объединенный useEffect для предотвращения race conditions
   useEffect(() => {
+    isMountedRef.current = true;
+    hasRedirectedRef.current = false;
+
     async function checkAdminAccess() {
+      // Если компонент размонтирован, не выполняем проверку
+      if (!isMountedRef.current) return;
+
+      // Ждем завершения загрузки
+      if (loading) {
+        return;
+      }
+
+      // Если нет пользователя, редиректим
       if (!user) {
-        navigate('/admin/login', { replace: true });
+        if (!hasRedirectedRef.current && isMountedRef.current) {
+          hasRedirectedRef.current = true;
+          navigate('/admin/login', { replace: true });
+        }
         setIsChecking(false);
         return;
       }
 
       // Если данные пользователя еще не загружены, загружаем их
       if (!adminUser && user) {
-        await loadUserData(user.id);
+        try {
+          await loadUserData(user.id);
+          // После загрузки данных проверка продолжится в следующем рендере
+          return;
+        } catch (error) {
+          console.error('Error loading admin user data:', error);
+          if (!hasRedirectedRef.current && isMountedRef.current) {
+            hasRedirectedRef.current = true;
+            navigate('/admin/login', { replace: true });
+          }
+          setIsChecking(false);
+          return;
+        }
       }
 
-      setIsChecking(false);
-    }
+      // Проверяем права доступа
+      if (!adminUser || !isStaff) {
+        if (!hasRedirectedRef.current && isMountedRef.current) {
+          hasRedirectedRef.current = true;
+          navigate('/admin/login', { replace: true });
+        }
+        setIsChecking(false);
+        return;
+      }
 
-    if (!loading) {
-      checkAdminAccess();
-    }
-  }, [user, adminUser, loading, navigate, loadUserData]);
-
-  useEffect(() => {
-    if (!isChecking && !loading) {
-      if (!user || !adminUser || !isStaff) {
-        navigate('/admin/login', { replace: true });
+      // Все проверки пройдены
+      if (isMountedRef.current) {
+        setIsChecking(false);
       }
     }
-  }, [user, adminUser, isStaff, loading, isChecking, navigate]);
+
+    checkAdminAccess();
+
+    // Cleanup функция
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [user, adminUser, loading, isStaff, navigate, loadUserData]);
 
   if (loading || isChecking) {
     return (

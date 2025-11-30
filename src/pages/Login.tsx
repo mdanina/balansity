@@ -8,15 +8,19 @@ import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { loginSchema, type LoginInput } from '@/lib/validation/schemas';
 import { handleApiError } from '@/lib/errorHandler';
 import { logger } from '@/lib/logger';
+import { useRateLimit } from '@/hooks/useRateLimit';
 import logo from "@/assets/noroot (2).png";
 
 export default function Login() {
   const navigate = useNavigate();
   const { signIn, user, loading: authLoading } = useAuth();
+  const { isBlocked, attemptsRemaining, timeRemaining, recordFailedAttempt, resetAttempts } = useRateLimit();
   
   const {
     register,
@@ -34,6 +38,12 @@ export default function Login() {
   }, [user, authLoading, navigate]);
 
   const onSubmit = async (data: LoginInput) => {
+    // Проверяем блокировку перед попыткой входа
+    if (isBlocked) {
+      toast.error('Слишком много неудачных попыток. Попробуйте позже.');
+      return;
+    }
+
     try {
       const { error } = await handleApiError(
         () => signIn(data.email, data.password),
@@ -41,10 +51,14 @@ export default function Login() {
       );
 
       if (error) {
+        // Записываем неудачную попытку
+        recordFailedAttempt();
         toast.error(error.message || 'Ошибка при входе');
         return;
       }
 
+      // Сбрасываем счетчик при успешном входе
+      resetAttempts();
       toast.success('Вход выполнен успешно!');
       
       // Проверяем, заполнен ли профиль пользователя
@@ -93,6 +107,25 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {isBlocked && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Слишком много неудачных попыток входа. Попробуйте снова через{' '}
+                  {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {!isBlocked && attemptsRemaining < 5 && attemptsRemaining > 0 && (
+              <Alert>
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
+                  Осталось попыток: {attemptsRemaining}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -102,6 +135,7 @@ export default function Login() {
                 placeholder="your@email.com"
                 className="h-12"
                 aria-invalid={errors.email ? 'true' : 'false'}
+                disabled={isBlocked}
               />
               {errors.email && (
                 <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
@@ -117,6 +151,7 @@ export default function Login() {
                 placeholder="••••••••"
                 className="h-12"
                 aria-invalid={errors.password ? 'true' : 'false'}
+                disabled={isBlocked}
               />
               {errors.password && (
                 <p className="text-sm text-destructive mt-1">{errors.password.message}</p>
@@ -126,7 +161,7 @@ export default function Login() {
             <Button
               type="submit"
               size="lg"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isBlocked}
               className="h-12 w-full"
             >
               {isSubmitting ? 'Вход...' : 'Войти'}
