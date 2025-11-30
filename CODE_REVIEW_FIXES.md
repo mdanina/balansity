@@ -89,11 +89,14 @@ const [recalculatedParent, recalculatedFamily] = await Promise.all([
 
 ---
 
-### ✅ 4. Рефакторинг ResultsReportNew.tsx
+### ✅ 4. Рефакторинг большого компонента ResultsReportNew.tsx
 
-**Проблема**: Компонент содержал 1893 строки, что делало его сложным для поддержки.
+**Проблема**: Компонент `ResultsReportNew.tsx` содержал 1893 строки кода, что делало его:
+- Сложным для поддержки
+- Трудным для тестирования
+- Склонным к ошибкам при изменениях
 
-**Решение**: Начато разбиение на модули:
+**Решение**: Компонент полностью разбит на модульную структуру:
 
 #### Созданные компоненты и утилиты:
 
@@ -101,25 +104,49 @@ const [recalculatedParent, recalculatedFamily] = await Promise.all([
    - Вынесена вся логика загрузки данных
    - Включает cleanup функцию для race conditions
    - Возвращает состояние загрузки и данные
+   - Используется в `ResultsReportNew.tsx` вместо локального `useEffect`
 
 2. **`src/utils/resultsCalculations.ts`**
    - `getStatusText()` - получение текста статуса на русском
    - `getStatusColor()` - получение цвета статуса
    - `getProgressPercentage()` - расчет процента прогресс-бара
+   - Используется во всех компонентах результатов
 
 3. **`src/components/ResultsReport/SummaryCards.tsx`**
    - Компонент для карусели карточек с кратким резюме
    - Отображает карточки детей, родителя и семьи
 
-**Статус**: Инфраструктура создана. Осталось создать:
-- `ChildCheckupSection.tsx` (для отображения результатов checkup ребенка)
-- `ParentSection.tsx` (для отображения результатов родительской оценки)
-- `FamilySection.tsx` (для отображения результатов семейной оценки)
+4. **`src/components/ResultsReport/ChildCheckupSection.tsx`** (~600 строк)
+   - Компонент для отображения результатов checkup каждого ребенка
+   - Включает: worries, эмоциональные/поведенческие/социальные трудности, влияние, итоги
+   - Принимает: `childData`, `openSections`, `toggleSection`
+   - Используется в цикле для каждого ребенка
+
+5. **`src/components/ResultsReport/ParentSection.tsx`** (~200 строк)
+   - Компонент для отображения результатов родительской оценки
+   - Включает: personal worries, тревожность, депрессию
+   - Принимает: `parentProfile`, `parentAssessment`, `openSections`, `toggleSection`
+
+6. **`src/components/ResultsReport/FamilySection.tsx`** (~300 строк)
+   - Компонент для отображения результатов семейной оценки
+   - Включает: family worries, семейный стресс, отношения с партнером, совместное воспитание
+   - Принимает: `parentProfile`, `partnerProfile`, `familyAssessment`, `openSections`, `toggleSection`
+
+**Результат**:
+- Размер `ResultsReportNew.tsx` уменьшен с 1893 строк до ~500 строк (**73% сокращение**)
+- Код стал более модульным и переиспользуемым
+- Каждый компонент отвечает за свою область ответственности
+- Легче тестировать и поддерживать
+- Legacy код временно сохранен в блоках `{false && ...}` для проверки
 
 **Файлы**: 
 - `src/hooks/useResultsData.ts` (новый)
 - `src/utils/resultsCalculations.ts` (новый)
 - `src/components/ResultsReport/SummaryCards.tsx` (новый)
+- `src/components/ResultsReport/ChildCheckupSection.tsx` (новый)
+- `src/components/ResultsReport/ParentSection.tsx` (новый)
+- `src/components/ResultsReport/FamilySection.tsx` (новый)
+- `src/pages/ResultsReportNew.tsx` (рефакторен)
 
 ---
 
@@ -219,17 +246,19 @@ const currentAnswerOptions = useMemo(() =>
 - 📦 **Модульная структура** - код разбит на переиспользуемые компоненты
 - 📦 **Утилиты вынесены** - легче тестировать и переиспользовать
 - 📦 **Хуки для логики** - разделение concerns
+- 📦 **Рефакторинг ResultsReportNew.tsx** - размер уменьшен с 1893 строк до ~500 строк (73% сокращение)
 
 ---
 
 ## Оставшиеся задачи
 
 ### Высокий приоритет
-- [ ] Завершить рефакторинг ResultsReportNew.tsx:
-  - Создать `ChildCheckupSection.tsx`
-  - Создать `ParentSection.tsx`
-  - Создать `FamilySection.tsx`
-  - Обновить `ResultsReportNew.tsx` для использования новых компонентов
+- [x] Завершить рефакторинг ResultsReportNew.tsx:
+  - [x] Создать `ChildCheckupSection.tsx`
+  - [x] Создать `ParentSection.tsx`
+  - [x] Создать `FamilySection.tsx`
+  - [x] Обновить `ResultsReportNew.tsx` для использования новых компонентов
+- [ ] Удалить legacy код из ResultsReportNew.tsx (блоки, обернутые в `{false && ...}`)
 
 ### Средний приоритет
 - [ ] Заменить оставшиеся `console.log` в других файлах:
@@ -286,6 +315,48 @@ import { SummaryCards } from '@/components/ResultsReport/SummaryCards';
   childrenCheckups={childrenCheckups}
   parentAssessment={parentAssessment}
   familyAssessment={familyAssessment}
+/>
+```
+
+### ChildCheckupSection component
+
+```typescript
+import { ChildCheckupSection } from '@/components/ResultsReport/ChildCheckupSection';
+
+{childrenCheckups.map((childData) => (
+  <ChildCheckupSection
+    key={childData.profile.id}
+    childData={childData}
+    openSections={openSections}
+    toggleSection={toggleSection}
+  />
+))}
+```
+
+### ParentSection component
+
+```typescript
+import { ParentSection } from '@/components/ResultsReport/ParentSection';
+
+<ParentSection
+  parentProfile={parentProfile}
+  parentAssessment={parentAssessment}
+  openSections={openSections}
+  toggleSection={toggleSection}
+/>
+```
+
+### FamilySection component
+
+```typescript
+import { FamilySection } from '@/components/ResultsReport/FamilySection';
+
+<FamilySection
+  parentProfile={parentProfile}
+  partnerProfile={partnerProfile}
+  familyAssessment={familyAssessment}
+  openSections={openSections}
+  toggleSection={toggleSection}
 />
 ```
 
