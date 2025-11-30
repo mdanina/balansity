@@ -119,7 +119,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         user,
         adminUser,
         session,
-        loading: userDataLoading, // Не блокируем загрузку из-за authLoading
+        loading: authLoading || userDataLoading, // ИСПРАВЛЕНО: учитываем оба состояния загрузки
         isAdmin,
         isStaff,
         signIn,
