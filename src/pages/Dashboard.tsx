@@ -429,16 +429,6 @@ export default function Dashboard() {
           </div>
         )}
         
-        {/* Отладочная информация (только в dev режиме) */}
-        {import.meta.env.DEV && (
-          <div className="mb-4 rounded-lg border border-muted bg-muted/50 p-4 text-xs">
-            <p>Профили: {profiles?.length || 0} (загрузка: {profilesLoading ? 'да' : 'нет'})</p>
-            <p>Консультации: {appointmentsWithType?.length || 0} (загрузка: {appointmentsLoading ? 'да' : 'нет'})</p>
-            <p>Предстоящие: {upcomingAppointments.length}</p>
-            <p>User ID: {user?.id || 'нет'}</p>
-          </div>
-        )}
-        
         {/* Предстоящие консультации */}
         {upcomingAppointments.length > 0 && (
           <div className="mb-8">
