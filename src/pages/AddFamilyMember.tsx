@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +19,8 @@ import { createProfile } from "@/lib/profileStorage";
 
 export default function AddFamilyMember() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -48,6 +52,10 @@ export default function AddFamilyMember() {
           referral,
           seekingCare: seekingCare as 'yes' | 'no',
         });
+        
+        // Инвалидируем кеш профилей, чтобы Dashboard обновился
+        await queryClient.invalidateQueries({ queryKey: ['profiles', user?.id] });
+        
         toast.success("Член семьи успешно добавлен!");
         navigate("/family-members");
       } catch (error) {

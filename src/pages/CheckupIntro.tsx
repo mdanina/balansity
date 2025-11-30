@@ -1,12 +1,13 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
 import { getProfile } from "@/lib/profileStorage";
 import type { Database } from "@/lib/supabase";
-import otterSchool from "@/assets/otter-school.png";
+import childFemaleAvatar from "@/assets/friendly-and-clean-face-of-a-white-girl-7-yo--soft.png";
+import childMaleAvatar from "@/assets/friendly-and-clean-face-of-a-white-boy-7-yo--soft- (1).png";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -19,6 +20,14 @@ export default function CheckupIntro() {
   
   // Используем profileId из URL или из контекста
   const profileId = params.profileId || currentProfileId;
+
+  // Функция для выбора аватара на основе пола ребенка
+  const getAvatarImage = useCallback((profile: Profile | null) => {
+    if (!profile) {
+      return childFemaleAvatar; // Fallback
+    }
+    return profile.gender === 'male' ? childMaleAvatar : childFemaleAvatar;
+  }, []);
 
   useEffect(() => {
     async function loadProfile() {
@@ -54,9 +63,9 @@ export default function CheckupIntro() {
       <div className="container mx-auto max-w-2xl px-4 py-20">
         <div className="space-y-12 text-center">
           <img
-            src={otterSchool}
-            alt="Выдра с рюкзаком"
-            className="mx-auto h-80 w-80 object-contain"
+            src={getAvatarImage(profile)}
+            alt={profile ? `${profile.first_name}` : "Ребенок"}
+            className="mx-auto h-80 w-80 rounded-full object-cover"
           />
           
           <div className="space-y-4">

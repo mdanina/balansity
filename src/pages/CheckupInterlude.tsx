@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
 import { getProfile } from "@/lib/profileStorage";
 import type { Database } from "@/lib/supabase";
-import otterCouch from "@/assets/otter-couch.png";
+import illustrationImage from "@/assets/friendly-and-clean-vector-style-illustration-of-a- (1).png";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -47,14 +47,14 @@ export default function CheckupInterlude() {
       <div className="container mx-auto max-w-2xl px-4 py-20">
         <div className="space-y-12">
           <img
-            src={otterCouch}
-            alt="Выдра на диване"
+            src={illustrationImage}
+            alt="Иллюстрация"
             className="mx-auto h-80 w-80 object-contain"
           />
           
           <div className="space-y-6">
             <h1 className="text-4xl font-bold text-foreground">
-              Далее мы спросим, как эти эмоции и поведение <span className="font-bold">влияют на AI</span> и вашу семью.
+              Далее мы спросим, как эти эмоции и поведение <span className="font-bold">влияют на ребенка</span> и вашу семью.
             </h1>
             
             <p className="text-lg text-muted-foreground">
