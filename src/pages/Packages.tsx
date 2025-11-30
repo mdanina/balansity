@@ -6,7 +6,6 @@ import { usePackagesWithType } from "@/hooks/usePackages";
 import { formatAmount } from "@/lib/payment";
 import { Loader2, Info } from "lucide-react";
 import otterHearts from "@/assets/otter-hearts.png";
-import otterSchool from "@/assets/otter-school.png";
 
 export default function Packages() {
   const navigate = useNavigate();
@@ -66,19 +65,11 @@ export default function Packages() {
                         {/* Иконка */}
                         <div className="mb-4 flex justify-center">
                           <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center">
-                            {typeName.includes("ребенка") ? (
-                              <img
-                                src={otterHearts}
-                                alt="Сессия для ребенка"
-                                className="h-20 w-20 object-contain"
-                              />
-                            ) : (
-                              <img
-                                src={otterSchool}
-                                alt="Сессия для родителя"
-                                className="h-20 w-20 object-contain"
-                              />
-                            )}
+                            <img
+                              src={otterHearts}
+                              alt={typeName}
+                              className="h-20 w-20 object-contain"
+                            />
                           </div>
                         </div>
 

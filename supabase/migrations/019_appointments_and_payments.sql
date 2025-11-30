@@ -13,7 +13,7 @@
 -- ============================================
 create table if not exists public.appointment_types (
   id uuid default gen_random_uuid() primary key,
-  name text not null, -- "Первичная встреча", "Сессия для ребенка", "Сессия для родителя"
+  name text not null, -- "Первичная встреча", "Детский психолог", "Нейропсихолог", "Психиатр", "Невролог", "Семейный психолог"
   duration_minutes int not null, -- 30, 45, 60 минут
   price decimal(10, 2) not null, -- Цена в рублях
   description text, -- Описание типа консультации
@@ -77,7 +77,7 @@ create index if not exists idx_appointments_payment_id on public.appointments(pa
 -- ============================================
 create table if not exists public.packages (
   id uuid default gen_random_uuid() primary key,
-  name text not null, -- "4 Session Treatment (Child Therapy)"
+  name text not null, -- "4 сессии для [тип специалиста]"
   session_count int not null, -- 4, 8, 12 сессий
   appointment_type_id uuid references public.appointment_types(id) on delete restrict not null, -- Тип консультаций в пакете
   price decimal(10, 2) not null, -- Цена пакета
@@ -115,6 +115,14 @@ create index if not exists idx_package_purchases_sessions_remaining on public.pa
 -- ============================================
 -- 6. Триггеры для updated_at
 -- ============================================
+-- Удаляем триггеры, если они существуют (для идемпотентности миграции)
+DROP TRIGGER IF EXISTS update_appointment_types_updated_at ON public.appointment_types;
+DROP TRIGGER IF EXISTS update_appointments_updated_at ON public.appointments;
+DROP TRIGGER IF EXISTS update_packages_updated_at ON public.packages;
+DROP TRIGGER IF EXISTS update_package_purchases_updated_at ON public.package_purchases;
+DROP TRIGGER IF EXISTS update_payments_updated_at ON public.payments;
+
+-- Создаем триггеры
 create trigger update_appointment_types_updated_at before update on public.appointment_types
   for each row execute function update_updated_at_column();
 
@@ -142,6 +150,9 @@ alter table public.payments enable row level security;
 -- ============================================
 -- 8. RLS политики для appointment_types
 -- ============================================
+-- Удаляем политику, если существует (для идемпотентности)
+DROP POLICY IF EXISTS "Anyone can view active appointment types" ON public.appointment_types;
+
 -- Все пользователи могут видеть активные типы консультаций
 create policy "Anyone can view active appointment types"
   on public.appointment_types for select
@@ -150,6 +161,12 @@ create policy "Anyone can view active appointment types"
 -- ============================================
 -- 9. RLS политики для appointments
 -- ============================================
+-- Удаляем политики, если существуют (для идемпотентности)
+DROP POLICY IF EXISTS "Users can view own appointments" ON public.appointments;
+DROP POLICY IF EXISTS "Users can insert own appointments" ON public.appointments;
+DROP POLICY IF EXISTS "Users can update own appointments" ON public.appointments;
+DROP POLICY IF EXISTS "Users can delete own appointments" ON public.appointments;
+
 -- Пользователь может видеть только свои записи
 create policy "Users can view own appointments"
   on public.appointments for select
@@ -173,6 +190,11 @@ create policy "Users can delete own appointments"
 -- ============================================
 -- 9. RLS политики для payments
 -- ============================================
+-- Удаляем политики, если существуют (для идемпотентности)
+DROP POLICY IF EXISTS "Users can view own payments" ON public.payments;
+DROP POLICY IF EXISTS "Users can insert own payments" ON public.payments;
+DROP POLICY IF EXISTS "Users can update own payments" ON public.payments;
+
 -- Пользователь может видеть только свои платежи
 create policy "Users can view own payments"
   on public.payments for select
@@ -192,6 +214,9 @@ create policy "Users can update own payments"
 -- ============================================
 -- 10. RLS политики для packages
 -- ============================================
+-- Удаляем политику, если существует (для идемпотентности)
+DROP POLICY IF EXISTS "Anyone can view active packages" ON public.packages;
+
 -- Все пользователи могут видеть активные пакеты
 create policy "Anyone can view active packages"
   on public.packages for select
@@ -200,6 +225,11 @@ create policy "Anyone can view active packages"
 -- ============================================
 -- 11. RLS политики для package_purchases
 -- ============================================
+-- Удаляем политики, если существуют (для идемпотентности)
+DROP POLICY IF EXISTS "Users can view own package purchases" ON public.package_purchases;
+DROP POLICY IF EXISTS "Users can insert own package purchases" ON public.package_purchases;
+DROP POLICY IF EXISTS "Users can update own package purchases" ON public.package_purchases;
+
 -- Пользователь может видеть только свои покупки
 create policy "Users can view own package purchases"
   on public.package_purchases for select
