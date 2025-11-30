@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import otterReading from "@/assets/otter-reading.png";
-import otterHearts from "@/assets/otter-hearts.png";
+import consultationIllustration from "@/assets/friendly-and-clean-vector-style-illustration-of-a-.png";
+import checkupIllustration from "@/assets/minimalistic-and-friendly-vector-style-illustratio (1).png";
+import abstractBackground from "@/assets/abstract-vector-style-background-with-soft-organic.png";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
@@ -309,16 +310,47 @@ export default function Dashboard() {
       </header>
 
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-teal-500 via-teal-600 to-teal-700 px-6 py-16 text-white">
-        {/* Decorative elements */}
-        <div className="absolute left-0 top-0 h-full w-1/3 bg-gradient-to-r from-teal-400/30 to-transparent" />
-        <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-teal-400/30 to-transparent" />
+      <div 
+        className="relative overflow-hidden px-6 py-36 text-white"
+        style={{
+          backgroundImage: `url(${abstractBackground})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'top',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        {/* Overlay для читаемости текста */}
+        <div className="absolute inset-0 bg-teal-600/70" />
         
         <div className="container mx-auto relative z-10 max-w-5xl">
-          <h1 className="mb-4 text-4xl font-bold md:text-5xl">
-            Привет{parentName ? `, ${parentName}` : user?.email ? `, ${user.email.split('@')[0]}` : ''}
-          </h1>
-          <p className="text-xl md:text-2xl opacity-90">Как вы себя чувствуете сегодня?</p>
+          <div className="max-w-2xl mx-auto text-center">
+            <h1 className="mb-4 text-4xl font-bold md:text-5xl">
+              Привет{parentName ? `, ${parentName}` : user?.email ? `, ${user.email.split('@')[0]}` : ''}
+            </h1>
+            <p className="text-xl md:text-2xl opacity-90">Как вы себя чувствуете сегодня?</p>
+          </div>
+          
+          <div className="mt-6 md:mt-8 max-w-3xl mx-auto">
+            <Card className="overflow-hidden border-2 bg-card/90 backdrop-blur-sm p-6 md:p-8 shadow-lg">
+              <div className="flex flex-col items-center text-center gap-4 md:gap-6">
+                <div>
+                  <h2 className="mb-3 text-2xl md:text-3xl font-bold text-foreground">
+                    Добро пожаловать в ваш личный кабинет
+                  </h2>
+                  <p className="text-base md:text-lg text-muted-foreground">
+                    Немного потерялись?...<br />
+                    Позвольте нам помочь, нажмите кнопку, чтобы посмотреть наше вступительное видео.
+                  </p>
+                </div>
+                <Button 
+                  size="lg" 
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground px-6 md:px-8 py-4 md:py-6 text-base md:text-lg"
+                >
+                  Смотреть видео
+                </Button>
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
 
@@ -399,25 +431,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Welcome Card */}
-        <Card className="mb-8 overflow-hidden border-2 bg-card p-8 shadow-lg">
-          <div className="flex items-center justify-between gap-8">
-            <div className="flex-1">
-              <h2 className="mb-3 text-3xl font-bold text-foreground">
-                Добро пожаловать в ваш личный кабинет
-              </h2>
-              <p className="text-lg text-muted-foreground">
-                Немного потерялись?... Позвольте нам помочь, нажмите кнопку, чтобы посмотреть наше вступительное видео.
-              </p>
-            </div>
-            <Button 
-              size="lg" 
-              className="shrink-0 bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-6 text-lg"
-            >
-              Смотреть видео
-            </Button>
-          </div>
-        </Card>
 
         {loading ? (
           <div className="text-center py-8">
@@ -441,7 +454,7 @@ export default function Dashboard() {
           >
             <div className="flex flex-col items-center text-center">
               <img 
-                src={otterReading} 
+                src={consultationIllustration} 
                 alt="Balansity Portal" 
                 className="mb-6 h-40 w-auto object-contain transition-transform pointer-events-none group-hover:scale-110"
               />
@@ -489,7 +502,7 @@ export default function Dashboard() {
               }}
             >
               <img 
-                src={otterHearts} 
+                src={checkupIllustration} 
                 alt="Проверка психического здоровья семьи" 
                 className={`mb-6 h-40 w-auto object-contain transition-transform pointer-events-none ${
                   canStartCheckup.allowed ? 'group-hover:scale-110' : ''

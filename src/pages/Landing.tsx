@@ -215,35 +215,6 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Accepted Insurance Plans Section */}
-        <section id="pricing" className="bg-muted py-12">
-          <div className="container mx-auto px-4">
-            <div className="text-center">
-              <h2 className="mb-4 font-serif text-2xl font-bold text-foreground md:text-3xl">
-                Принимаемые страховые планы
-              </h2>
-              <p className="mb-6 text-lg text-muted-foreground">
-                Мы вас поддерживаем
-              </p>
-              <p className="mb-8 text-sm text-muted-foreground">
-                Узнайте больше о покрытии в сети и вариантах оплаты вне сети.
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 max-w-5xl mx-auto">
-                <div className="px-4 py-3 bg-card rounded-lg border text-sm font-medium text-center">АльфаСтрахование</div>
-                <div className="px-4 py-3 bg-card rounded-lg border text-sm font-medium text-center">Ингосстрах</div>
-                <div className="px-4 py-3 bg-card rounded-lg border text-sm font-medium text-center">Росгосстрах</div>
-                <div className="px-4 py-3 bg-card rounded-lg border text-sm font-medium text-center">СОГАЗ</div>
-                <div className="px-4 py-3 bg-card rounded-lg border text-sm font-medium text-center">РЕСО-Гарантия</div>
-                <div className="px-4 py-3 bg-card rounded-lg border text-sm font-medium text-center">ВТБ Страхование</div>
-              </div>
-              <div className="mt-6 flex flex-wrap justify-center gap-4 items-center">
-                <div className="px-6 py-3 bg-card rounded-lg border text-sm font-medium">HSA/FSA</div>
-                <div className="px-6 py-3 bg-card rounded-lg border text-sm font-medium">Гибкие варианты оплаты</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Who We Serve Section */}
         <section id="families" className="bg-muted py-20">
           <div className="container mx-auto px-4">
