@@ -32,6 +32,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { logger } from "@/lib/logger";
 import {
   DropdownMenu,
@@ -51,6 +57,9 @@ interface MemberWithAssessment extends Profile {
   activeCheckupAssessment?: Assessment | null;
 }
 
+// URL вступительного видео - замените на ваш реальный URL YouTube или другой видеохостинг
+const INTRO_VIDEO_URL = "https://www.youtube.com/embed/dQw4w9WgXcQ";
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -58,6 +67,7 @@ export default function Dashboard() {
   const { data: appointmentsWithType } = useAppointmentsWithType();
   const cancelAppointment = useCancelAppointment();
   const [cancelDialogOpen, setCancelDialogOpen] = useState<string | null>(null);
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   
   // Используем React Query для кеширования
   const { data: profiles, isLoading: profilesLoading, error: profilesError } = useProfiles();
@@ -376,6 +386,7 @@ export default function Dashboard() {
                 <Button 
                   size="lg" 
                   className="bg-accent hover:bg-accent/90 text-accent-foreground px-6 md:px-8 py-4 md:py-6 text-base md:text-lg"
+                  onClick={() => setVideoDialogOpen(true)}
                 >
                   Смотреть видео
                 </Button>
@@ -638,6 +649,26 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Video Dialog */}
+      <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
+        <DialogContent className="max-w-4xl w-[90vw] p-0">
+          <DialogHeader className="px-6 pt-6">
+            <DialogTitle>Вступительное видео</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                className="absolute top-0 left-0 w-full h-full rounded-lg"
+                src={INTRO_VIDEO_URL}
+                title="Вступительное видео"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
