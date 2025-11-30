@@ -213,7 +213,7 @@ export interface Database {
           profile_id: string | null;
           appointment_type_id: string;
           scheduled_at: string;
-          status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+          status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
           payment_id: string | null;
           notes: string | null;
           created_at: string;

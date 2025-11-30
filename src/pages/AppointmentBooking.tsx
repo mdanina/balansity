@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { useAppointmentType, useActiveFreeConsultation } from "@/hooks/useAppointments";
 import { useProfiles } from "@/hooks/useProfiles";
 import { useCreateAppointment } from "@/hooks/useAppointments";
+import { markFreeConsultationAsUsed } from "@/lib/appointmentStorage";
 import { formatAmount } from "@/lib/payment";
 import { Loader2, ArrowLeft, Calendar as CalendarIcon, Clock, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
@@ -135,8 +136,14 @@ export default function AppointmentBooking() {
         profileId: selectedProfileId === "__parent__" ? null : selectedProfileId || null,
       });
 
-      // Если консультация бесплатная, переходим сразу к подтверждению
+      // Если консультация бесплатная, устанавливаем флаг и переходим к подтверждению
       if (appointmentType && appointmentType.price === 0) {
+        try {
+          await markFreeConsultationAsUsed();
+        } catch (error) {
+          console.error("Error marking free consultation as used:", error);
+          // Не прерываем процесс, если не удалось установить флаг
+        }
         navigate(`/appointments/confirmation?appointment_id=${appointment.id}`);
       } else {
         // Переходим на страницу оплаты

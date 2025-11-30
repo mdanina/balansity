@@ -19,6 +19,7 @@ import { useCurrentProfile } from "@/contexts/ProfileContext";
 import { useProfiles } from "@/hooks/useProfiles";
 import { useAssessmentsForProfiles, useActiveAssessmentsForProfiles } from "@/hooks/useAssessments";
 import { useAppointmentsWithType, useCancelAppointment } from "@/hooks/useAppointments";
+import { supabase } from "@/lib/supabase";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import {
@@ -95,6 +96,19 @@ export default function Dashboard() {
   const isLoadingActiveAssessments = activeAssessmentsLoading && activeAssessmentsMap === undefined && profileIds.length > 0;
   const loading = isLoadingProfiles || isLoadingAssessments || isLoadingActiveAssessments;
 
+  // Обновляем статусы консультаций при загрузке дашборда
+  useEffect(() => {
+    async function updateStatuses() {
+      try {
+        await supabase.rpc('update_appointment_statuses');
+      } catch (error) {
+        console.error('Error updating appointment statuses:', error);
+        // Не показываем ошибку пользователю, т.к. это фоновое обновление
+      }
+    }
+    updateStatuses();
+  }, []);
+
   // Получаем имя родителя для приветствия
   const parentName = useMemo(() => {
     if (!profiles || !Array.isArray(profiles)) return null;
@@ -113,10 +127,12 @@ export default function Dashboard() {
     return parentFemaleAvatar;
   }, []);
 
-  // Фильтруем предстоящие консультации (только scheduled)
+  // Фильтруем предстоящие консультации (scheduled и in_progress, исключаем completed и cancelled)
   const upcomingAppointments = useMemo(() => {
     if (!appointmentsWithType) return [];
-    return appointmentsWithType.filter(apt => apt.status === 'scheduled');
+    return appointmentsWithType.filter(apt => 
+      apt.status === 'scheduled' || apt.status === 'in_progress'
+    );
   }, [appointmentsWithType]);
 
   // Функция для получения имени профиля
@@ -392,6 +408,14 @@ export default function Dashboard() {
                               locale: ru,
                             })}
                           </p>
+                          {appointment.status === 'in_progress' && (
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                              <span className="text-sm font-medium text-green-600">
+                                Идет сейчас
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                       {appointment.appointment_type && (

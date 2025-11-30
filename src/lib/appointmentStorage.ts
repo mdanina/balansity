@@ -177,9 +177,45 @@ export async function updateAppointment(
 
 /**
  * Отменить консультацию
+ * Если отменяется бесплатная консультация, сбрасывает флаг free_consultation_created
  */
 export async function cancelAppointment(appointmentId: string): Promise<Appointment> {
-  return updateAppointment(appointmentId, { status: 'cancelled' });
+  try {
+    // Получаем консультацию с информацией о типе перед отменой
+    const appointment = await getAppointment(appointmentId);
+    if (!appointment) {
+      throw new Error('Appointment not found');
+    }
+
+    // Получаем тип консультации
+    const appointmentType = await getAppointmentType(appointment.appointment_type_id);
+    
+    // Отменяем консультацию
+    const cancelledAppointment = await updateAppointment(appointmentId, { status: 'cancelled' });
+
+    // Если это бесплатная консультация (price === 0), сбрасываем флаг
+    if (appointmentType && appointmentType.price === 0) {
+      const user = await getCurrentUser();
+      if (user) {
+        const { error } = await supabase
+          .from('users')
+          .update({ free_consultation_created: false })
+          .eq('id', user.id);
+
+        if (error) {
+          logger.error('Error resetting free_consultation_created flag:', error);
+          // Не бросаем ошибку, т.к. консультация уже отменена
+        } else {
+          logger.info('Free consultation flag reset after cancellation');
+        }
+      }
+    }
+
+    return cancelledAppointment;
+  } catch (error) {
+    logger.error('Error cancelling appointment:', error);
+    throw error;
+  }
 }
 
 /**
@@ -194,17 +230,26 @@ export async function getUpcomingAppointments(): Promise<Appointment[]> {
 
     const now = new Date().toISOString();
 
+    // Получаем все scheduled и in_progress консультации
     const { data, error } = await supabase
       .from('appointments')
       .select('*')
       .eq('user_id', user.id)
-      .eq('status', 'scheduled')
-      .gte('scheduled_at', now)
+      .in('status', ['scheduled', 'in_progress'])
       .order('scheduled_at', { ascending: true });
 
     if (error) throw error;
 
-    return data || [];
+    // Фильтруем: scheduled должны быть в будущем, in_progress показываем всегда
+    const filtered = (data || []).filter(apt => {
+      if (apt.status === 'in_progress') return true;
+      if (apt.status === 'scheduled') {
+        return new Date(apt.scheduled_at) >= new Date(now);
+      }
+      return false;
+    });
+
+    return filtered;
   } catch (error) {
     logger.error('Error getting upcoming appointments:', error);
     throw error;
@@ -351,7 +396,7 @@ export async function createFreeConsultationAfterFirstCheckup(): Promise<Appoint
 
 /**
  * Получить активную бесплатную консультацию пользователя
- * Возвращает консультацию со статусом 'scheduled' и типом с price = 0
+ * Возвращает консультацию со статусом 'scheduled' или 'in_progress' и типом с price = 0
  */
 export async function getActiveFreeConsultation(): Promise<(Appointment & { appointment_type: AppointmentType }) | null> {
   try {
@@ -368,7 +413,7 @@ export async function getActiveFreeConsultation(): Promise<(Appointment & { appo
         appointment_type:appointment_types(*)
       `)
       .eq('user_id', user.id)
-      .eq('status', 'scheduled')
+      .in('status', ['scheduled', 'in_progress'])
       .order('scheduled_at', { ascending: true });
 
     if (error) throw error;
@@ -420,6 +465,34 @@ export async function hasFreeConsultationAvailable(): Promise<boolean> {
   } catch (error) {
     logger.error('Error checking free consultation availability:', error);
     return false;
+  }
+}
+
+/**
+ * Отметить, что бесплатная консультация была использована
+ * Устанавливает флаг free_consultation_created = true в таблице users
+ */
+export async function markFreeConsultationAsUsed(): Promise<void> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { error } = await supabase
+      .from('users')
+      .update({ free_consultation_created: true })
+      .eq('id', user.id);
+
+    if (error) {
+      logger.error('Error marking free consultation as used:', error);
+      throw error;
+    }
+
+    logger.info('Free consultation marked as used');
+  } catch (error) {
+    logger.error('Error marking free consultation as used:', error);
+    throw error;
   }
 }
 

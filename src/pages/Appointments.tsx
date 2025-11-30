@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAppointmentTypes, useActiveFreeConsultation, useAppointmentsWithType, useCancelAppointment } from "@/hooks/useAppointments";
 import { useProfiles } from "@/hooks/useProfiles";
+import { useAssessmentsForProfiles } from "@/hooks/useAssessments";
+import { hasFreeConsultationAvailable } from "@/lib/appointmentStorage";
 import { Video, Check, Gift, Lock, Calendar, Clock, User, X } from "lucide-react";
 import { formatAmount } from "@/lib/payment";
 import { Loader2 } from "lucide-react";
@@ -34,6 +36,36 @@ export default function Appointments() {
   const cancelAppointment = useCancelAppointment();
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState<string | null>(null);
+  const [freeConsultationAvailable, setFreeConsultationAvailable] = useState<boolean>(false);
+
+  // Получаем профили детей
+  const childProfiles = useMemo(() => {
+    if (!profiles) return [];
+    return profiles.filter(p => p.type === 'child');
+  }, [profiles]);
+
+  // Получаем завершенные чекапы для всех детей
+  const childProfileIds = useMemo(() => childProfiles.map(p => p.id), [childProfiles]);
+  const { data: completedCheckups } = useAssessmentsForProfiles(childProfileIds, 'checkup');
+
+  // Проверяем, есть ли хотя бы один завершенный чекап
+  const hasCompletedCheckup = useMemo(() => {
+    if (!completedCheckups) return false;
+    return Object.values(completedCheckups).some(
+      assessment => assessment?.status === 'completed'
+    );
+  }, [completedCheckups]);
+
+  // Проверяем доступность бесплатной консультации (флаг не установлен)
+  // Обновляем при изменении activeFreeConsultation или appointmentsWithType,
+  // чтобы синхронизировать состояние после отмены консультации
+  useEffect(() => {
+    async function checkAvailability() {
+      const available = await hasFreeConsultationAvailable();
+      setFreeConsultationAvailable(available);
+    }
+    checkAvailability();
+  }, [activeFreeConsultation, appointmentsWithType]);
 
   // Разделяем консультации на бесплатные и платные
   const { freeConsultations, paidConsultations } = useMemo(() => {
@@ -45,8 +77,11 @@ export default function Appointments() {
     return { freeConsultations: free, paidConsultations: paid };
   }, [appointmentTypes]);
 
-  // Фильтруем бесплатные консультации: скрываем если есть активная (scheduled)
-  // Показываем если активной нет или она отменена (cancelled)
+  // Фильтруем бесплатные консультации:
+  // Показываем только если:
+  // 1. Есть хотя бы один завершенный чекап
+  // 2. Флаг free_consultation_created не установлен (консультация еще не использована)
+  // 3. Нет активной бесплатной консультации (scheduled)
   const visibleFreeConsultations = useMemo(() => {
     if (!freeConsultations.length) return [];
     
@@ -55,8 +90,18 @@ export default function Appointments() {
       return [];
     }
     
+    // Если нет завершенного чекапа - не показываем
+    if (!hasCompletedCheckup) {
+      return [];
+    }
+    
+    // Если флаг установлен (консультация уже использована) - не показываем
+    if (!freeConsultationAvailable) {
+      return [];
+    }
+    
     return freeConsultations;
-  }, [freeConsultations, activeFreeConsultation]);
+  }, [freeConsultations, activeFreeConsultation, hasCompletedCheckup, freeConsultationAvailable]);
 
   // Платные консультации доступны только если есть активная бесплатная
   const paidConsultationsEnabled = !!activeFreeConsultation;
