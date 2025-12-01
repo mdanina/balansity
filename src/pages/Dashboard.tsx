@@ -120,6 +120,8 @@ export default function Dashboard() {
   const loading = isLoadingProfiles || isLoadingAssessments || isLoadingActiveAssessments;
 
   // Обновляем статусы консультаций при загрузке дашборда
+  // ПРИМЕЧАНИЕ: Cron job автоматически обновляет статусы каждые 5 минут,
+  // но мы также обновляем при загрузке для актуальности данных
   useEffect(() => {
     async function updateStatuses() {
       try {
@@ -127,6 +129,7 @@ export default function Dashboard() {
       } catch (error) {
         console.error('Error updating appointment statuses:', error);
         // Не показываем ошибку пользователю, т.к. это фоновое обновление
+        // Cron job все равно обновит статусы автоматически
       }
     }
     updateStatuses();

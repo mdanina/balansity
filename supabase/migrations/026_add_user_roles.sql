@@ -48,3 +48,4 @@ COMMENT ON COLUMN public.users.role IS 'Роль пользователя: user 
 COMMENT ON FUNCTION public.is_admin() IS 'Проверяет, является ли текущий пользователь администратором или супер-администратором';
 COMMENT ON FUNCTION public.is_staff() IS 'Проверяет, является ли текущий пользователь сотрудником (поддержка, админ или супер-админ)';
 
+

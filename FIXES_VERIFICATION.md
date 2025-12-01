@@ -330,3 +330,4 @@ async function getUsersMetrics(startDate: string, endDate: string) {
 **Дата проверки:** Декабрь 2024  
 **Статус:** ✅ Все исправления подтверждены
 
+

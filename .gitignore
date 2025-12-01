@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.local
+
+# Queue Worker
+queue-worker/node_modules/
+queue-worker/dist/
+queue-worker/logs/
+queue-worker/.env

@@ -13,7 +13,7 @@
 -- ============================================
 create table if not exists public.appointment_types (
   id uuid default gen_random_uuid() primary key,
-  name text not null, -- "Первичная встреча", "Детский психолог", "Нейропсихолог", "Психиатр", "Невролог", "Семейный психолог"
+  name text not null, -- "Первичная встреча", "Детский психолог", "Нейропсихолог", "Психиатр", "Невролог", "Семейный психолог", "Логопед"
   duration_minutes int not null, -- 30, 45, 60 минут
   price decimal(10, 2) not null, -- Цена в рублях
   description text, -- Описание типа консультации

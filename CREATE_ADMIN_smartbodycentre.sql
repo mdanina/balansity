@@ -43,3 +43,4 @@ WHERE email = 'smartbodycentre@gmail.com';
 -- 4. Нажмите "Create User"
 -- 5. Вернитесь сюда и выполните ШАГ 2
 
+

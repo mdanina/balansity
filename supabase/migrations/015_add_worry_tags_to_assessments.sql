@@ -16,3 +16,4 @@ comment on column public.assessments.worry_tags is
 create index if not exists idx_assessments_worry_tags on public.assessments using gin (worry_tags);
 
 
+
