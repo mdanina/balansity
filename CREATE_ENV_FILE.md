@@ -9,6 +9,11 @@
 ```env
 VITE_SUPABASE_URL=https://oyuyienekon.beget.app
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY0Mjg4MDAwLCJleHAiOjE5MjIwNTQ0MDB9.tQMuow03daqPpOTnwdMwOma5CNvzVpH1s_pTBxqPdZk
+
+# API URL для платежей (queue-worker)
+# Для разработки: http://localhost:3001
+# Для продакшена: https://ваш-домен.com/api (через nginx)
+VITE_API_URL=http://localhost:3001
 ```
 
 ## Шаг 3: Сохраните файл

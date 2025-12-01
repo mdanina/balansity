@@ -158,47 +158,48 @@ export async function getPayments(): Promise<Payment[]> {
 // ============================================
 
 /**
- * Создать платеж в ЮKassa
- * ВАЖНО: Для работы требуется backend endpoint или Supabase Edge Function
+ * Создать платеж в ЮKassa через API сервер
  */
 async function createYooKassaPayment(
   payment: Payment,
   params: CreatePaymentParams
 ): Promise<string | undefined> {
   try {
-    // Проверяем наличие переменных окружения
-    const yookassaShopId = import.meta.env.VITE_YOOKASSA_SHOP_ID;
-    const yookassaSecretKey = import.meta.env.VITE_YOOKASSA_SECRET_KEY;
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const { data: { session } } = await supabase.auth.getSession();
 
-    if (!yookassaShopId || !yookassaSecretKey) {
-      logger.warn('YooKassa credentials not configured. Payment URL will not be generated.');
-      return undefined;
+    if (!session) {
+      logger.error('User not authenticated');
+      throw new Error('User not authenticated');
     }
 
-    // ВАЖНО: В реальном приложении создание платежа должно происходить на backend
-    // для безопасности (секретный ключ не должен быть в frontend коде)
-    // Здесь показана базовая структура, но в продакшене нужен backend endpoint
+    logger.info(`Creating YooKassa payment via API: ${payment.id}`);
 
-    // Пример структуры запроса к ЮKassa API (должен быть на backend)
-    // const response = await fetch('/api/payments/yookassa/create', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({
-    //     amount: payment.amount,
-    //     currency: payment.currency,
-    //     payment_id: payment.id,
-    //     return_url: `${window.location.origin}/payment/success?payment_id=${payment.id}`,
-    //   }),
-    // });
-    // const { confirmation_url } = await response.json();
-    // return confirmation_url;
+    const response = await fetch(`${apiUrl}/api/payments/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        amount: params.amount,
+        currency: params.currency || 'RUB',
+        metadata: params.metadata,
+      }),
+    });
 
-    // Для MVP: возвращаем заглушку
-    logger.warn('YooKassa integration requires backend endpoint. Using placeholder.');
-    return `${window.location.origin}/payment/process?payment_id=${payment.id}`;
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      logger.error('Error creating payment via API:', error);
+      throw new Error(error.error || 'Failed to create payment');
+    }
+
+    const data = await response.json();
+    logger.info(`Payment created successfully, confirmation_token received`);
+    return data.confirmation_token;
   } catch (error) {
     logger.error('Error creating YooKassa payment:', error);
-    return undefined;
+    throw error;
   }
 }
 
@@ -280,6 +281,46 @@ export async function checkPaymentStatus(paymentId: string): Promise<PaymentStat
     return payment.status;
   } catch (error) {
     logger.error('Error checking payment status:', error);
+    throw error;
+  }
+}
+
+/**
+ * Проверить статус платежа через API сервер
+ */
+export async function verifyPaymentWithAPI(paymentId: string): Promise<PaymentStatus> {
+  try {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      logger.error('User not authenticated');
+      throw new Error('User not authenticated');
+    }
+
+    logger.info(`Verifying payment via API: ${paymentId}`);
+
+    const response = await fetch(`${apiUrl}/api/payments/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ payment_id: paymentId }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      logger.error('Error verifying payment via API:', error);
+      throw new Error(error.error || 'Failed to verify payment');
+    }
+
+    const data = await response.json();
+    await updatePaymentStatus(paymentId, data.status as PaymentStatus);
+    logger.info(`Payment verified, status: ${data.status}`);
+    return data.status as PaymentStatus;
+  } catch (error) {
+    logger.error('Error verifying payment:', error);
     throw error;
   }
 }

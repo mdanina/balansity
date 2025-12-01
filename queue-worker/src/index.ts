@@ -3,6 +3,7 @@ import { processEmailQueue } from './processors/email.js';
 import { processReportQueue } from './processors/reports.js';
 import { processPaymentQueue } from './processors/payments.js';
 import { logger } from './utils/logger.js';
+import { createApiServer } from './api/index.js';
 
 const WORKER_INTERVAL_MS = parseInt(process.env.WORKER_INTERVAL_MS || '5000');
 const MAX_TASKS_PER_CYCLE = parseInt(process.env.MAX_TASKS_PER_CYCLE || '10');
@@ -27,6 +28,10 @@ async function processQueues() {
   }
 }
 
+// Запускаем API сервер
+logger.info('Starting API server...');
+const apiServer = createApiServer();
+
 // Запускаем обработку очередей
 logger.info('Queue Worker started');
 logger.info(`Interval: ${WORKER_INTERVAL_MS}ms`);
@@ -36,18 +41,20 @@ logger.info(`Max tasks per cycle: ${MAX_TASKS_PER_CYCLE}`);
 processQueues();
 
 // Затем каждые N миллисекунд
-setInterval(processQueues, WORKER_INTERVAL_MS);
+const queueInterval = setInterval(processQueues, WORKER_INTERVAL_MS);
 
 // Обработка завершения процесса
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully...');
-  process.exit(0);
-});
+const shutdown = () => {
+  logger.info('Shutting down gracefully...');
+  clearInterval(queueInterval);
+  apiServer.close(() => {
+    logger.info('All services stopped');
+    process.exit(0);
+  });
+};
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully...');
-  process.exit(0);
-});
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 
 

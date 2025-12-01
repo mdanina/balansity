@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -7,10 +7,26 @@ import { Separator } from "@/components/ui/separator";
 import { useAppointment, useAppointmentType } from "@/hooks/useAppointments";
 import { usePackage } from "@/hooks/usePackages";
 import { useCreatePayment, usePayment } from "@/hooks/usePayments";
-import { formatAmount } from "@/lib/payment";
+import { formatAmount, verifyPaymentWithAPI } from "@/lib/payment";
 import { formatAppointmentTime } from "@/lib/moscowTime";
 import { Loader2, CreditCard, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
+
+// Типы для виджета ЮKassa
+declare global {
+  interface Window {
+    YooMoneyCheckoutWidget?: {
+      new (config: {
+        confirmation_token: string;
+        error_callback: (error: any) => void;
+        success_callback: () => void;
+      }): {
+        render: (elementId: string) => void;
+        destroy: () => void;
+      };
+    };
+  }
+}
 
 export default function Payment() {
   const navigate = useNavigate();
@@ -28,12 +44,99 @@ export default function Payment() {
   const createPayment = useCreatePayment();
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [widgetLoaded, setWidgetLoaded] = useState(false);
+  const [confirmationToken, setConfirmationToken] = useState<string | null>(null);
+  const widgetRef = useRef<any>(null);
 
   // Определяем, что оплачиваем
   const paymentItem = type === "appointment" ? appointment : pkg;
   const amount = type === "appointment"
     ? appointmentType?.price || 0
     : pkg?.price || 0;
+
+  // Загрузка скрипта виджета ЮKassa
+  useEffect(() => {
+    if (window.YooMoneyCheckoutWidget) {
+      setWidgetLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://yookassa.ru/checkout-widget/v1/checkout-widget.js';
+    script.async = true;
+    script.onload = () => {
+      setWidgetLoaded(true);
+    };
+    script.onerror = () => {
+      toast.error('Не удалось загрузить виджет оплаты');
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      if (widgetRef.current) {
+        try {
+          widgetRef.current.destroy();
+        } catch (e) {
+          // Игнорируем ошибки при уничтожении виджета
+        }
+      }
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
+  // Инициализация виджета при получении confirmation_token
+  useEffect(() => {
+    if (!widgetLoaded || !confirmationToken || !window.YooMoneyCheckoutWidget) {
+      return;
+    }
+
+    // Уничтожаем предыдущий виджет, если есть
+    if (widgetRef.current) {
+      try {
+        widgetRef.current.destroy();
+      } catch (e) {
+        // Игнорируем ошибки
+      }
+    }
+
+    try {
+      const checkout = new window.YooMoneyCheckoutWidget!({
+        confirmation_token: confirmationToken,
+        error_callback: function (error: any) {
+          console.error('YooKassa widget error:', error);
+          toast.error('Ошибка при оплате: ' + (error.error || 'Неизвестная ошибка'));
+        },
+        success_callback: async function () {
+          toast.success('Оплата успешно завершена!');
+          
+          // Получаем payment_id из URL или из созданного платежа
+          const currentPaymentId = paymentId || (createPayment.data?.payment?.id);
+          if (currentPaymentId) {
+            try {
+              await verifyPaymentWithAPI(currentPaymentId);
+              // Перенаправляем на страницу подтверждения
+              if (type === "appointment" && appointmentId) {
+                navigate(`/appointments/confirmation?appointment_id=${appointmentId}&payment_id=${currentPaymentId}`);
+              } else if (type === "package" && packageId) {
+                navigate(`/appointments/confirmation?package_id=${packageId}&payment_id=${currentPaymentId}`);
+              }
+            } catch (error) {
+              console.error('Error verifying payment:', error);
+              toast.error('Ошибка при проверке платежа');
+            }
+          }
+        },
+      });
+
+      widgetRef.current = checkout;
+      checkout.render('payment-form');
+    } catch (error) {
+      console.error('Error initializing YooKassa widget:', error);
+      toast.error('Ошибка при инициализации виджета оплаты');
+    }
+  }, [widgetLoaded, confirmationToken, paymentId, type, appointmentId, packageId, navigate, createPayment.data]);
 
   useEffect(() => {
     // Если есть существующий платеж и он завершен, перенаправляем на подтверждение
@@ -73,34 +176,26 @@ export default function Payment() {
       const result = await createPayment.mutateAsync({
         amount,
         currency: "RUB",
-        paymentMethod: "yookassa", // По умолчанию ЮKassa, можно сделать выбор
+        paymentMethod: "yookassa",
         metadata: {
           type,
           appointment_id: appointmentId,
           package_id: packageId,
+          appointment_type_id: appointmentType?.id,
         },
       });
 
-      // Если есть URL для редиректа на оплату, переходим туда
+      // Если есть confirmation_token, показываем виджет
       if (result.paymentUrl) {
-        window.location.href = result.paymentUrl;
+        // paymentUrl теперь содержит confirmation_token
+        setConfirmationToken(result.paymentUrl);
+        toast.success("Виджет оплаты загружается...");
       } else {
-        // Для MVP: симулируем успешную оплату
-        // В реальном приложении здесь будет редирект на платежную систему
-        toast.success("Платеж обрабатывается...");
-        
-        // Симуляция успешной оплаты (для MVP)
-        setTimeout(() => {
-          if (type === "appointment" && appointmentId) {
-            navigate(`/appointments/confirmation?appointment_id=${appointmentId}&payment_id=${result.payment.id}`);
-          } else if (type === "package" && packageId) {
-            navigate(`/appointments/confirmation?package_id=${packageId}&payment_id=${result.payment.id}`);
-          }
-        }, 2000);
+        toast.error("Не удалось получить данные для оплаты");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Payment error:", error);
-      toast.error("Ошибка при создании платежа");
+      toast.error(error.message || "Ошибка при создании платежа");
     } finally {
       setIsProcessing(false);
     }
@@ -192,12 +287,23 @@ export default function Payment() {
             <CreditCard className="h-5 w-5" />
             Способ оплаты
           </h2>
-          <p className="text-muted-foreground">
-            Оплата будет произведена через ЮKassa
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            После нажатия кнопки "Оплатить" вы будете перенаправлены на страницу оплаты
-          </p>
+          {confirmationToken ? (
+            <div>
+              <p className="text-muted-foreground mb-4">
+                Оплата будет произведена через ЮKassa
+              </p>
+              <div id="payment-form" className="min-h-[400px]"></div>
+            </div>
+          ) : (
+            <div>
+              <p className="text-muted-foreground">
+                Оплата будет произведена через ЮKassa
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Нажмите кнопку "Оплатить" для начала оплаты
+              </p>
+            </div>
+          )}
         </Card>
 
         <div className="flex gap-4">
@@ -210,7 +316,7 @@ export default function Payment() {
           </Button>
           <Button
             onClick={handlePayment}
-            disabled={isProcessing || createPayment.isPending}
+            disabled={isProcessing || createPayment.isPending || !!confirmationToken}
             className="flex-1"
             size="lg"
           >
@@ -223,6 +329,11 @@ export default function Payment() {
               <>
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 Подтвердить (бесплатно)
+              </>
+            ) : confirmationToken ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Виджет оплаты загружен
               </>
             ) : (
               <>
