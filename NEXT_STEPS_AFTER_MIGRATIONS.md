@@ -255,3 +255,4 @@ ORDER BY start_time DESC LIMIT 1;
 4. Проверьте права доступа к функциям
 
 
+

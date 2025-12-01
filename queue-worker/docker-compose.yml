@@ -18,3 +18,4 @@ networks:
     name: supabase_network  # Или ваша сеть
 
 
+

@@ -22,3 +22,4 @@ RUN mkdir -p logs
 CMD ["node", "dist/index.js"]
 
 
+

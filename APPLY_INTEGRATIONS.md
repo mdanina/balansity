@@ -84,3 +84,4 @@ WHERE trigger_schema = 'public'
 См. `INTEGRATIONS_SETUP.md` для полной документации.
 
 
+
