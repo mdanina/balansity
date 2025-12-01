@@ -212,16 +212,38 @@ router.post('/verify', async (req: Request, res: Response) => {
       throw updateError;
     }
 
-    // Если платеж завершен, обновляем связанные записи
+    // Если платеж завершен, обновляем связанные записи или создаем новые
     if (newStatus === 'completed' && payment.metadata) {
       const metadata = payment.metadata as any;
 
+      // Если есть appointment_id - обновляем существующую запись
       if (metadata.appointment_id) {
         await supabase
           .from('appointments')
           .update({ payment_id: payment.id })
           .eq('id', metadata.appointment_id);
         logger.info(`Updated appointment ${metadata.appointment_id} with payment ${payment.id}`);
+      } 
+      // Если нет appointment_id, но есть данные для создания - создаем новую запись
+      else if (metadata.appointment_type_id && metadata.scheduled_at) {
+        const { data: newAppointment, error: createError } = await supabase
+          .from('appointments')
+          .insert({
+            user_id: payment.user_id,
+            appointment_type_id: metadata.appointment_type_id,
+            scheduled_at: metadata.scheduled_at,
+            profile_id: metadata.profile_id || null,
+            status: 'scheduled',
+            payment_id: payment.id,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          logger.error(`Error creating appointment from payment ${payment.id}:`, createError);
+        } else {
+          logger.info(`Appointment ${newAppointment.id} created from payment ${payment.id}`);
+        }
       }
 
       if (metadata.package_id) {

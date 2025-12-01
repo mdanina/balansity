@@ -120,7 +120,8 @@ export async function createAppointment(
   appointmentTypeId: string,
   scheduledAt: string,
   profileId?: string | null,
-  notes?: string
+  notes?: string,
+  paymentId?: string | null
 ): Promise<Appointment> {
   try {
     const user = await getCurrentUser();
@@ -135,6 +136,7 @@ export async function createAppointment(
       profile_id: profileId || null,
       status: 'scheduled',
       notes: notes || null,
+      payment_id: paymentId || null,
     };
 
     const { data, error } = await supabase

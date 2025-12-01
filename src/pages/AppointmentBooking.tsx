@@ -167,24 +167,41 @@ export default function AppointmentBooking() {
     const scheduledAt = createMoscowDateTime(selectedDate, hours, minutes);
 
     try {
-      const appointment = await createAppointment.mutateAsync({
-        appointmentTypeId,
-        scheduledAt,
-        profileId: selectedProfileId === "__parent__" ? null : selectedProfileId || null,
-      });
-
-      // Если консультация бесплатная, устанавливаем флаг и переходим к подтверждению
+      // Если консультация бесплатная, создаем запись сразу
       if (appointmentType && appointmentType.price === 0) {
+        const appointment = await createAppointment.mutateAsync({
+          appointmentTypeId,
+          scheduledAt,
+          profileId: selectedProfileId === "__parent__" ? null : selectedProfileId || null,
+        });
+
+        if (!appointment || !appointment.id) {
+          throw new Error("Не удалось создать запись на консультацию");
+        }
+
         try {
           await markFreeConsultationAsUsed();
         } catch (error) {
           console.error("Error marking free consultation as used:", error);
           // Не прерываем процесс, если не удалось установить флаг
         }
-        navigate(`/appointments/confirmation?appointment_id=${appointment.id}`);
+        
+        // Небольшая задержка для обновления кеша React Query перед переходом
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Переходим на страницу подтверждения
+        navigate(`/appointments/confirmation?appointment_id=${appointment.id}`, { replace: true });
       } else {
-        // Переходим на страницу оплаты
-        navigate(`/payment?appointment_id=${appointment.id}&type=appointment`);
+        // Для платных консультаций - НЕ создаем запись, передаем данные через URL
+        const params = new URLSearchParams({
+          appointment_type_id: appointmentTypeId,
+          scheduled_at: scheduledAt,
+          type: 'appointment',
+        });
+        if (selectedProfileId && selectedProfileId !== "__parent__") {
+          params.set('profile_id', selectedProfileId);
+        }
+        navigate(`/payment?${params.toString()}`);
       }
     } catch (error) {
       console.error("Error creating appointment:", error);

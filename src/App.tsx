@@ -47,7 +47,27 @@ const Appointments = lazy(() => import("./pages/Appointments"));
 const AppointmentBooking = lazy(() => import("./pages/AppointmentBooking"));
 const Packages = lazy(() => import("./pages/Packages"));
 const Payment = lazy(() => import("./pages/Payment"));
-const AppointmentConfirmation = lazy(() => import("./pages/AppointmentConfirmation"));
+const AppointmentConfirmation = lazy(() => 
+  import("./pages/AppointmentConfirmation").catch((error) => {
+    console.error("Error loading AppointmentConfirmation:", error);
+    // Возвращаем fallback компонент с правильной структурой
+    return {
+      default: () => (
+        <div className="flex min-h-screen items-center justify-center p-4">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">Ошибка загрузки страницы</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-primary text-primary-foreground rounded"
+            >
+              Обновить страницу
+            </button>
+          </div>
+        </div>
+      )
+    };
+  })
+);
 
 // Админ-страницы
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));

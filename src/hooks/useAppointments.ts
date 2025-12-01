@@ -159,12 +159,14 @@ export function useCreateAppointment() {
       scheduledAt,
       profileId,
       notes,
+      paymentId,
     }: {
       appointmentTypeId: string;
       scheduledAt: string;
       profileId?: string | null;
       notes?: string;
-    }) => createAppointment(appointmentTypeId, scheduledAt, profileId, notes),
+      paymentId?: string | null;
+    }) => createAppointment(appointmentTypeId, scheduledAt, profileId, notes, paymentId),
     onSuccess: () => {
       // Инвалидируем кеш консультаций групповой инвалидацией
       queryClient.invalidateQueries({ 

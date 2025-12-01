@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useAppointment, useAppointmentType } from "@/hooks/useAppointments";
+import { useAppointment, useAppointmentType, useCreateAppointment } from "@/hooks/useAppointments";
 import { usePackage } from "@/hooks/usePackages";
 import { useCreatePayment, usePayment } from "@/hooks/usePayments";
 import { formatAmount, verifyPaymentWithAPI } from "@/lib/payment";
@@ -35,13 +35,20 @@ export default function Payment() {
   const packageId = searchParams.get("package_id");
   const type = searchParams.get("type"); // "appointment" или "package"
   const paymentId = searchParams.get("payment_id");
+  
+  // Новые параметры для создания записи после оплаты
+  const appointmentTypeIdFromUrl = searchParams.get("appointment_type_id");
+  const scheduledAtFromUrl = searchParams.get("scheduled_at");
+  const profileIdFromUrl = searchParams.get("profile_id");
 
   const { data: appointment } = useAppointment(appointmentId);
-  const appointmentTypeId = appointment?.appointment_type_id;
+  // Используем appointment_type_id из существующей записи или из URL
+  const appointmentTypeId = appointment?.appointment_type_id || appointmentTypeIdFromUrl;
   const { data: appointmentType } = useAppointmentType(appointmentTypeId || null);
   const { data: pkg } = usePackage(packageId);
   const { data: existingPayment } = usePayment(paymentId);
   const createPayment = useCreatePayment();
+  const createAppointment = useCreateAppointment();
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [widgetLoaded, setWidgetLoaded] = useState(false);
@@ -49,7 +56,10 @@ export default function Payment() {
   const widgetRef = useRef<any>(null);
 
   // Определяем, что оплачиваем
-  const paymentItem = type === "appointment" ? appointment : pkg;
+  // Для консультаций: используем существующую запись или данные из URL
+  const paymentItem = type === "appointment" 
+    ? (appointment || (appointmentType && scheduledAtFromUrl ? { appointment_type_id: appointmentTypeId, scheduled_at: scheduledAtFromUrl } : null))
+    : pkg;
   const amount = type === "appointment"
     ? appointmentType?.price || 0
     : pkg?.price || 0;
@@ -116,9 +126,32 @@ export default function Payment() {
           if (currentPaymentId) {
             try {
               await verifyPaymentWithAPI(currentPaymentId);
-              // Перенаправляем на страницу подтверждения
-              if (type === "appointment" && appointmentId) {
-                navigate(`/appointments/confirmation?appointment_id=${appointmentId}&payment_id=${currentPaymentId}`);
+              
+              // Если это консультация и нет appointment_id, создаем запись после оплаты
+              if (type === "appointment") {
+                if (appointmentId) {
+                  // Существующая запись - просто переходим к подтверждению
+                  navigate(`/appointments/confirmation?appointment_id=${appointmentId}&payment_id=${currentPaymentId}`);
+                } else if (appointmentTypeId && scheduledAtFromUrl) {
+                  // Новая запись - создаем после оплаты
+                  try {
+                    const newAppointment = await createAppointment.mutateAsync({
+                      appointmentTypeId,
+                      scheduledAt: scheduledAtFromUrl,
+                      profileId: profileIdFromUrl || null,
+                    });
+                    
+                    // Связываем с платежом (обновление произойдет через webhook, но делаем и здесь для надежности)
+                    navigate(`/appointments/confirmation?appointment_id=${newAppointment.id}&payment_id=${currentPaymentId}`);
+                  } catch (error) {
+                    console.error('Error creating appointment after payment:', error);
+                    toast.error('Оплата прошла, но не удалось создать запись. Обратитесь в поддержку.');
+                    // Все равно переходим к подтверждению, т.к. оплата прошла
+                    navigate(`/appointments/confirmation?payment_id=${currentPaymentId}`);
+                  }
+                } else {
+                  navigate(`/appointments/confirmation?payment_id=${currentPaymentId}`);
+                }
               } else if (type === "package" && packageId) {
                 navigate(`/appointments/confirmation?package_id=${packageId}&payment_id=${currentPaymentId}`);
               }
@@ -136,7 +169,7 @@ export default function Payment() {
       console.error('Error initializing YooKassa widget:', error);
       toast.error('Ошибка при инициализации виджета оплаты');
     }
-  }, [widgetLoaded, confirmationToken, paymentId, type, appointmentId, packageId, navigate, createPayment.data]);
+  }, [widgetLoaded, confirmationToken, paymentId, type, appointmentId, packageId, navigate, createPayment.data, appointmentTypeId, scheduledAtFromUrl, profileIdFromUrl, createAppointment]);
 
   useEffect(() => {
     // Если есть существующий платеж и он завершен, перенаправляем на подтверждение
@@ -173,16 +206,31 @@ export default function Payment() {
 
     try {
       // Создаем платеж
+      // В metadata передаем либо appointment_id (для обратной совместимости),
+      // либо данные для создания новой записи после оплаты
+      const metadata: any = {
+        type,
+        package_id: packageId,
+      };
+      
+      if (appointmentId) {
+        // Обратная совместимость: если есть appointment_id
+        metadata.appointment_id = appointmentId;
+        metadata.appointment_type_id = appointmentType?.id;
+      } else if (appointmentTypeId && scheduledAtFromUrl) {
+        // Новый формат: передаем данные для создания записи после оплаты
+        metadata.appointment_type_id = appointmentTypeId;
+        metadata.scheduled_at = scheduledAtFromUrl;
+        if (profileIdFromUrl) {
+          metadata.profile_id = profileIdFromUrl;
+        }
+      }
+      
       const result = await createPayment.mutateAsync({
         amount,
         currency: "RUB",
         paymentMethod: "yookassa",
-        metadata: {
-          type,
-          appointment_id: appointmentId,
-          package_id: packageId,
-          appointment_type_id: appointmentType?.id,
-        },
+        metadata,
       });
 
       // Если есть confirmation_token, показываем виджет
@@ -201,7 +249,11 @@ export default function Payment() {
     }
   };
 
-  if (!paymentItem) {
+  // Проверяем, есть ли данные для отображения
+  const hasAppointmentData = type === "appointment" && (appointment || (appointmentType && scheduledAtFromUrl));
+  const hasPackageData = type === "package" && pkg;
+  
+  if (!hasAppointmentData && !hasPackageData) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -234,7 +286,7 @@ export default function Payment() {
         <Card className="p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Детали заказа</h2>
           
-          {type === "appointment" && appointment && appointmentType && (
+          {type === "appointment" && appointmentType && (
             <div className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Тип консультации:</span>
@@ -244,11 +296,11 @@ export default function Payment() {
                 <span className="text-muted-foreground">Длительность:</span>
                 <span className="font-medium">{appointmentType.duration_minutes} минут</span>
               </div>
-              {appointment.scheduled_at && (
+              {(appointment?.scheduled_at || scheduledAtFromUrl) && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Дата и время:</span>
                   <span className="font-medium">
-                    {formatAppointmentTime(appointment.scheduled_at)}
+                    {formatAppointmentTime(appointment?.scheduled_at || scheduledAtFromUrl!)}
                   </span>
                 </div>
               )}

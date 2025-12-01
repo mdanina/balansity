@@ -40,10 +40,23 @@ export default function AppointmentConfirmation() {
 
   useEffect(() => {
     // Если нет ни консультации, ни покупки пакета, перенаправляем
+    // Но только если мы точно знаем, что данных нет (не в процессе загрузки)
+    // И если есть appointment_id или package_id в URL - даем больше времени на загрузку
     if (!isLoading && !appointment && !packagePurchase) {
-      navigate("/dashboard");
+      // Если есть ID в URL, но данные еще не загрузились - даем еще немного времени
+      if (appointmentId || packageId) {
+        const timeout = setTimeout(() => {
+          if (!appointment && !packagePurchase) {
+            navigate("/dashboard");
+          }
+        }, 2000); // Даем 2 секунды на загрузку
+        return () => clearTimeout(timeout);
+      } else {
+        // Если нет ID в URL - сразу перенаправляем
+        navigate("/dashboard");
+      }
     }
-  }, [appointment, packagePurchase, isLoading, navigate]);
+  }, [appointment, packagePurchase, isLoading, navigate, appointmentId, packageId]);
 
   if (isLoading) {
     return (
