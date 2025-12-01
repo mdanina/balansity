@@ -41,6 +41,25 @@ export function getStatusColor(status: string): string {
 }
 
 /**
+ * Получить линейный символ статуса для визуального отображения
+ */
+export function getStatusEmoji(status: string): string {
+  switch (status) {
+    case 'concerning':
+    case 'high_impact':
+      return '⚠'; // предупреждение
+    case 'borderline':
+    case 'medium_impact':
+      return '○'; // нейтральный круг
+    case 'typical':
+    case 'low_impact':
+      return '✓'; // галочка
+    default:
+      return '○';
+  }
+}
+
+/**
  * Рассчитать процент прогресс-бара (0-100%)
  */
 export function getProgressPercentage(score: number, maxScore: number): number {

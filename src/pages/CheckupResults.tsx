@@ -102,18 +102,9 @@ export default function CheckupResults() {
                     <h4 className="mb-1 font-semibold text-foreground">
                       Запланируйте консультацию
                     </h4>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <p className="text-sm text-muted-foreground">
                       Обсудите результаты с личным координатором бесплатно
                     </p>
-                    {showFreeConsultationButton && (
-                      <Button
-                        size="lg"
-                        onClick={() => navigate("/appointments")}
-                        className="w-full"
-                      >
-                        Получить первую бесплатную консультацию с вашим персональным координатором
-                      </Button>
-                    )}
                   </div>
                 </CardContent>
               </Card>

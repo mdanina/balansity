@@ -1,6 +1,6 @@
 import type { Database } from '@/lib/supabase';
 import type { ChildCheckupData } from '@/hooks/useResultsData';
-import { getStatusText } from '@/utils/resultsCalculations';
+import { getStatusText, getStatusEmoji } from '@/utils/resultsCalculations';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type Assessment = Database['public']['Tables']['assessments']['Row'];
@@ -48,34 +48,34 @@ export function SummaryCards({ childrenCheckups, parentAssessment, familyAssessm
               <div className="space-y-2">
                 {childResults.emotional && (
                   <div>
-                    <span className="font-medium text-white">
-                      {getStatusText(childResults.emotional.status)}
-                    </span>
-                    <p className="text-sm text-white/90">Эмоции</p>
+                    <p className="font-medium text-white">Эмоции</p>
+                    <p className="text-sm text-white/90">
+                      {getStatusEmoji(childResults.emotional.status)} {getStatusText(childResults.emotional.status)}
+                    </p>
                   </div>
                 )}
                 {childResults.conduct && (
                   <div>
-                    <span className="font-medium text-white">
-                      {getStatusText(childResults.conduct.status)}
-                    </span>
-                    <p className="text-sm text-white/90">Поведение</p>
+                    <p className="font-medium text-white">Поведение</p>
+                    <p className="text-sm text-white/90">
+                      {getStatusEmoji(childResults.conduct.status)} {getStatusText(childResults.conduct.status)}
+                    </p>
                   </div>
                 )}
                 {childResults.peer_problems && (
                   <div>
-                    <span className="font-medium text-white">
-                      {getStatusText(childResults.peer_problems.status)}
-                    </span>
-                    <p className="text-sm text-white/90">Социальное</p>
+                    <p className="font-medium text-white">Социальное</p>
+                    <p className="text-sm text-white/90">
+                      {getStatusEmoji(childResults.peer_problems.status)} {getStatusText(childResults.peer_problems.status)}
+                    </p>
                   </div>
                 )}
                 {childResults.hyperactivity && (
                   <div>
-                    <span className="font-medium text-white">
-                      {getStatusText(childResults.hyperactivity.status)}
-                    </span>
-                    <p className="text-sm text-white/90">Активность</p>
+                    <p className="font-medium text-white">Активность</p>
+                    <p className="text-sm text-white/90">
+                      {getStatusEmoji(childResults.hyperactivity.status)} {getStatusText(childResults.hyperactivity.status)}
+                    </p>
                   </div>
                 )}
               </div>
@@ -97,18 +97,18 @@ export function SummaryCards({ childrenCheckups, parentAssessment, familyAssessm
                     <>
                       {parentResults.anxiety && (
                         <div>
-                          <span className="font-medium text-white">
-                            {getStatusText(parentResults.anxiety.status)}
-                          </span>
-                          <p className="text-sm text-white/90">Тревожность</p>
+                          <p className="font-medium text-white">Тревожность</p>
+                          <p className="text-sm text-white/90">
+                            {getStatusEmoji(parentResults.anxiety.status)} {getStatusText(parentResults.anxiety.status)}
+                          </p>
                         </div>
                       )}
                       {parentResults.depression && (
                         <div>
-                          <span className="font-medium text-white">
-                            {getStatusText(parentResults.depression.status)}
-                          </span>
-                          <p className="text-sm text-white/90">Депрессия</p>
+                          <p className="font-medium text-white">Депрессия</p>
+                          <p className="text-sm text-white/90">
+                            {getStatusEmoji(parentResults.depression.status)} {getStatusText(parentResults.depression.status)}
+                          </p>
                         </div>
                       )}
                     </>
@@ -144,26 +144,26 @@ export function SummaryCards({ childrenCheckups, parentAssessment, familyAssessm
                     <>
                       {familyResults.family_stress && (
                         <div>
-                          <span className="font-medium text-white">
-                            {getStatusText(familyResults.family_stress.status)}
-                          </span>
-                          <p className="text-sm text-white/90">Семейный стресс</p>
+                          <p className="font-medium text-white">Семейный стресс</p>
+                          <p className="text-sm text-white/90">
+                            {getStatusEmoji(familyResults.family_stress.status)} {getStatusText(familyResults.family_stress.status)}
+                          </p>
                         </div>
                       )}
                       {familyResults.partner_relationship && (
                         <div>
-                          <span className="font-medium text-white">
-                            {getStatusText(familyResults.partner_relationship.status)}
-                          </span>
-                          <p className="text-sm text-white/90">Отношения с партнером</p>
+                          <p className="font-medium text-white">Отношения с партнером</p>
+                          <p className="text-sm text-white/90">
+                            {getStatusEmoji(familyResults.partner_relationship.status)} {getStatusText(familyResults.partner_relationship.status)}
+                          </p>
                         </div>
                       )}
                       {familyResults.coparenting && (
                         <div>
-                          <span className="font-medium text-white">
-                            {getStatusText(familyResults.coparenting.status)}
-                          </span>
-                          <p className="text-sm text-white/90">Совместное воспитание</p>
+                          <p className="font-medium text-white">Совместное воспитание</p>
+                          <p className="text-sm text-white/90">
+                            {getStatusEmoji(familyResults.coparenting.status)} {getStatusText(familyResults.coparenting.status)}
+                          </p>
                         </div>
                       )}
                     </>

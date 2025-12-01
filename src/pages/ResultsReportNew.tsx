@@ -122,7 +122,7 @@ export default function ResultsReportNew() {
                 onClick={() => navigate("/appointments")}
                 className="w-full max-w-lg mx-auto bg-secondary hover:bg-secondary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-base font-semibold py-10 min-h-[80px]"
               >
-                <Gift className="mr-3 h-7 w-7 flex-shrink-0" />
+                <Gift className="mr-4 !h-10 !w-10 flex-shrink-0" />
                 <span className="text-center leading-tight">
                   Получить первую бесплатную консультацию<br />
                   с вашим персональным координатором
