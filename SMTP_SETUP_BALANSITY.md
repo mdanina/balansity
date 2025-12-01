@@ -11,7 +11,7 @@
 - **Порт:** `587` (TLS)
 - **Email отправителя:** `noreply@balansity.ru`
 - **Пароль:** `ILoveBalansity100!`
-- **Имя отправителя:** `Little Otter`
+- **Имя отправителя:** `Balansity`
 
 ---
 
@@ -20,6 +20,7 @@
 ### Где находится файл
 
 Файл `.env` находится на сервере, где установлен Supabase:
+- **Для Beget:** `/opt/beget/supabase/.env` ✅
 - Обычно: `/opt/supabase/.env` или `/home/user/supabase/.env`
 - Или рядом с `docker-compose.yml`
 
@@ -53,11 +54,15 @@ SMTP_HOST=mail.nic.ru
 SMTP_PORT=587
 SMTP_USER=noreply@balansity.ru
 SMTP_PASS=ILoveBalansity100!
-SMTP_SENDER_NAME=Little Otter
+SMTP_SENDER_NAME=Balansity
 ENABLE_ANONYMOUS_USERS=false
 ```
 
+**Важно:** Переменные в `.env` БЕЗ префикса `GOTRUE_` (например, `SMTP_HOST`, а не `GOTRUE_SMTP_HOST`). Префикс добавляется автоматически в `docker-compose.yml`.
+
 ### 📝 Полная секция Auth после изменений
+
+**Важно:** В файле `.env` переменные задаются БЕЗ префикса `GOTRUE_`!
 
 ```env
 ############
@@ -86,13 +91,15 @@ SMTP_HOST=mail.nic.ru
 SMTP_PORT=587
 SMTP_USER=noreply@balansity.ru
 SMTP_PASS=ILoveBalansity100!
-SMTP_SENDER_NAME=Little Otter
+SMTP_SENDER_NAME=Balansity
 ENABLE_ANONYMOUS_USERS=false
 
 ## Phone auth
 ENABLE_PHONE_SIGNUP=true
 ENABLE_PHONE_AUTOCONFIRM=true
 ```
+
+**Примечание:** `docker-compose.yml` использует эти переменные через `${SMTP_HOST}`, `${SMTP_PORT}` и т.д., и автоматически добавляет префикс `GOTRUE_` при подстановке в контейнер.
 
 ---
 
@@ -250,7 +257,7 @@ GOTRUE_SMTP_PORT=587
 GOTRUE_SMTP_USER=noreply@balansity.ru
 GOTRUE_SMTP_PASS=ILoveBalansity100!
 GOTRUE_SMTP_ADMIN_EMAIL=noreply@balansity.ru
-GOTRUE_SMTP_SENDER_NAME=Little Otter
+GOTRUE_SMTP_SENDER_NAME=Balansity
 ```
 
 **Если переменные в `.env` без префикса `GOTRUE_`, они не будут применены!**
@@ -282,7 +289,7 @@ GOTRUE_SMTP_PORT=587
 GOTRUE_SMTP_USER=noreply@balansity.ru
 GOTRUE_SMTP_PASS=ILoveBalansity100!
 GOTRUE_SMTP_ADMIN_EMAIL=noreply@balansity.ru
-GOTRUE_SMTP_SENDER_NAME=Little Otter
+GOTRUE_SMTP_SENDER_NAME=Balansity
 GOTRUE_MAILER_AUTOCONFIRM=false
 ENABLE_EMAIL_AUTOCONFIRM=false
 ```
@@ -311,7 +318,7 @@ services:
       SMTP_USER: "noreply@balansity.ru"
       SMTP_PASS: "ILoveBalansity100!"
       SMTP_ADMIN_EMAIL: "noreply@balansity.ru"
-      SMTP_SENDER_NAME: "Little Otter"
+      SMTP_SENDER_NAME: "Balansity"
       GOTRUE_MAILER_AUTOCONFIRM: "false"
 ```
 
@@ -330,7 +337,7 @@ services:
       GOTRUE_SMTP_USER: "noreply@balansity.ru"
       GOTRUE_SMTP_PASS: "ILoveBalansity100!"
       GOTRUE_SMTP_ADMIN_EMAIL: "noreply@balansity.ru"
-      GOTRUE_SMTP_SENDER_NAME: "Little Otter"
+      GOTRUE_SMTP_SENDER_NAME: "Balansity"
       GOTRUE_MAILER_AUTOCONFIRM: "false"
 ```
 
@@ -343,8 +350,18 @@ docker compose up -d
 # Подождите 10-15 секунд, пока контейнеры запустятся
 sleep 15
 
-# Проверьте переменные
-docker compose exec auth env | grep SMTP
+# Проверьте переменные (с префиксом GOTRUE_)
+docker compose exec auth env | grep GOTRUE_SMTP
+```
+
+**Ожидаемый результат:**
+```
+GOTRUE_SMTP_PORT=587
+GOTRUE_SMTP_USER=noreply@balansity.ru
+GOTRUE_SMTP_PASS=ILoveBalansity100!
+GOTRUE_SMTP_HOST=mail.nic.ru
+GOTRUE_SMTP_ADMIN_EMAIL=noreply@balansity.ru
+GOTRUE_SMTP_SENDER_NAME=Balansity
 ```
 
 #### Вариант 3: Проверить подключение .env в docker-compose.yml

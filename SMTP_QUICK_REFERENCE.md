@@ -15,9 +15,12 @@ SMTP_PORT=587
 SMTP_USER=noreply@balansity.ru
 SMTP_PASS=ILoveBalansity100!
 SMTP_ADMIN_EMAIL=noreply@balansity.ru
-SMTP_SENDER_NAME=Little Otter
+SMTP_SENDER_NAME=Balansity
 GOTRUE_MAILER_AUTOCONFIRM=false
+ENABLE_EMAIL_AUTOCONFIRM=false
 ```
+
+**Важно:** В `.env` переменные БЕЗ префикса `GOTRUE_`!
 
 ---
 
@@ -37,9 +40,14 @@ docker-compose restart auth
 
 ## ✅ Проверка работы
 
-1. Зарегистрируйте тестового пользователя
-2. Проверьте почту (включая спам)
-3. Должно прийти письмо с подтверждением
+1. **Проверьте переменные в контейнере:**
+   ```bash
+   docker compose -f /opt/beget/supabase/docker-compose.yml exec auth env | grep GOTRUE_SMTP
+   ```
+
+2. **Зарегистрируйте тестового пользователя** в приложении
+3. **Проверьте почту** (включая спам)
+4. **Должно прийти письмо** с подтверждением от `noreply@balansity.ru` (отправитель: Balansity)
 
 ---
 
