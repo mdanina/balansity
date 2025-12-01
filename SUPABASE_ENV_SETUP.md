@@ -96,3 +96,4 @@ nano /opt/supabase/.env
 
 
 
+

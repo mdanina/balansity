@@ -44,3 +44,4 @@ WHERE email = 'smartbodycentre@gmail.com';
 -- 5. Вернитесь сюда и выполните ШАГ 2
 
 
+

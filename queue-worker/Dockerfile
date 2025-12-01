@@ -21,3 +21,4 @@ RUN mkdir -p logs
 # Запускаем worker
 CMD ["node", "dist/index.js"]
 
+

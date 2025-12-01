@@ -17,3 +17,4 @@ networks:
     external: true
     name: supabase_network  # Или ваша сеть
 
+

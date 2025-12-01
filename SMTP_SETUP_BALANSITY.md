@@ -108,15 +108,43 @@ ENABLE_PHONE_AUTOCONFIRM=true
 # 1. Подключитесь к серверу
 ssh user@oyuyienekon.beget.app
 
-# 2. Перейдите в папку с Supabase
-cd ~/supabase || cd /opt/supabase
+# 2. Найдите папку с Supabase (попробуйте разные варианты)
+cd /opt/beget/supabase  # ✅ Правильный путь для Beget
+# или
+cd /home/user/supabase
+# или
+cd ~/supabase
 
-# 3. Перезапустите контейнер auth
+# 3. Проверьте, что docker-compose.yml существует
+ls -la docker-compose.yml
+
+# 4. Перезапустите контейнер auth
+docker compose restart auth
+# или (старый синтаксис)
 docker-compose restart auth
 
-# Или если docker-compose не найден:
+# Альтернатива: Если docker-compose не найден, найдите контейнер напрямую
 docker ps | grep auth
-docker restart <имя_контейнера_auth>
+# Скопируйте имя контейнера (столбец NAMES) и выполните:
+docker restart <имя_контейнера>
+
+# Или укажите путь к файлу напрямую (если не в папке):
+docker compose -f /opt/beget/supabase/docker-compose.yml restart auth
+```
+
+**Если не знаете, где находится папка:**
+
+```bash
+# Найдите все контейнеры Supabase
+docker ps | grep supabase
+
+# Найдите контейнер auth
+docker ps | grep auth
+
+# Перезапустите контейнер напрямую по имени (без docker-compose)
+docker restart $(docker ps -q --filter "name=auth")
+# или
+docker restart $(docker ps | grep auth | awk '{print $1}')
 ```
 
 #### Способ 2: Через панель управления Beget
@@ -205,7 +233,134 @@ docker logs <container_name> | grep -i smtp
 
 ---
 
+## ⚠️ ВАЖНО: Формат переменных в .env
+
+**Критически важно:** В файле `.env` переменные должны иметь префикс `GOTRUE_`!
+
+### ❌ Неправильно (без префикса):
+```env
+SMTP_HOST=mail.nic.ru
+SMTP_PORT=587
+```
+
+### ✅ Правильно (с префиксом GOTRUE_):
+```env
+GOTRUE_SMTP_HOST=mail.nic.ru
+GOTRUE_SMTP_PORT=587
+GOTRUE_SMTP_USER=noreply@balansity.ru
+GOTRUE_SMTP_PASS=ILoveBalansity100!
+GOTRUE_SMTP_ADMIN_EMAIL=noreply@balansity.ru
+GOTRUE_SMTP_SENDER_NAME=Little Otter
+```
+
+**Если переменные в `.env` без префикса `GOTRUE_`, они не будут применены!**
+
+---
+
 ## 🚨 Решение проблем
+
+### Проблема: Переменные не применяются (старые значения в контейнере)
+
+**Симптомы:** После перезапуска контейнера переменные все еще имеют старые значения.
+
+**Причины:**
+1. Переменные в `.env` без префикса `GOTRUE_`
+2. `docker-compose.yml` не подключен к `.env` файлу
+3. Переменные заданы напрямую в `docker-compose.yml` и переопределяют `.env`
+
+**Решение:**
+
+#### Вариант 1: Обновить .env с правильным форматом
+
+```bash
+# На сервере откройте .env файл
+nano /opt/beget/supabase/.env
+
+# Убедитесь, что переменные имеют префикс GOTRUE_:
+GOTRUE_SMTP_HOST=mail.nic.ru
+GOTRUE_SMTP_PORT=587
+GOTRUE_SMTP_USER=noreply@balansity.ru
+GOTRUE_SMTP_PASS=ILoveBalansity100!
+GOTRUE_SMTP_ADMIN_EMAIL=noreply@balansity.ru
+GOTRUE_SMTP_SENDER_NAME=Little Otter
+GOTRUE_MAILER_AUTOCONFIRM=false
+ENABLE_EMAIL_AUTOCONFIRM=false
+```
+
+#### Вариант 2: Обновить docker-compose.yml напрямую
+
+**Важно:** Сначала проверьте, какой формат используется в `docker-compose.yml`:
+
+```bash
+# Посмотрите, как заданы переменные в docker-compose.yml
+cat /opt/beget/supabase/docker-compose.yml | grep -A 20 "auth:" | grep -i smtp
+```
+
+**Если используются переменные БЕЗ префикса GOTRUE_ (SMTP_HOST, а не GOTRUE_SMTP_HOST):**
+
+```bash
+# Откройте docker-compose.yml
+nano /opt/beget/supabase/docker-compose.yml
+
+# Найдите секцию auth и обновите environment:
+services:
+  auth:
+    environment:
+      SMTP_HOST: "mail.nic.ru"
+      SMTP_PORT: "587"
+      SMTP_USER: "noreply@balansity.ru"
+      SMTP_PASS: "ILoveBalansity100!"
+      SMTP_ADMIN_EMAIL: "noreply@balansity.ru"
+      SMTP_SENDER_NAME: "Little Otter"
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+```
+
+**Если используются переменные С префиксом GOTRUE_:**
+
+```bash
+# Откройте docker-compose.yml
+nano /opt/beget/supabase/docker-compose.yml
+
+# Найдите секцию auth и обновите environment:
+services:
+  auth:
+    environment:
+      GOTRUE_SMTP_HOST: "mail.nic.ru"
+      GOTRUE_SMTP_PORT: "587"
+      GOTRUE_SMTP_USER: "noreply@balansity.ru"
+      GOTRUE_SMTP_PASS: "ILoveBalansity100!"
+      GOTRUE_SMTP_ADMIN_EMAIL: "noreply@balansity.ru"
+      GOTRUE_SMTP_SENDER_NAME: "Little Otter"
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+```
+
+После изменений:
+```bash
+cd /opt/beget/supabase
+docker compose down
+docker compose up -d
+
+# Подождите 10-15 секунд, пока контейнеры запустятся
+sleep 15
+
+# Проверьте переменные
+docker compose exec auth env | grep SMTP
+```
+
+#### Вариант 3: Проверить подключение .env в docker-compose.yml
+
+```bash
+# Проверьте, что в docker-compose.yml есть:
+cat /opt/beget/supabase/docker-compose.yml | grep -A 5 "auth:"
+
+# Должно быть что-то вроде:
+# services:
+#   auth:
+#     env_file:
+#       - .env
+```
+
+---
 
 ### Проблема: Письма не приходят
 
@@ -299,8 +454,70 @@ docker-compose logs auth | tail -50
 
 ## 📝 История изменений
 
-- **Дата:** 2025-01-XX
+### 2025-12-01 - Настройка SMTP завершена ✅
+
+- **Дата:** 2025-12-01
 - **Изменения:** Настроен SMTP через `mail.nic.ru` для домена `balansity.ru`
 - **Email отправителя:** `noreply@balansity.ru`
-- **Статус:** ✅ Настроено, требуется перезапуск контейнера
+- **Имя отправителя:** `Balansity`
+- **Статус:** ✅ Настроено и протестировано
+
+#### Что было сделано:
+
+1. ✅ Создан почтовый ящик `noreply@balansity.ru` на хостинге
+2. ✅ Обновлен файл `.env` в `/opt/beget/supabase/.env` с настройками SMTP
+3. ✅ Переменные в `.env` заданы БЕЗ префикса `GOTRUE_` (формат: `SMTP_HOST`, `SMTP_PORT` и т.д.)
+4. ✅ `docker-compose.yml` использует переменные из `.env` через `${SMTP_HOST}` и добавляет префикс `GOTRUE_` автоматически
+5. ✅ Контейнеры перезапущены через `docker compose down && docker compose up -d`
+6. ✅ Проверены переменные окружения в контейнере - все значения корректны
+
+#### Финальные значения переменных:
+
+```env
+# В файле .env (без префикса GOTRUE_):
+SMTP_ADMIN_EMAIL=noreply@balansity.ru
+SMTP_HOST=mail.nic.ru
+SMTP_PORT=587
+SMTP_USER=noreply@balansity.ru
+SMTP_PASS=ILoveBalansity100!
+SMTP_SENDER_NAME=Balansity
+GOTRUE_MAILER_AUTOCONFIRM=false
+ENABLE_EMAIL_AUTOCONFIRM=false
+```
+
+#### Решенные проблемы:
+
+1. **Проблема:** Переменные не применялись после изменения `.env`
+   - **Причина:** Переменные были с префиксом `GOTRUE_` в `.env`, но `docker-compose.yml` ожидает без префикса
+   - **Решение:** Использовать формат без префикса в `.env` (например, `SMTP_HOST` вместо `GOTRUE_SMTP_HOST`)
+
+2. **Проблема:** Контейнер не перезапускался через `docker compose restart auth`
+   - **Причина:** Команда выполнялась не из папки с `docker-compose.yml`
+   - **Решение:** Использовать `docker compose -f /opt/beget/supabase/docker-compose.yml restart auth` или перейти в папку
+
+3. **Проблема:** Путь к файлам был неправильный
+   - **Причина:** Опечатка в пути (`supbase` вместо `supabase`)
+   - **Решение:** Использовать правильный путь `/opt/beget/supabase/`
+
+#### Проверка работоспособности:
+
+```bash
+# Команда для проверки переменных:
+docker compose -f /opt/beget/supabase/docker-compose.yml exec auth env | grep GOTRUE_SMTP
+
+# Результат (все переменные установлены корректно):
+GOTRUE_SMTP_PORT=587
+GOTRUE_SMTP_USER=noreply@balansity.ru
+GOTRUE_SMTP_PASS=ILoveBalansity100!
+GOTRUE_SMTP_HOST=mail.nic.ru
+GOTRUE_SMTP_ADMIN_EMAIL=noreply@balansity.ru
+GOTRUE_SMTP_SENDER_NAME=Balansity
+```
+
+#### Важные замечания:
+
+- **Формат переменных:** В `.env` файле переменные БЕЗ префикса `GOTRUE_`, в контейнере они автоматически получают префикс
+- **Путь к файлам:** Все файлы находятся в `/opt/beget/supabase/`
+- **Перезапуск:** После изменения `.env` нужно выполнить `docker compose down && docker compose up -d` (не просто `restart`)
+- **Проверка:** Всегда проверяйте переменные через `docker compose exec auth env | grep GOTRUE_SMTP` после изменений
 

@@ -91,3 +91,4 @@ docker-compose up -d
 2. Проверьте логи на ошибки SMTP
 3. Убедитесь, что почтовый ящик `noreply@balansity.ru` существует
 
+
