@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { StepIndicator } from "@/components/StepIndicator";
 import { Button } from "@/components/ui/button";
-import familySetupImage from "@/assets/family-setup.png";
+import familySetupImage from "@/assets/minimalistic-and-friendly-vector-style-illustratio.png";
 
 export default function FamilySetup() {
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ export default function FamilySetup() {
         <div className="space-y-12 text-center">
           <img
             src={familySetupImage}
-            alt="Семья выдр"
+            alt="Семья"
             className="mx-auto h-80 w-80 object-contain"
           />
           
