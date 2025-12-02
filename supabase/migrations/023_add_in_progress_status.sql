@@ -14,3 +14,4 @@ CHECK (status IN ('scheduled', 'in_progress', 'completed', 'cancelled', 'no_show
 
 
 
+
