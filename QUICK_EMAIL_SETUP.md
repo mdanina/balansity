@@ -124,3 +124,5 @@ GOTRUE_MAILER_URLPATHS_CONFIRMATION=/email-confirm
 
 
 
+
+

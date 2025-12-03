@@ -14,3 +14,5 @@ CREATE INDEX IF NOT EXISTS idx_users_free_consultation_created ON public.users(f
 
 
 
+
+
