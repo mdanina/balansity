@@ -157,7 +157,7 @@
 
 /* What We Treat Tags */
 .landing-condition-tag {
-  background: var(--landing-peach);
+  background: #fdd936;
   border-radius: 2rem;
   padding: 0.875rem 1.5rem;
   color: var(--landing-dark-blue);
@@ -284,7 +284,7 @@
   position: absolute;
   background: white;
   padding: 1.5rem 2rem;
-  border-radius: 2rem 2rem 2rem 0;
+  border-radius: 2.5rem 2.5rem 1.5rem 0.5rem;
   color: var(--landing-dark-blue);
   font-weight: 600;
   font-size: 1.25rem;
@@ -321,7 +321,7 @@
 .landing-expertise-left {
   background-color: var(--landing-dark-blue);
   color: white;
-  padding: 4rem;
+  min-height: 100%;
 }
 
 .landing-expertise-right {
@@ -330,6 +330,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 100%;
 }
 
 .landing-expertise-title {
