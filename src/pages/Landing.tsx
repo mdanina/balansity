@@ -318,44 +318,44 @@ export default function Landing() {
         </section>
 
         {/* Results Section */}
-        <section id="results" className="py-12">
+        <section id="results" className="py-12" style={{ backgroundColor: 'hsl(30, 14%, 98.5%)' }}>
           <div className="container mx-auto px-4">
-            <div className="mb-12 text-center">
-              <h2 className="mb-4 font-serif text-3xl font-bold text-foreground md:text-4xl">
-                Наши результаты
+            <div className="mb-12 text-left max-w-4xl">
+              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-foreground">
+                НАШИ РЕЗУЛЬТАТЫ
               </h2>
-              <p className="text-lg text-muted-foreground">
+              <h3 className="mb-4 font-serif text-4xl font-bold leading-tight text-foreground md:text-5xl">
                 Измеримые результаты, которые чувствует вся ваша семья
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
+              </h3>
+              <p className="text-lg text-muted-foreground">
                 После 12 сессий семьи чувствуют разницу.
               </p>
             </div>
-            <div className="grid gap-8 md:grid-cols-3">
-              <div className="text-center">
-                <div className="landing-result-icon mb-4">
+            <div className="grid gap-12 md:grid-cols-3">
+              <div>
+                <div className="landing-result-icon mb-6">
                   <ResultIcon type="pie" />
                 </div>
-                <div className="mb-4 text-5xl font-bold text-primary">80%</div>
-                <p className="text-lg text-muted-foreground">
+                <div className="mb-4 text-5xl font-bold text-foreground">80%</div>
+                <p className="text-base text-muted-foreground">
                   80% детей показывают клинически значимое улучшение за 12 сессий
                 </p>
               </div>
-              <div className="text-center">
-                <div className="landing-result-icon mb-4">
+              <div>
+                <div className="landing-result-icon mb-6">
                   <ResultIcon type="grid" />
                 </div>
-                <div className="mb-4 text-5xl font-bold text-primary">3 из 4</div>
-                <p className="text-lg text-muted-foreground">
+                <div className="mb-4 text-5xl font-bold text-foreground">3 из 4</div>
+                <p className="text-base text-muted-foreground">
                   3 из 4 родителей имеют клинически значимое снижение тревоги и депрессии
                 </p>
               </div>
-              <div className="text-center">
-                <div className="landing-result-icon mb-4">
+              <div>
+                <div className="landing-result-icon mb-6">
                   <ResultIcon type="bar" />
                 </div>
-                <div className="mb-4 text-5xl font-bold text-primary">61%</div>
-                <p className="text-lg text-muted-foreground">
+                <div className="mb-4 text-5xl font-bold text-foreground">61%</div>
+                <p className="text-base text-muted-foreground">
                   61% семей сообщают о значительном снижении стресса
                 </p>
               </div>

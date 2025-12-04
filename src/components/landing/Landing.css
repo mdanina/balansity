@@ -147,7 +147,7 @@
 .landing-result-icon {
   width: 80px;
   height: 80px;
-  margin: 0 auto 1rem;
+  margin: 0 0 1rem 0;
 }
 
 .landing-result-icon svg {
