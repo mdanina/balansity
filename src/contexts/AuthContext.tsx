@@ -36,13 +36,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           supabase.auth.signOut();
           setSession(null);
           setUser(null);
+          // Clear Sentry user context (async)
+          import('@/lib/sentry').then(({ setSentryUser }) => {
+            setSentryUser(null).catch(() => {});
+          }).catch(() => {});
         } else {
           setSession(newSession);
-          setUser(newSession.user ?? null);
+          const currentUser = newSession.user ?? null;
+          setUser(currentUser);
+          // Set user in Sentry for error tracking (async, don't block)
+          if (currentUser) {
+            import('@/lib/sentry').then(({ setSentryUser }) => {
+              setSentryUser({
+                id: currentUser.id,
+                email: currentUser.email,
+                name: currentUser.user_metadata?.name || currentUser.email,
+              }).catch(() => {
+                // Silently fail if Sentry is not installed
+              });
+            }).catch(() => {
+              // Silently fail if Sentry module can't be loaded
+            });
+          } else {
+            import('@/lib/sentry').then(({ setSentryUser }) => {
+              setSentryUser(null).catch(() => {});
+            }).catch(() => {});
+          }
         }
       } else {
         setSession(null);
         setUser(null);
+        // Clear Sentry user context (async)
+        import('@/lib/sentry').then(({ setSentryUser }) => {
+          setSentryUser(null).catch(() => {});
+        }).catch(() => {});
       }
       
       // Устанавливаем loading в false только после первой инициализации
@@ -169,6 +196,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Clear Sentry user context on logout (async)
+    import('@/lib/sentry').then(({ setSentryUser }) => {
+      setSentryUser(null).catch(() => {});
+    }).catch(() => {});
   };
 
   return (

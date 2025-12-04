@@ -2,6 +2,14 @@ import { readFromQueue, archiveTask, returnTaskToQueue } from '../services/supab
 import { supabase } from '../services/supabase.js';
 import { verifyYooKassaPayment } from '../services/yookassa.js';
 import { logger } from '../utils/logger.js';
+import {
+  shouldRetry,
+  getCurrentAttemptCount,
+  type QueueTask,
+  DEFAULT_RETRY_CONFIG,
+} from '../utils/retry.js';
+
+const MAX_RETRY_ATTEMPTS = parseInt(process.env.MAX_PAYMENT_RETRY_ATTEMPTS || '5', 10);
 
 export async function processPaymentQueue(maxTasks: number = 10): Promise<number> {
   let processed = 0;
@@ -13,11 +21,26 @@ export async function processPaymentQueue(maxTasks: number = 10): Promise<number
       break;
     }
 
+    // Convert to QueueTask format
+    const queueTask: QueueTask = {
+      msg_id: task.msg_id,
+      read_ct: task.read_ct,
+      enqueued_at: task.enqueued_at.toISOString(),
+      vt: task.vt.toISOString(),
+      msg: task.msg,
+    };
+
     try {
       const paymentData = task.msg as {
         payment_id: string;
         action: string;
       };
+
+      const attemptCount = getCurrentAttemptCount(queueTask);
+
+      logger.info(
+        `Processing payment task (attempt ${attemptCount}/${MAX_RETRY_ATTEMPTS}): ${paymentData.payment_id} - ${paymentData.action}`
+      );
 
       logger.info(`Processing payment task: ${paymentData.payment_id} - ${paymentData.action}`);
 
@@ -84,9 +107,23 @@ export async function processPaymentQueue(maxTasks: number = 10): Promise<number
 
           logger.info(`Payment ${paymentData.payment_id} status updated to ${newStatus}`);
         } catch (error) {
-          logger.error(`Error verifying payment ${paymentData.payment_id}:`, error);
-          // Возвращаем задачу в очередь для повторной попытки
-          await returnTaskToQueue('payment_processing_queue', task.msg_id);
+          logger.error(`Error verifying payment ${paymentData.payment_id} (attempt ${attemptCount}):`, error);
+          
+          // Проверяем, можно ли повторить попытку
+          if (shouldRetry(queueTask, { ...DEFAULT_RETRY_CONFIG, maxAttempts: MAX_RETRY_ATTEMPTS })) {
+            await returnTaskToQueue('payment_processing_queue', task.msg_id);
+            const nextAttempt = attemptCount + 1;
+            logger.warn(
+              `Payment task ${paymentData.payment_id} will retry (attempt ${nextAttempt}/${MAX_RETRY_ATTEMPTS})`
+            );
+          } else {
+            // Превышен лимит попыток - архивируем
+            await archiveTask('payment_processing_queue', task.msg_id);
+            logger.error(
+              `Payment task ${paymentData.payment_id} failed after ${attemptCount} attempts. Task archived.`
+            );
+            processed++;
+          }
           continue;
         }
       }
@@ -94,8 +131,23 @@ export async function processPaymentQueue(maxTasks: number = 10): Promise<number
       await archiveTask('payment_processing_queue', task.msg_id);
       processed++;
     } catch (error) {
-      logger.error(`Error processing payment task ${task.msg_id}:`, error);
-      await returnTaskToQueue('payment_processing_queue', task.msg_id);
+      logger.error(`Error processing payment task ${task.msg_id} (attempt ${attemptCount}):`, error);
+
+      // Проверяем, можно ли повторить попытку
+      if (shouldRetry(queueTask, { ...DEFAULT_RETRY_CONFIG, maxAttempts: MAX_RETRY_ATTEMPTS })) {
+        await returnTaskToQueue('payment_processing_queue', task.msg_id);
+        const nextAttempt = attemptCount + 1;
+        logger.warn(
+          `Payment task ${task.msg_id} will retry (attempt ${nextAttempt}/${MAX_RETRY_ATTEMPTS})`
+        );
+      } else {
+        // Превышен лимит попыток - архивируем
+        await archiveTask('payment_processing_queue', task.msg_id);
+        logger.error(
+          `Payment task ${task.msg_id} failed after ${attemptCount} attempts. Task archived.`
+        );
+        processed++;
+      }
     }
   }
 

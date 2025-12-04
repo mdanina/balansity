@@ -37,10 +37,24 @@ class Logger {
 
   error(...args: unknown[]): void {
     console.error('[ERROR]', ...args);
-    // TODO: Здесь можно добавить отправку в Sentry/другой сервис
-    // if (import.meta.env.PROD) {
-    //   Sentry.captureException(args[0]);
-    // }
+    
+    // Send critical errors to Sentry in production (async, don't block)
+    if (import.meta.env.VITE_SENTRY_DSN && import.meta.env.PROD) {
+      // Only send Error objects to Sentry
+      const errorArg = args.find(arg => arg instanceof Error);
+      if (errorArg instanceof Error) {
+        import('./sentry').then(({ captureException }) => {
+          captureException(errorArg, {
+            logger: 'logger.ts',
+            additionalArgs: args.filter(arg => !(arg instanceof Error)),
+          }).catch(() => {
+            // Silently fail if Sentry is not installed
+          });
+        }).catch(() => {
+          // Silently fail if Sentry module can't be loaded
+        });
+      }
+    }
   }
 }
 

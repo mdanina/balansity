@@ -25,10 +25,18 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logger.error('ErrorBoundary caught an error:', error, errorInfo);
-    // TODO: Здесь можно добавить отправку в Sentry или другой сервис мониторинга
-    // if (import.meta.env.PROD) {
-    //   Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
-    // }
+    
+    // Send to Sentry if configured (async, don't block)
+    import('@/lib/sentry').then(({ captureException }) => {
+      captureException(error, {
+        componentStack: errorInfo.componentStack,
+        errorBoundary: true,
+      }).catch(() => {
+        // Silently fail if Sentry is not installed
+      });
+    }).catch(() => {
+      // Silently fail if Sentry module can't be loaded
+    });
   }
 
   private handleReset = () => {
