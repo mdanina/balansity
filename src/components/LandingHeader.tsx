@@ -14,6 +14,7 @@ import {
 import { Menu } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import "@/components/landing/Landing.css";
 
 export const LandingHeader = () => {
   const { user } = useAuth();
@@ -48,8 +49,18 @@ export const LandingHeader = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4">
+    <>
+      {/* Top Banner */}
+      <div className="landing-top-banner">
+        <div className="container mx-auto px-4">
+          <p className="text-sm">
+            Balansity предоставляет комплексные услуги для детей и семей.{" "}
+            <a href="/#about">Узнать больше</a>
+          </p>
+        </div>
+      </div>
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center space-x-2">
             <img src={logo} alt="Balansity" className="h-8 w-auto" />
@@ -319,6 +330,7 @@ export const LandingHeader = () => {
         </div>
       </div>
     </header>
+    </>
   );
 };
 
