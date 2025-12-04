@@ -7,7 +7,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { ResultIcon } from "@/components/landing/ResultIcon";
 import { ServiceIcon } from "@/components/landing/ServiceIcons";
 import { TestimonialCarousel } from "@/components/landing/TestimonialCarousel";
-import { AwardBadge } from "@/components/landing/AwardBadge";
 import { 
   Clock, 
   CheckCircle2,
@@ -19,7 +18,14 @@ import "@/components/landing/Landing.css";
 import familyImage from "@/assets/illustration-of-a-caucasian-family---father--mothe (2).png";
 import familyImageAlt from "@/assets/illustration-of-a-caucasian-family---father--mothe (1).png";
 import familySetupImage from "@/assets/family-setup.png";
+import motherFatherImage from "@/assets/flat-cartoon-illustration-of-a-mother-and-father-h.png";
+import flatMinimalCartoonImage from "@/assets/illustration-in-flat-minimal-cartoon-style-showing.png";
+import parentsStandingImage from "@/assets/flat-cartoon-style-illustration-of-parents-standin.png";
+import happyCaucasianCoImage from "@/assets/cartoon-style-illustration-of-a-happy-caucasian-co.png";
+import youngCaucasianCo2Image from "@/assets/cartoon-style-illustration-of-a-young-caucasian-co (2).png";
 import expertImage from "@/assets/friendly-and-clean-face-of-an-adult-person--gender.png";
+import otterRelaxed from "@/assets/otter-relaxed.png";
+import youngCaucasianCoImage from "@/assets/cartoon-style-illustration-of-a-young-caucasian-co.png";
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -72,37 +78,37 @@ export default function Landing() {
       age: "0-2", 
       title: "Дети 0-2", 
       description: "Почувствуйте уверенность в уходе за вашим малышом.",
-      image: familyImage
+      image: youngCaucasianCoImage
     },
     { 
       age: "3-7", 
       title: "Дети 3-7", 
       description: "Дайте вашим детям то, что им нужно для процветания.",
-      image: familySetupImage
+      image: motherFatherImage
     },
     { 
       age: "8-12", 
       title: "Дети 8-12", 
       description: "Помогите вашим детям жить самыми счастливыми и здоровыми жизнями.",
-      image: familyImage
+      image: flatMinimalCartoonImage
     },
     { 
       age: "13-18", 
       title: "Подростки", 
       description: "Поддержите психическое здоровье вашего подростка. Независимо от того, с чем он сталкивается.",
-      image: familySetupImage
+      image: parentsStandingImage
     },
     { 
       age: "Родители", 
       title: "Родители", 
       description: "Поддержка вашего психического здоровья, не только как родителя и партнера, но и как человека.",
-      image: familyImage
+      image: happyCaucasianCoImage
     },
     { 
       age: "Планирование, ожидание и послеродовой период", 
       title: "Планирование, ожидание и послеродовой период", 
       description: "Помогаем вам вырастить здоровую семью.",
-      image: familySetupImage
+      image: youngCaucasianCo2Image
     },
   ];
 
@@ -537,8 +543,8 @@ export default function Landing() {
         {/* Expertise Section */}
         <section id="about" className="relative py-0 overflow-hidden">
           
-          {/* White content section */}
-          <div className="bg-background">
+          {/* Dark blue content section */}
+          <div style={{ backgroundColor: 'var(--landing-dark-blue)' }}>
             <div className="container mx-auto px-4">
               <div className="grid md:grid-cols-2 gap-8 md:gap-12 py-16 md:py-20">
                 {/* Left side - Text content */}
@@ -546,18 +552,18 @@ export default function Landing() {
                   <div className="text-[hsl(45,100%,60%)] text-sm font-semibold uppercase tracking-wide mb-4">
                     НАША ЭКСПЕРТИЗА
                   </div>
-                  <h2 className="mb-6 font-serif text-4xl font-bold text-foreground md:text-5xl">
+                  <h2 className="mb-6 font-serif text-4xl font-bold text-white md:text-5xl">
                     Лидер в области детского психического здоровья
                   </h2>
                   <div className="space-y-4 mb-6">
-                    <p className="text-base text-muted-foreground">
+                    <p className="text-base text-white/90">
                       Доктор Хелен Эггер - соучредитель и главный медицинский и научный директор Balansity. 
                       Она детский психиатр, которая была лидером в области детского психического здоровья 
                       более 30 лет. Ранее она была главой отделения детской и подростковой психиатрии в 
                       Duke Medicine и председателем кафедры детской и подростковой психиатрии и директором 
                       NYU Child Study Center в NYU Langone Health.
                     </p>
-                    <p className="text-base text-muted-foreground">
+                    <p className="text-base text-white/90">
                       Доктор Эггер также является всемирно признанным исследователем в области раннего 
                       детского психического здоровья. Её исследования установили стандарт для измерения 
                       психического здоровья детей и являются основой оценки психического здоровья семьи 
@@ -589,78 +595,86 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Awards Section */}
-        <section id="awards" className="landing-awards-section py-12">
-          <div className="container mx-auto px-4">
-            <div className="grid gap-8 md:grid-cols-4">
-              <AwardBadge 
-                award="Лучшая детская и семейная терапия"
-                source="verywell"
-              />
-              <AwardBadge 
-                award="Лучшая онлайн-терапия для пар"
-                source="health"
-              />
-              <AwardBadge 
-                award="Лучшая онлайн-терапия для семей"
-                source="People"
-              />
-              <AwardBadge 
-                award="Лучшая онлайн-терапия для подростков"
-                source="Parents."
-              />
-            </div>
-          </div>
-        </section>
-
         {/* FAQs Section */}
-        <section id="faq" className="bg-muted py-12">
+        <section id="faq" className="bg-muted pt-12 pb-2">
           <div className="container mx-auto px-4">
             <div className="mb-12 text-center">
-              <h2 className="mb-4 font-serif text-3xl font-bold text-foreground md:text-4xl">
-                Часто задаваемые вопросы
+              <h2 className="mb-4 font-serif text-4xl font-bold text-foreground md:text-5xl">
+                FAQs
               </h2>
             </div>
             <div className="mx-auto max-w-3xl">
               <Accordion type="single" collapsible className="w-full">
                 {faqs.map((faq, index) => (
                   <AccordionItem key={index} value={`item-${index}`}>
-                    <AccordionTrigger className="text-left font-semibold">
+                    <AccordionTrigger className="text-left font-semibold text-lg">
                       {faq.question}
                     </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground whitespace-pre-line">
+                    <AccordionContent className="text-muted-foreground whitespace-pre-line pt-2">
                       {faq.answer}
                     </AccordionContent>
                   </AccordionItem>
                 ))}
               </Accordion>
+              
+              {/* See more button */}
+              <div className="mt-6 text-center" style={{ marginTop: 'calc(1.5rem + 10px)' }}>
+                <Button
+                  size="lg"
+                  onClick={() => navigate("/service")}
+                  className="bg-[var(--landing-dark-blue)] hover:bg-[hsl(203,60%,12%)] text-white border-none h-12 px-6 text-base font-semibold"
+                >
+                  Узнать больше
+                </Button>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="bg-primary py-12 text-primary-foreground">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="mb-4 font-serif text-3xl font-bold md:text-4xl">
-              Не ждите, чтобы получить помощь, в которой нуждается ваша семья
-            </h2>
-            <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center">
-              <Button
-                size="lg"
-                variant="secondary"
-                onClick={() => navigate("/service")}
-                className="h-14 px-8"
-              >
-                Получить поддержку
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => navigate("/service")}
-                className="h-14 px-8 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
-              >
-                Пройти оценку
-              </Button>
+        {/* CTA Section with Wave and Otter */}
+        <section className="relative overflow-hidden">
+          {/* Dark blue top section */}
+          <div className="h-24 md:h-32 lg:h-40 relative" style={{ backgroundColor: 'var(--landing-dark-blue)' }}>
+            {/* SVG wave curve */}
+            <svg 
+              className="absolute bottom-0 left-0 right-0 w-full h-24 md:h-32 lg:h-40"
+              viewBox="0 0 1200 300" 
+              preserveAspectRatio="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path 
+                d="M 0 300 L 0 0 L 1200 0 L 1200 300 Q 1000 180, 800 220 Q 600 160, 400 200 Q 200 140, 0 180 Z" 
+                fill="hsl(var(--muted))"
+              />
+            </svg>
+          </div>
+          
+          {/* Dark blue bottom section with content */}
+          <div className="relative pt-4 md:pt-6 lg:pt-8" style={{ backgroundColor: 'var(--landing-dark-blue)' }}>
+            <div className="container mx-auto px-4 pb-16 md:pb-20">
+              <div className="max-w-4xl mx-auto text-center">
+                <h2 className="mb-8 font-serif text-3xl font-bold text-white md:text-4xl lg:text-5xl">
+                  Не ждите, чтобы получить помощь, в которой нуждается ваша семья
+                </h2>
+                <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+                  <Button
+                    size="lg"
+                    onClick={() => navigate("/service")}
+                    className="bg-[hsl(45,100%,60%)] hover:bg-[hsl(45,100%,55%)] text-[hsl(203,60%,15%)] font-semibold border-none h-14 px-8 text-base"
+                  >
+                    Получить поддержку
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => navigate("/service")}
+                    className="h-14 px-8 text-base border-white text-white hover:bg-white hover:text-[hsl(203,60%,15%)] bg-transparent"
+                  >
+                    Пройти оценку
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </section>
