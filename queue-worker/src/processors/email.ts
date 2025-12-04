@@ -30,6 +30,8 @@ export async function processEmailQueue(maxTasks: number = 10): Promise<number> 
       msg: task.msg,
     };
 
+    const attemptCount = getCurrentAttemptCount(queueTask);
+
     try {
       const taskData = task.msg as {
         to: string;
@@ -37,8 +39,6 @@ export async function processEmailQueue(maxTasks: number = 10): Promise<number> 
         template: string;
         variables: Record<string, any>;
       };
-
-      const attemptCount = getCurrentAttemptCount(queueTask);
 
       logger.info(
         `Processing email task (attempt ${attemptCount}/${MAX_RETRY_ATTEMPTS}): ${taskData.to} - ${taskData.subject}`

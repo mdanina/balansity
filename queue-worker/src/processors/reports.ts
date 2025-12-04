@@ -28,14 +28,14 @@ export async function processReportQueue(maxTasks: number = 5): Promise<number> 
       msg: task.msg,
     };
 
+    const attemptCount = getCurrentAttemptCount(queueTask);
+
     try {
       const reportData = task.msg as {
         assessment_id: string;
         user_id: string;
         report_type: string;
       };
-
-      const attemptCount = getCurrentAttemptCount(queueTask);
 
       logger.info(
         `Processing report generation (attempt ${attemptCount}/${MAX_RETRY_ATTEMPTS}): ${reportData.assessment_id}`

@@ -30,13 +30,13 @@ export async function processPaymentQueue(maxTasks: number = 10): Promise<number
       msg: task.msg,
     };
 
+    const attemptCount = getCurrentAttemptCount(queueTask);
+
     try {
       const paymentData = task.msg as {
         payment_id: string;
         action: string;
       };
-
-      const attemptCount = getCurrentAttemptCount(queueTask);
 
       logger.info(
         `Processing payment task (attempt ${attemptCount}/${MAX_RETRY_ATTEMPTS}): ${paymentData.payment_id} - ${paymentData.action}`
