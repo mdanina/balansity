@@ -25,7 +25,7 @@ export const LandingHeader = () => {
     { label: "Дети 0-2", href: "/#families" },
     { label: "Дети 3-7", href: "/#families" },
     { label: "Дети 8-12", href: "/#families" },
-    { label: "Подростки 13-18", href: "/#families" },
+    { label: "Подростки", href: "/#families" },
     { label: "Родители", href: "/#families" },
     { label: "Планирование, ожидание и послеродовой период", href: "/#families" },
   ];
@@ -34,31 +34,13 @@ export const LandingHeader = () => {
     { label: "Как это работает", href: "/#how-it-works" },
     { label: "Наши услуги", href: "/#services" },
     { label: "Что мы лечим", href: "/#conditions" },
-    { label: "Наша команда", href: "/#about" },
-    { label: "Почему виртуальная терапия работает", href: "/#why" },
-    { label: "Оценка психического здоровья семьи", href: "/#how-it-works" },
-  ];
-
-  const partnersMenu = [
-    { label: "Педиатры и клиницисты", href: "/#partners" },
-    { label: "Страховые компании", href: "/#pricing" },
-    { label: "Медицинские системы", href: "/#partners" },
-    { label: "Стратегические партнеры", href: "/#partners" },
-    { label: "Направить в Balansity", href: "/#partners" },
-    { label: "RAFT Программа: Расстройство аутистического спектра", href: "/#programs" },
+    { label: "Наши результаты", href: "/#results" },
+    { label: "Почему Balansity", href: "/#why" },
+    { label: "Наша экспертиза", href: "/#about" },
   ];
 
   return (
     <>
-      {/* Top Banner */}
-      <div className="landing-top-banner">
-        <div className="container mx-auto px-4">
-          <p className="text-sm">
-            Balansity предоставляет комплексные услуги для детей и семей.{" "}
-            <a href="/#about">Узнать больше</a>
-          </p>
-        </div>
-      </div>
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
@@ -113,71 +95,27 @@ export const LandingHeader = () => {
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <a
-                  href="/#pricing"
+                  href="/#testimonials"
                   className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
-                  Цены
+                  Отзывы
                 </a>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger>Для партнеров</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px]">
-                    {partnersMenu.map((item) => (
-                      <li key={item.href}>
-                        <NavigationMenuLink asChild>
-                          <a
-                            href={item.href}
-                            className={cn(
-                              "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                            )}
-                          >
-                            <div className="text-sm font-medium leading-none">{item.label}</div>
-                          </a>
-                        </NavigationMenuLink>
-                      </li>
-                    ))}
-                  </ul>
-                </NavigationMenuContent>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <a
-                  href="/#resources"
+                  href="/#faq"
                   className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
-                  Ресурсы
+                  FAQ
                 </a>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <NavigationMenuTrigger>О нас</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px]">
-                    <li>
-                      <NavigationMenuLink asChild>
-                        <a
-                          href="/#about"
-                          className={cn(
-                            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                          )}
-                        >
-                          <div className="text-sm font-medium leading-none">О нас</div>
-                        </a>
-                      </NavigationMenuLink>
-                    </li>
-                    <li>
-                      <NavigationMenuLink asChild>
-                        <a
-                          href="/#shop"
-                          className={cn(
-                            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                          )}
-                        >
-                          <div className="text-sm font-medium leading-none">Магазин</div>
-                        </a>
-                      </NavigationMenuLink>
-                    </li>
-                  </ul>
-                </NavigationMenuContent>
+                <a
+                  href="/#about"
+                  className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                >
+                  О нас
+                </a>
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
@@ -241,53 +179,26 @@ export const LandingHeader = () => {
                   </div>
                 </div>
                 <a
-                  href="/#pricing"
+                  href="/#testimonials"
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-base font-medium text-foreground transition-colors hover:text-primary"
                 >
-                  Цены
+                  Отзывы
                 </a>
-                <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-2">Для партнеров</p>
-                  <div className="flex flex-col space-y-2 ml-4">
-                    {partnersMenu.map((item) => (
-                      <a
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="text-sm text-foreground transition-colors hover:text-primary"
-                      >
-                        {item.label}
-                      </a>
-                    ))}
-                  </div>
-                </div>
                 <a
-                  href="/#resources"
+                  href="/#faq"
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-base font-medium text-foreground transition-colors hover:text-primary"
                 >
-                  Ресурсы
+                  FAQ
                 </a>
-                <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-2">О нас</p>
-                  <div className="flex flex-col space-y-2 ml-4">
-                    <a
-                      href="/#about"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-sm text-foreground transition-colors hover:text-primary"
-                    >
-                      О нас
-                    </a>
-                    <a
-                      href="/#shop"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-sm text-foreground transition-colors hover:text-primary"
-                    >
-                      Магазин
-                    </a>
-                  </div>
-                </div>
+                <a
+                  href="/#about"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-medium text-foreground transition-colors hover:text-primary"
+                >
+                  О нас
+                </a>
                 <div className="pt-4 border-t">
                   {user ? (
                     <Button

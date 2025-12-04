@@ -25,6 +25,9 @@ import happyCaucasianCoImage from "@/assets/cartoon-style-illustration-of-a-happ
 import youngCaucasianCo2Image from "@/assets/cartoon-style-illustration-of-a-young-caucasian-co (2).png";
 import expertImage from "@/assets/friendly-and-clean-face-of-an-adult-person--gender.png";
 import otterRelaxed from "@/assets/otter-relaxed.png";
+import b7d9b091Image from "@/assets/b7d9b091-406e-44ad-a80c-6349c93ba1e3.png";
+import chatgptImage4Dec from "@/assets/ChatGPT Image 4 дек. 2025 г., 15_38_13.png";
+import chatgptImage4Dec2 from "@/assets/ChatGPT Image 4 дек. 2025 г., 15_41_26.png";
 import youngCaucasianCoImage from "@/assets/cartoon-style-illustration-of-a-young-caucasian-co.png";
 
 export default function Landing() {
@@ -354,8 +357,12 @@ export default function Landing() {
             </div>
             <div className="grid gap-12 md:grid-cols-3">
               <div>
-                <div className="landing-result-icon mb-6">
-                  <ResultIcon type="pie" />
+                <div className="mb-6">
+                  <img 
+                    src={b7d9b091Image} 
+                    alt="Результаты" 
+                    className="w-40 h-40 object-contain"
+                  />
                 </div>
                 <div className="mb-4 text-5xl font-bold text-foreground">80%</div>
                 <p className="text-base text-muted-foreground">
@@ -363,8 +370,12 @@ export default function Landing() {
                 </p>
               </div>
               <div>
-                <div className="landing-result-icon mb-6">
-                  <ResultIcon type="grid" />
+                <div className="mb-6">
+                  <img 
+                    src={chatgptImage4Dec} 
+                    alt="Результаты" 
+                    className="w-40 h-40 object-contain"
+                  />
                 </div>
                 <div className="mb-4 text-5xl font-bold text-foreground">3 из 4</div>
                 <p className="text-base text-muted-foreground">
@@ -372,8 +383,12 @@ export default function Landing() {
                 </p>
               </div>
               <div>
-                <div className="landing-result-icon mb-6">
-                  <ResultIcon type="bar" />
+                <div className="mb-6">
+                  <img 
+                    src={chatgptImage4Dec2} 
+                    alt="Результаты" 
+                    className="w-40 h-40 object-contain"
+                  />
                 </div>
                 <div className="mb-4 text-5xl font-bold text-foreground">61%</div>
                 <p className="text-base text-muted-foreground">
