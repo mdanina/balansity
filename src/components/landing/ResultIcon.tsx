@@ -95,3 +95,4 @@ export const ResultIcon: React.FC<ResultIconProps> = ({ type }) => {
   return null;
 };
 
+

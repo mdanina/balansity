@@ -46,3 +46,4 @@ COMMENT ON INDEX idx_assessments_type_status_profile IS
 
 
 
+

@@ -124,3 +124,4 @@ WHERE schemaname = 'public'
 
 **После применения миграции все предупреждения "Auth RLS Initialization Plan" должны исчезнуть!** ✅
 
+
