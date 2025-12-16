@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { checkupQuestions, answerOptions, impactAnswerOptions } from "@/data/checkupQuestions";
 import { useAssessment } from "@/hooks/useAssessment";
 import { useCurrentProfile } from "@/contexts/ProfileContext";
-import { getProfile, getProfiles } from "@/lib/profileStorage";
-import { getCompletedAssessment } from "@/lib/assessmentStorage";
+import { getProfile } from "@/lib/profileStorage";
+import { findNextChildWithoutCheckup } from "@/lib/assessmentStorage";
 import { logger } from "@/lib/logger";
 import type { Database } from "@/lib/supabase";
 
@@ -236,25 +236,12 @@ export default function CheckupQuestions() {
             // Дожидаемся завершения чекапа и обновления кеша перед навигацией
             async function completeAndNavigate() {
               try {
-                // Завершаем чекап и ждем обновления кеша
                 await complete();
-                
-                // Проверяем, есть ли еще дети без завершенного чекапа
-                const allProfiles = await getProfiles();
-                const children = allProfiles.filter(p => p.type === 'child' && p.id !== profileId);
-                
-                // Находим детей без завершенного чекапа
-                const childrenWithoutCheckup = [];
-                for (const child of children) {
-                  const completedCheckup = await getCompletedAssessment(child.id, 'checkup');
-                  if (!completedCheckup || completedCheckup.status !== 'completed') {
-                    childrenWithoutCheckup.push(child);
-                  }
-                }
-                
-                // Если есть еще дети без чекапа, переходим к следующему
-                if (childrenWithoutCheckup.length > 0) {
-                  const nextChild = childrenWithoutCheckup[0];
+
+                // Проверяем, есть ли еще дети без завершенного чекапа (оптимизировано: 1 запрос вместо N)
+                const nextChild = await findNextChildWithoutCheckup(profileId);
+
+                if (nextChild) {
                   setCurrentProfileId(nextChild.id);
                   setCurrentProfile(nextChild);
                   navigate(`/checkup-intro/${nextChild.id}`);
@@ -264,14 +251,12 @@ export default function CheckupQuestions() {
                 }
               } catch (error) {
                 logger.error('Error completing assessment or checking next child:', error);
-                // В случае ошибки переходим к вопросам о родителе
                 navigate("/parent-intro");
               }
             }
-            
+
             completeAndNavigate();
           } else {
-            // Переходим к вопросам о родителе
             navigate("/parent-intro");
           }
         }
@@ -321,35 +306,21 @@ export default function CheckupQuestions() {
       } else {
         // После последнего вопроса завершаем checkup assessment
         if (profileId) {
-          await complete();
-          
-          // Проверяем, есть ли еще дети без завершенного чекапа
           try {
-            const allProfiles = await getProfiles();
-            const children = allProfiles.filter(p => p.type === 'child' && p.id !== profileId);
-            
-            // Находим детей без завершенного чекапа
-            const childrenWithoutCheckup = [];
-            for (const child of children) {
-              const completedCheckup = await getCompletedAssessment(child.id, 'checkup');
-              if (!completedCheckup || completedCheckup.status !== 'completed') {
-                childrenWithoutCheckup.push(child);
-              }
-            }
-            
-            // Если есть еще дети без чекапа, переходим к следующему
-            if (childrenWithoutCheckup.length > 0) {
-              const nextChild = childrenWithoutCheckup[0];
+            await complete();
+
+            // Проверяем, есть ли еще дети без завершенного чекапа (оптимизировано: 1 запрос вместо N)
+            const nextChild = await findNextChildWithoutCheckup(profileId);
+
+            if (nextChild) {
               setCurrentProfileId(nextChild.id);
               setCurrentProfile(nextChild);
               navigate(`/checkup-intro/${nextChild.id}`);
             } else {
-              // Все дети прошли чекап - переходим к вопросам о родителе
               navigate("/parent-intro");
             }
           } catch (error) {
             logger.error('Error checking next child:', error);
-            // В случае ошибки переходим к вопросам о родителе
             navigate("/parent-intro");
           }
         } else {

@@ -7,8 +7,7 @@ import { useCurrentProfile } from '@/contexts/ProfileContext';
 import { getProfiles } from '@/lib/profileStorage';
 import { logger } from '@/lib/logger';
 import {
-  getOrCreateAssessment,
-  getActiveAssessment,
+  getOrCreateAssessmentFull,
   saveAnswer,
   updateAssessmentStep,
   getAnswers,
@@ -82,29 +81,24 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
         setLoading(false);
         return;
       }
-      
+
       const profileId = actualProfileId;
 
       try {
         setLoading(true);
-        
-        // Получаем или создаем активную оценку
-        const id = await getOrCreateAssessment(profileId, assessmentType, totalSteps);
-        setAssessmentId(id);
 
-        // Получаем существующую оценку для восстановления прогресса
-        const assessment = await getActiveAssessment(profileId, assessmentType);
-        if (assessment) {
-          setCurrentStep(assessment.current_step || 1);
-          
-          // Загружаем сохраненные ответы
-          const answers = await getAnswers(assessment.id);
-          const answersMap = new Map<number, number>();
-          answers.forEach(answer => {
-            answersMap.set(answer.question_id, answer.value);
-          });
-          setSavedAnswers(answersMap);
-        }
+        // Получаем или создаем активную оценку (оптимизировано: 1 запрос вместо 2)
+        const { id, assessment } = await getOrCreateAssessmentFull(profileId, assessmentType, totalSteps);
+        setAssessmentId(id);
+        setCurrentStep(assessment.current_step || 1);
+
+        // Загружаем сохраненные ответы
+        const answers = await getAnswers(assessment.id);
+        const answersMap = new Map<number, number>();
+        answers.forEach(answer => {
+          answersMap.set(answer.question_id, answer.value);
+        });
+        setSavedAnswers(answersMap);
       } catch (error) {
         logger.error('Error initializing assessment:', error);
         toast.error('Ошибка при загрузке оценки. Попробуйте обновить страницу.');

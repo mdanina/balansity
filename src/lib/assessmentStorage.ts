@@ -116,6 +116,91 @@ export async function getOrCreateAssessment(
   }
 }
 
+export interface GetOrCreateAssessmentResult {
+  id: string;
+  assessment: Assessment;
+}
+
+/**
+ * Получить или создать активную оценку для профиля (оптимизированная версия)
+ * Возвращает полный объект Assessment, избегая повторного запроса
+ */
+export async function getOrCreateAssessmentFull(
+  profileId: string,
+  assessmentType: 'checkup' | 'parent' | 'family',
+  totalSteps?: number
+): Promise<GetOrCreateAssessmentResult> {
+  try {
+    // Сначала проверяем, есть ли уже активная оценка
+    const existingAssessment = await getActiveAssessment(profileId, assessmentType);
+
+    if (existingAssessment) {
+      // Обновляем total_steps если нужно
+      if (totalSteps && existingAssessment.total_steps !== totalSteps) {
+        await supabase
+          .from('assessments')
+          .update({ total_steps: totalSteps })
+          .eq('id', existingAssessment.id);
+        existingAssessment.total_steps = totalSteps;
+      }
+      return { id: existingAssessment.id, assessment: existingAssessment };
+    }
+
+    // Создаем новую оценку и сохраняем текущие worry tags
+    const { getProfiles } = await import('./profileStorage');
+    const profiles = await getProfiles();
+
+    const childProfile = profiles.find(p => p.id === profileId && p.type === 'child');
+    const parentProfile = profiles.find(p => p.type === 'parent');
+    const partnerProfile = profiles.find(p => p.type === 'partner');
+
+    // Собираем worry tags из профилей
+    const worryTags: { child?: string[]; personal?: string[]; family?: string[] } = {};
+
+    if (childProfile?.worry_tags) {
+      worryTags.child = childProfile.worry_tags;
+    }
+
+    if (parentProfile?.worry_tags) {
+      const personalWorries = [
+        "Выгорание", "Тревожность", "Пониженное настроение",
+        "Трудности с концентрацией внимания", "Общий стресс",
+      ];
+      const familyWorries = [
+        "Разделение/развод", "Семейный стресс", "Отношения с партнером",
+        "Психическое здоровье партнера", "Воспитание", "Семейный конфликт",
+      ];
+      worryTags.personal = parentProfile.worry_tags.filter(w => personalWorries.includes(w));
+      worryTags.family = parentProfile.worry_tags.filter(w => familyWorries.includes(w));
+    }
+
+    if (partnerProfile?.worry_tags) {
+      worryTags.family = partnerProfile.worry_tags;
+    }
+
+    // Создаем новую оценку с worry tags и возвращаем полный объект
+    const { data: newAssessment, error: createError } = await supabase
+      .from('assessments')
+      .insert({
+        profile_id: profileId,
+        assessment_type: assessmentType,
+        status: 'in_progress',
+        current_step: 1,
+        total_steps: totalSteps || null,
+        worry_tags: Object.keys(worryTags).length > 0 ? worryTags : null,
+      })
+      .select('*')
+      .single();
+
+    if (createError) throw createError;
+
+    return { id: newAssessment.id, assessment: newAssessment };
+  } catch (error) {
+    logger.error('Error getting/creating assessment:', error);
+    throw error;
+  }
+}
+
 /**
  * Получить активную оценку
  */
@@ -502,5 +587,47 @@ export async function getAllAssessmentsForUser(): Promise<Assessment[]> {
   } catch (error) {
     logger.error('Error getting all assessments for user:', error);
     throw error;
+  }
+}
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
+
+/**
+ * Найти следующего ребенка без завершенного чекапа
+ * Оптимизировано: один запрос вместо N (исправлена N+1 проблема)
+ *
+ * @param currentProfileId - ID текущего профиля (исключается из поиска)
+ * @returns Профиль следующего ребенка без чекапа или null
+ */
+export async function findNextChildWithoutCheckup(
+  currentProfileId: string
+): Promise<Profile | null> {
+  try {
+    const { getProfiles } = await import('./profileStorage');
+    const profiles = await getProfiles();
+
+    // Фильтруем детей, исключая текущего
+    const children = profiles.filter(
+      p => p.type === 'child' && p.id !== currentProfileId
+    );
+
+    if (children.length === 0) {
+      return null;
+    }
+
+    // Один запрос для всех детей вместо N запросов
+    const childIds = children.map(c => c.id);
+    const assessmentsMap = await getCompletedAssessmentsForProfiles(childIds, 'checkup');
+
+    // Находим первого ребенка без завершенного чекапа
+    const childWithoutCheckup = children.find(child => {
+      const assessment = assessmentsMap[child.id];
+      return !assessment || assessment.status !== 'completed';
+    });
+
+    return childWithoutCheckup || null;
+  } catch (error) {
+    logger.error('Error finding next child without checkup:', error);
+    return null;
   }
 }
