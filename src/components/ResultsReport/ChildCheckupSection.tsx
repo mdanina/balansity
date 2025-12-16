@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { MessageCircle, Lightbulb, Minus, Plus } from "lucide-react";
 import type { ChildCheckupData } from "@/hooks/useResultsData";
@@ -33,44 +34,43 @@ interface ChildCheckupSectionProps {
 export function ChildCheckupSection({ childData, openSections, toggleSection }: ChildCheckupSectionProps) {
   const childProfile = childData.profile;
   const childResults = childData.results;
-  
+
   // Генерируем уникальные ключи для секций на основе ID ребенка
   const sectionPrefix = `child-${childProfile.id}`;
-  
+
+  // Мемоизируем вычисление worry tags (вынесено из JSX для оптимизации)
+  const childWorryTags = useMemo(() => {
+    const assessmentWorryTags = childData.assessment?.worry_tags as { child?: string[]; personal?: string[]; family?: string[] } | null;
+    return assessmentWorryTags?.child || childProfile.worry_tags?.filter(w => childWorries.includes(w)) || [];
+  }, [childData.assessment?.worry_tags, childProfile.worry_tags]);
+
   return (
     <div className="mb-12">
       <h2 className="text-3xl font-bold text-foreground mb-8">
         Ментальное здоровье {childProfile.first_name}
       </h2>
-      
+
       {/* Worries Section - только о ребенке */}
-      {(() => {
-        // Используем теги из assessment (зафиксированные на момент чекапа), если есть, иначе из профиля
-        const assessmentWorryTags = childData.assessment?.worry_tags as { child?: string[]; personal?: string[]; family?: string[] } | null;
-        const childWorryTags = assessmentWorryTags?.child || childProfile.worry_tags?.filter(w => childWorries.includes(w)) || [];
-        if (childWorryTags.length === 0) return null;
-        
-        return (
-          <div className="mb-8 border-l-4 border-lavender pl-6">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-lavender">
-                <span className="text-sm font-medium text-white">●</span>
-              </div>
-              <h3 className="text-2xl font-bold text-foreground">Беспокойства о {childProfile.first_name}</h3>
+      {childWorryTags.length > 0 && (
+        <div className="mb-8 border-l-4 border-lavender pl-6">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-lavender">
+              <span className="text-sm font-medium text-white">●</span>
             </div>
-            <p className="mb-4 text-foreground/70">
-              Беспокойства, которыми вы поделились о {childProfile.first_name}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {childWorryTags.map((worry, index) => (
-                <span key={index} className="rounded-full bg-coral/20 px-4 py-2 text-sm font-medium text-coral">
-                  {worry}
-                </span>
-              ))}
-            </div>
+            <h3 className="text-2xl font-bold text-foreground">Беспокойства о {childProfile.first_name}</h3>
           </div>
-        );
-      })()}
+          <p className="mb-4 text-foreground/70">
+            Беспокойства, которыми вы поделились о {childProfile.first_name}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {childWorryTags.map((worry, index) => (
+              <span key={index} className="rounded-full bg-coral/20 px-4 py-2 text-sm font-medium text-coral">
+                {worry}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Emotional Challenges */}
       {childResults.emotional && (
