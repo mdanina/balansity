@@ -181,41 +181,19 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
 
     try {
       const results = await completeAssessment(assessmentId);
-      
+
       // Инвалидируем кеш React Query для обновления данных в Dashboard и ResultsReportNew
-      // Инвалидируем все запросы связанные с assessments
-      await queryClient.invalidateQueries({ 
-        queryKey: ['assessments'],
-        exact: false // Инвалидируем все запросы, начинающиеся с 'assessments'
+      // invalidateQueries автоматически триггерит refetch для активных запросов
+      await queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0] as string;
+          // Инвалидируем все запросы связанные с assessments и profiles
+          return ['assessments', 'active-assessments', 'profiles'].includes(key) ||
+                 // Также инвалидируем конкретную оценку для этого профиля
+                 (key === 'assessment' && query.queryKey[1] === actualProfileId);
+        }
       });
-      
-      // Инвалидируем активные оценки
-      await queryClient.invalidateQueries({ 
-        queryKey: ['active-assessments'],
-        exact: false
-      });
-      
-      // Инвалидируем конкретную оценку для этого профиля
-      await queryClient.invalidateQueries({ 
-        queryKey: ['assessment', actualProfileId, assessmentType]
-      });
-      
-      // Инвалидируем profiles для обновления списка профилей (на случай изменений)
-      await queryClient.invalidateQueries({ 
-        queryKey: ['profiles'],
-        exact: false
-      });
-      
-      // Принудительно обновляем данные для немедленного отображения изменений
-      await queryClient.refetchQueries({ 
-        queryKey: ['assessments'],
-        exact: false
-      });
-      await queryClient.refetchQueries({ 
-        queryKey: ['active-assessments'],
-        exact: false
-      });
-      
+
       toast.success('Оценка завершена!');
       return results;
     } catch (error) {
