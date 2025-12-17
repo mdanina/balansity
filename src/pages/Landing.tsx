@@ -1,14 +1,16 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LandingHeader } from "@/components/LandingHeader";
 import { LandingFooter } from "@/components/LandingFooter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ResultIcon } from "@/components/landing/ResultIcon";
 import { ServiceIcon } from "@/components/landing/ServiceIcons";
 import { TestimonialCarousel } from "@/components/landing/TestimonialCarousel";
-import { 
-  Clock, 
+import {
+  Clock,
   CheckCircle2,
   Phone,
   Video,
@@ -32,6 +34,7 @@ import youngCaucasianCoImage from "@/assets/cartoon-style-illustration-of-a-youn
 
 export default function Landing() {
   const navigate = useNavigate();
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string | null>(null);
 
   const testimonials = [
     {
@@ -107,13 +110,102 @@ export default function Landing() {
       description: "Поддержка вашего психического здоровья, не только как родителя и партнера, но и как человека.",
       image: happyCaucasianCoImage
     },
-    { 
-      age: "Планирование, ожидание и послеродовой период", 
-      title: "Планирование, ожидание и послеродовой период", 
+    {
+      age: "Планирование, ожидание и послеродовой период",
+      title: "Планирование, ожидание и послеродовой период",
       description: "Помогаем вам вырастить здоровую семью.",
       image: youngCaucasianCo2Image
     },
   ];
+
+  // Детализация помощи для каждой возрастной группы
+  const ageGroupDetails: Record<string, { subtitle: string; intro: string; challenges: { title: string; description: string }[] }> = {
+    "0-2": {
+      subtitle: "Почувствуйте уверенность в уходе за вашим малышом",
+      intro: "Улучшите психическое здоровье вашего ребенка еще до того, как он научится говорить. Мы можем помочь.",
+      challenges: [
+        { title: "Питание и кормление", description: "Помогаем вам растить здоровых и счастливых едоков." },
+        { title: "Трудности с успокоением", description: "Учим вас ухаживать за младенцами и малышами, которых сложно успокоить." },
+        { title: "Ко-регуляция", description: "Обучаем вас поддерживать эмоциональную регуляцию между вами и вашим малышом." },
+        { title: "Сон и режим дня", description: "Помогаем вашей семье выработать здоровые привычки сна, чтобы все высыпались." },
+        { title: "Укрепление отношений", description: "Поддерживаем развитие здоровых семейных отношений, чтобы ваши дети чувствовали себя в безопасности." },
+        { title: "Игра", description: "Учим вас строить отношения и развивать здоровое исследование через творческую игру." },
+        { title: "Выражение эмоций", description: "Направляем ваших детей в определении, выражении и управлении чувствами." },
+        { title: "Работа с травмой", description: "Помогаем вашему ребенку и семье пережить трудный опыт." }
+      ]
+    },
+    "3-7": {
+      subtitle: "Дайте вашим детям то, что им нужно для процветания",
+      intro: "Даже маленькие дети сталкиваются с трудными эмоциями и отношениями. Мы можем помочь.",
+      challenges: [
+        { title: "Сон и режим дня", description: "Помощь в управлении истериками перед сном, трудностями с засыпанием и ночными кошмарами." },
+        { title: "Поведенческие проблемы", description: "Учим вас распознавать и управлять как типичным, так и тревожным поведением." },
+        { title: "Гиперактивность и внимание", description: "Помогаем справляться с трудностями воспитания маленьких детей и распознавать признаки СДВГ." },
+        { title: "Тревога и страхи", description: "Выявление и терапия тревоги разлуки, социальной тревоги, беспокойства и страхов." },
+        { title: "Грусть", description: "Помогаем вам распознать типичную и тревожную грусть, и как помочь ребенку почувствовать себя лучше." },
+        { title: "Управление большими чувствами", description: "Учим вашего ребенка определять, выражать и управлять сильными эмоциями здоровым способом." }
+      ]
+    },
+    "8-12": {
+      subtitle: "Помогите вашим детям жить самыми счастливыми и здоровыми жизнями",
+      intro: "Ваш ребенок испытывает трудности в школе или дома? Мы здесь, чтобы помочь.",
+      challenges: [
+        { title: "Дружба", description: "Помогаем вашему ребенку развить социальные навыки для поиска и поддержания друзей." },
+        { title: "Поведенческие проблемы", description: "Работаем с вами и вашим ребенком над развитием навыков понимания и управления тревожным поведением." },
+        { title: "Внимание и концентрация", description: "Раннее выявление и терапия СДВГ для предотвращения негативных последствий в школе, дома и с друзьями." },
+        { title: "Тревога и страхи", description: "Выявление и терапия беспокойства, страхов, социальной тревоги, тревоги разлуки и ОКР." },
+        { title: "Грусть", description: "Выявление и терапия детской депрессии." },
+        { title: "Регуляция сильных эмоций", description: "Направляем вашего ребенка в определении, выражении и управлении большими чувствами здоровым способом." },
+        { title: "Отказ от школы", description: "Работаем с вами, вашим ребенком и школой для поддержки успешного возвращения к учебе." },
+        { title: "Работа с травмой", description: "Помогаем вашему ребенку и семье пережить трудный опыт." },
+        { title: "Питание", description: "Выявление и терапия расстройств пищевого поведения и проблем с образом тела." },
+        { title: "Гендерная идентичность", description: "Поддержка и принятие гендерной идентичности вашего ребенка." },
+        { title: "Буллинг", description: "Работа с психическим здоровьем детей, столкнувшихся с травлей." }
+      ]
+    },
+    "13-18": {
+      subtitle: "Поддержите психическое здоровье вашего подростка",
+      intro: "Подростки часто сталкиваются с трудностями, преодолевая жизненные вызовы. Мы можем помочь.",
+      challenges: [
+        { title: "Депрессия", description: "Помогаем распознать, когда это больше, чем обычная грусть, и получить необходимую помощь." },
+        { title: "Тревожность", description: "Терапия тревожных расстройств включая генерализованную, социальную тревогу, фобии и ОКР." },
+        { title: "Рискованное поведение", description: "Помогаем выявить и управлять поведением, опасным для здоровья и безопасности подростка." },
+        { title: "СДВГ", description: "Диагностика и терапия СДВГ. Обучение социальным и организационным навыкам." },
+        { title: "Управление стрессом", description: "Учим вас и вашего подростка справляться со стрессом." },
+        { title: "Давление сверстников и буллинг", description: "Направляем подростка в преодолении социальных вызовов и развитии здоровых отношений." },
+        { title: "Интернет и соцсети", description: "Помогаем вашей семье выработать здоровые отношения с интернетом и социальными сетями." },
+        { title: "Самоповреждение", description: "Терапия подростков, которые причиняют себе вред или испытывают суицидальные мысли." },
+        { title: "Работа с травмой", description: "Помогаем вашему ребенку и семье пережить трудный опыт." }
+      ]
+    },
+    "Родители": {
+      subtitle: "Поддержка вашего психического здоровья — как родителя, партнера и человека",
+      intro: "Баланс между жизнью, работой, воспитанием и отношениями — непростая задача. Мы здесь для вас.",
+      challenges: [
+        { title: "Депрессия", description: "Выявление и терапия депрессии и других расстройств настроения." },
+        { title: "Тревожность", description: "Выявление и терапия тревожных расстройств." },
+        { title: "СДВГ у взрослых", description: "Выявление и терапия СДВГ у взрослых." },
+        { title: "ПТСР", description: "Поддержка в выявлении и терапии ПТСР и других проблем, связанных со стрессом и травмой." },
+        { title: "Конфликты в отношениях", description: "Улучшение качества ваших отношений через семейное консультирование." },
+        { title: "Семейные отношения", description: "Улучшение коммуникации и сотрудничества между всеми членами семьи." },
+        { title: "Совместное воспитание", description: "Поддержка со-родителей в достижении согласия друг с другом." },
+        { title: "Баланс работы и жизни", description: "Помогаем установить здоровые границы и личные ожидания для успеха во всех ролях." }
+      ]
+    },
+    "Планирование, ожидание и послеродовой период": {
+      subtitle: "Помогаем вам вырастить здоровую семью",
+      intro: "Расширение семьи — это одновременно волнительно и страшно. Мы поможем справиться со всеми большими переменами.",
+      challenges: [
+        { title: "Лечение бесплодия", description: "Поддержка на вашем пути к зачатию." },
+        { title: "Первый раз родители", description: "Направляем вас в этом волнительном и иногда стрессовом переходе." },
+        { title: "Пренатальное и послеродовое здоровье", description: "Выявление и терапия депрессии, тревоги и других проблем от зачатия до первых лет жизни ребенка." },
+        { title: "Проблемы партнера", description: "Выявление и терапия психического здоровья пап и других партнеров." },
+        { title: "Потеря беременности", description: "Поддержка в переживании утраты." },
+        { title: "Усыновление", description: "Помогаем вашей семье пройти через радости и трудности усыновления ребенка." },
+        { title: "Суррогатное материнство", description: "Поддержка вашей семьи на пути суррогатного материнства." }
+      ]
+    }
+  };
 
   const conditions = [
     "Депрессия", "Тревога", "Травма и ПТСР", "СДВГ", "Самоповреждение",
@@ -279,21 +371,28 @@ export default function Landing() {
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {ageGroups.map((group) => (
-                <Card key={group.age} className="hover:shadow-lg transition-shadow flex flex-row items-center p-8">
-                  <img 
-                    src={group.image} 
+                <Card
+                  key={group.age}
+                  className="hover:shadow-lg transition-shadow flex flex-row items-center p-8 cursor-pointer"
+                  onClick={() => setSelectedAgeGroup(group.age)}
+                >
+                  <img
+                    src={group.image}
                     alt={group.title}
                     className="landing-age-group-image flex-shrink-0"
                   />
                   <div className="flex-1 ml-6">
                     <CardTitle className="font-serif text-xl mb-3">{group.title}</CardTitle>
                     <CardDescription className="mb-4 text-base">{group.description}</CardDescription>
-                    <a 
-                      href="/#families"
+                    <button
                       className="text-sm font-medium text-primary hover:underline underline-offset-4"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedAgeGroup(group.age);
+                      }}
                     >
                       Узнать больше
-                    </a>
+                    </button>
                   </div>
                 </Card>
               ))}
@@ -689,6 +788,64 @@ export default function Landing() {
             </div>
           </div>
         </section>
+
+        {/* Age Group Details Popup */}
+        <Dialog open={selectedAgeGroup !== null} onOpenChange={(open) => !open && setSelectedAgeGroup(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            {selectedAgeGroup && ageGroupDetails[selectedAgeGroup] && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="font-serif text-2xl md:text-3xl">
+                    {ageGroups.find(g => g.age === selectedAgeGroup)?.title}
+                  </DialogTitle>
+                  <DialogDescription className="text-base pt-2">
+                    {ageGroupDetails[selectedAgeGroup].subtitle}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="mt-4">
+                  <p className="text-muted-foreground mb-6">
+                    {ageGroupDetails[selectedAgeGroup].intro}
+                  </p>
+
+                  <h4 className="text-sm font-semibold uppercase tracking-wide text-foreground mb-4">
+                    С чем мы помогаем
+                  </h4>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {ageGroupDetails[selectedAgeGroup].challenges.map((challenge, index) => (
+                      <div key={index} className="p-4 rounded-lg bg-muted">
+                        <h5 className="font-semibold text-foreground mb-1">{challenge.title}</h5>
+                        <p className="text-sm text-muted-foreground">{challenge.description}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                    <Button
+                      size="lg"
+                      onClick={() => {
+                        setSelectedAgeGroup(null);
+                        navigate("/service");
+                      }}
+                      className="landing-cta-primary-new h-12 px-6"
+                    >
+                      Получить поддержку
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={() => setSelectedAgeGroup(null)}
+                      className="h-12 px-6"
+                    >
+                      Закрыть
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
 
       <LandingFooter />
