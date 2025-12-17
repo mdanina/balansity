@@ -1,5 +1,5 @@
 // Страница регистрации
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,6 +18,10 @@ import logo from "@/assets/noroot (2).png";
 export default function Register() {
   const navigate = useNavigate();
   const { signUp, user, loading: authLoading } = useAuth();
+
+  // Флаг для предотвращения race condition при регистрации
+  // Используем ref, чтобы значение было доступно синхронно в useEffect
+  const isRegisteringRef = useRef(false);
   
   const {
     register,
@@ -27,20 +31,25 @@ export default function Register() {
     resolver: zodResolver(registerSchema),
   });
 
-  // Если пользователь уже авторизован, редиректим на dashboard
+  // Если пользователь уже авторизован и не в процессе регистрации, редиректим на dashboard
+  // Проверка isRegisteringRef.current предотвращает race condition:
+  // без неё useEffect может сработать раньше navigate('/profile') в onSubmit
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && !isRegisteringRef.current) {
       navigate('/dashboard', { replace: true });
     }
   }, [user, authLoading, navigate]);
 
   const onSubmit = async (data: RegisterInput) => {
+    // Устанавливаем флаг в начале, чтобы useEffect не перехватил навигацию
+    isRegisteringRef.current = true;
+
     try {
       const result = await handleApiError(
         () => signUp(data.email, data.password),
         'Ошибка при регистрации'
       );
-      
+
       const { data: signUpData, error } = result;
 
       // Если пользователь создан, даже если есть ошибка (например, email confirmation)
@@ -54,7 +63,7 @@ export default function Register() {
       // Если ошибка и пользователь не создан
       if (error) {
         // Проверяем, не является ли ошибка связанной с email confirmation
-        const isEmailError = 
+        const isEmailError =
           error.message?.toLowerCase().includes('email') ||
           error.message?.toLowerCase().includes('confirmation');
 
@@ -76,12 +85,16 @@ export default function Register() {
           }
         }
 
+        // При ошибке сбрасываем флаг, чтобы useEffect мог работать нормально
+        isRegisteringRef.current = false;
         toast.error(error.message || 'Ошибка при регистрации');
       } else {
+        isRegisteringRef.current = false;
         toast.error('Не удалось создать пользователя');
       }
     } catch (err: unknown) {
       logger.error('Registration exception:', err);
+      isRegisteringRef.current = false;
       // Ошибка уже обработана в handleApiError
     }
   };

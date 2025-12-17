@@ -243,13 +243,16 @@ export default function Profile() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Номер телефона</Label>
+              <Label htmlFor="phone">
+                Номер телефона <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="(123) 456-7890"
+                placeholder="+7 (999) 123-45-67"
+                required
                 className="h-12 text-base"
               />
             </div>
