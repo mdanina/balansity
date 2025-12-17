@@ -29,12 +29,13 @@ export default function FamilyQuestions() {
   const navigate = useNavigate();
   const params = useParams<{ profileId?: string }>();
   
-  const { 
-    currentStep, 
-    loading, 
-    saveAnswer, 
+  const {
+    currentStep,
+    loading,
+    saveAnswer,
     getSavedAnswer,
-    complete 
+    complete,
+    assessmentId
   } = useAssessment({
     assessmentType: 'family',
     totalSteps: familyQuestions.length,
@@ -54,7 +55,7 @@ export default function FamilyQuestions() {
 
   // Восстанавливаем ответы при загрузке (только один раз)
   useEffect(() => {
-    if (!loading && params.profileId && !isInitialized) {
+    if (!loading && assessmentId && !isInitialized) {
       const restoredAnswers = familyQuestions.map((q) => {
         const savedValue = getSavedAnswer(q.id);
         // Если вопрос обратный и есть сохраненное значение, применяем обратное преобразование для отображения
@@ -81,7 +82,7 @@ export default function FamilyQuestions() {
       setIsInitialized(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, params.profileId]);
+  }, [loading, assessmentId]);
 
   if (currentQuestionIndex < 0 || currentQuestionIndex >= familyQuestions.length) {
     navigate("/family-intro");
@@ -129,32 +130,29 @@ export default function FamilyQuestions() {
       // Применяем reverse scoring для обратных вопросов ПРИ СОХРАНЕНИИ
       const valueToSave = currentQuestion.isReverse === true ? reverseScore5(value) : value;
 
-      // Сохраняем в базу данных
-      if (params.profileId) {
-        try {
-          await saveAnswer(
-            currentQuestion.id,
-            `family_${currentQuestion.id.toString().padStart(2, '0')}`,
-            currentQuestion.category,
-            valueToSave, // Сохраняем уже преобразованное значение
-            currentQuestion.answerType,
-            currentQuestionIndex + 1
-          );
-        } catch (error) {
-          console.error('Error saving answer:', error);
-          // Продолжаем выполнение даже если сохранение не удалось
-        }
+      // Сохраняем в базу данных (assessmentId проверяется внутри saveAnswer)
+      try {
+        await saveAnswer(
+          currentQuestion.id,
+          `family_${currentQuestion.id.toString().padStart(2, '0')}`,
+          currentQuestion.category,
+          valueToSave, // Сохраняем уже преобразованное значение
+          currentQuestion.answerType,
+          currentQuestionIndex + 1
+        );
+      } catch (error) {
+        console.error('Error saving answer:', error);
+        // Продолжаем выполнение даже если сохранение не удалось
       }
 
       // Автоматически переходим к следующему вопросу
-      setTimeout(() => {
+      setTimeout(async () => {
         if (currentQuestionIndex < familyQuestions.length - 1) {
           setCurrentQuestionIndex(currentQuestionIndex + 1);
         } else {
-          // Завершаем оценку
-          if (params.profileId) {
-            complete().catch(err => console.error('Error completing assessment:', err));
-          }
+          // Завершаем оценку и ЖДЁМ завершения перед навигацией
+          // complete() сам проверяет наличие assessmentId
+          await complete();
           navigate("/checkup-results");
         }
       }, TRANSITION_DELAY_MS);
@@ -165,16 +163,15 @@ export default function FamilyQuestions() {
 
   const handleSkip = async () => {
     // Сохраняем пропущенный ответ (используем -1 как маркер пропущенного вопроса)
-    if (params.profileId) {
-      await saveAnswer(
-        currentQuestion.id,
-        `family_${currentQuestion.id.toString().padStart(2, '0')}`,
-        currentQuestion.category,
-        -1, // -1 означает пропущенный вопрос
-        currentQuestion.answerType,
-        currentQuestionIndex + 1
-      );
-    }
+    // saveAnswer сам проверяет наличие assessmentId
+    await saveAnswer(
+      currentQuestion.id,
+      `family_${currentQuestion.id.toString().padStart(2, '0')}`,
+      currentQuestion.category,
+      -1, // -1 означает пропущенный вопрос
+      currentQuestion.answerType,
+      currentQuestionIndex + 1
+    );
 
     // Обновляем локальное состояние
     const newAnswers = [...answers];
@@ -189,10 +186,8 @@ export default function FamilyQuestions() {
       if (currentQuestionIndex < familyQuestions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
-        // Завершаем оценку
-        if (params.profileId) {
-          await complete();
-        }
+        // Завершаем оценку и ЖДЁМ завершения перед навигацией
+        await complete();
         navigate("/checkup-results");
       }
     }, TRANSITION_DELAY_MS);
