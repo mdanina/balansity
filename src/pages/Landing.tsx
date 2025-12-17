@@ -680,14 +680,8 @@ export default function Landing() {
                       В Balansity Наталья отвечает за стратегическую архитектуру продукта, включая модель оценки психического здоровья семьи, маршрутизацию помощи и интеграцию научно обоснованных подходов в масштабируемую цифровую платформу.
                     </p>
                   </div>
-                  <Button 
-                    onClick={() => navigate("/#about")}
-                    className="bg-[hsl(45,100%,60%)] hover:bg-[hsl(45,100%,55%)] text-[hsl(203,60%,15%)] font-semibold border-none"
-                  >
-                    Узнать больше
-                  </Button>
                 </div>
-                
+
                 {/* Right side - Photo */}
                 <div className="flex items-center justify-center px-4 md:px-0">
                   <img 
@@ -838,7 +832,7 @@ export default function Landing() {
                       onClick={() => setSelectedAgeGroup(null)}
                       className="h-12 px-6"
                     >
-                      Закрыть
+                      Назад
                     </Button>
                   </div>
                 </div>
