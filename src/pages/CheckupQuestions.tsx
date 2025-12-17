@@ -92,21 +92,22 @@ export default function CheckupQuestions() {
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(initialIndex);
   const [answers, setAnswers] = useState<Answer[]>(
-    checkupQuestions.map((q) => ({ 
-      questionId: q.id, 
-      value: null 
+    checkupQuestions.map((q) => ({
+      questionId: q.id,
+      value: null
     }))
   );
-  
+  const [isInitialized, setIsInitialized] = useState(false);
+
   // Ref для хранения таймеров, чтобы можно было их очистить
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Восстанавливаем ответы при загрузке (только один раз после загрузки)
+  // Восстанавливаем ответы и позицию при загрузке (только один раз)
   useEffect(() => {
-    if (!loading && profileId) {
+    if (!loading && profileId && !isInitialized) {
       // Проверяем, есть ли уже сохраненные ответы
       const hasSavedAnswers = checkupQuestions.some(q => getSavedAnswer(q.id) !== null);
-      
+
       if (hasSavedAnswers) {
         const restoredAnswers = checkupQuestions.map((q) => {
           const savedValue = getSavedAnswer(q.id);
@@ -124,19 +125,27 @@ export default function CheckupQuestions() {
         });
         setAnswers(restoredAnswers);
       }
-      
-      // Восстанавливаем позицию только если индекс еще не установлен из URL параметра
-      // Если есть параметр start в URL, он уже использован в initialIndex
+
+      // Восстанавливаем позицию: приоритет URL параметра, затем сохраненного шага
       const urlStartParam = searchParams.get("start");
-      if (!urlStartParam && currentStep > 1) {
-        // Используем сохраненный шаг только если нет параметра start
+      if (urlStartParam) {
+        // Параметр start в URL (возврат с interlude) - уже учтён в initialIndex
+        // Но на всякий случай проверяем
+        const startIdx = parseInt(urlStartParam) - 1;
+        if (startIdx >= 0 && startIdx < checkupQuestions.length) {
+          setCurrentQuestionIndex(startIdx);
+        }
+      } else if (currentStep > 1) {
+        // Восстанавливаем из сохранённого шага в БД
         const stepIndex = currentStep - 1;
         if (stepIndex >= 0 && stepIndex < checkupQuestions.length) {
           setCurrentQuestionIndex(stepIndex);
         }
       }
+
+      setIsInitialized(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks-exhaustive-deps
   }, [loading, profileId]);
 
   // Проверка на существование вопроса
