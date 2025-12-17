@@ -71,7 +71,7 @@ export default function ParentQuestions() {
         };
       });
       setAnswers(restoredAnswers);
-      
+
       // Устанавливаем индекс только один раз при инициализации
       if (currentStep > 1) {
         const stepIndex = currentStep - 1;
@@ -81,8 +81,7 @@ export default function ParentQuestions() {
       }
       setIsInitialized(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, assessmentId]);
+  }, [loading, assessmentId, currentStep, isInitialized, getSavedAnswer]);
 
   if (currentQuestionIndex < 0 || currentQuestionIndex >= parentQuestions.length) {
     navigate("/parent-intro");

@@ -104,6 +104,7 @@ export default function CheckupQuestions() {
 
   // Восстанавливаем ответы и позицию при загрузке (только один раз)
   useEffect(() => {
+    // Ждём пока загрузятся данные и currentStep будет актуальным
     if (!loading && profileId && !isInitialized) {
       // Проверяем, есть ли уже сохраненные ответы
       const hasSavedAnswers = checkupQuestions.some(q => getSavedAnswer(q.id) !== null);
@@ -124,29 +125,32 @@ export default function CheckupQuestions() {
           };
         });
         setAnswers(restoredAnswers);
+
+        // Логируем для отладки
+        logger.log('Restored answers, currentStep from DB:', currentStep);
       }
 
       // Восстанавливаем позицию: приоритет URL параметра, затем сохраненного шага
       const urlStartParam = searchParams.get("start");
       if (urlStartParam) {
-        // Параметр start в URL (возврат с interlude) - уже учтён в initialIndex
-        // Но на всякий случай проверяем
+        // Параметр start в URL (возврат с interlude)
         const startIdx = parseInt(urlStartParam) - 1;
         if (startIdx >= 0 && startIdx < checkupQuestions.length) {
+          logger.log('Restoring position from URL param:', startIdx + 1);
           setCurrentQuestionIndex(startIdx);
         }
       } else if (currentStep > 1) {
         // Восстанавливаем из сохранённого шага в БД
         const stepIndex = currentStep - 1;
         if (stepIndex >= 0 && stepIndex < checkupQuestions.length) {
+          logger.log('Restoring position from saved step:', currentStep);
           setCurrentQuestionIndex(stepIndex);
         }
       }
 
       setIsInitialized(true);
     }
-    // eslint-disable-next-line react-hooks-exhaustive-deps
-  }, [loading, profileId]);
+  }, [loading, profileId, currentStep, isInitialized, getSavedAnswer, searchParams]);
 
   // Проверка на существование вопроса
   if (!checkupQuestions || checkupQuestions.length === 0) {
