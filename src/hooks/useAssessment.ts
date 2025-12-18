@@ -119,8 +119,10 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
     answerType: string | undefined,
     stepNumber: number
   ) => {
+    logger.log('saveAnswerToDb called:', { assessmentId, questionId, value, stepNumber, loading });
+
     if (!assessmentId) {
-      logger.warn('Assessment ID not available');
+      logger.warn('Assessment ID not available - answer will NOT be saved!');
       return;
     }
 
