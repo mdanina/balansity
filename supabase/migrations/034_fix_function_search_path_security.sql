@@ -318,7 +318,8 @@ END;
 $$;
 
 -- complete_assessment
-CREATE OR REPLACE FUNCTION complete_assessment(assessment_uuid uuid)
+-- ВАЖНО: используем public.calculate_* для вызова функций, т.к. search_path = ''
+CREATE OR REPLACE FUNCTION public.complete_assessment(assessment_uuid uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -331,25 +332,25 @@ BEGIN
   SELECT a.assessment_type INTO assessment_type
   FROM public.assessments a
   WHERE a.id = assessment_uuid;
-  
+
   IF assessment_type = 'checkup' THEN
-    results := calculate_checkup_scores(assessment_uuid);
+    results := public.calculate_checkup_scores(assessment_uuid);
   ELSIF assessment_type = 'parent' THEN
-    results := calculate_parent_scores(assessment_uuid);
+    results := public.calculate_parent_scores(assessment_uuid);
   ELSIF assessment_type = 'family' THEN
-    results := calculate_family_scores(assessment_uuid);
+    results := public.calculate_family_scores(assessment_uuid);
   ELSE
     results := jsonb_build_object('status', 'completed');
   END IF;
-  
+
   UPDATE public.assessments
-  SET 
+  SET
     status = 'completed',
     results_summary = results,
     completed_at = now(),
     updated_at = now()
   WHERE id = assessment_uuid;
-  
+
   RETURN results;
 END;
 $$;
