@@ -131,10 +131,13 @@ export async function getOrCreateAssessmentFull(
   totalSteps?: number
 ): Promise<GetOrCreateAssessmentResult> {
   try {
+    console.log('[DEBUG] getOrCreateAssessmentFull called:', { profileId, assessmentType, totalSteps });
+
     // Сначала проверяем, есть ли уже активная оценка
     const existingAssessment = await getActiveAssessment(profileId, assessmentType);
 
     if (existingAssessment) {
+      console.log('[DEBUG] Found existing assessment:', { id: existingAssessment.id, current_step: existingAssessment.current_step });
       // Обновляем total_steps если нужно
       if (totalSteps && existingAssessment.total_steps !== totalSteps) {
         await supabase
@@ -179,6 +182,8 @@ export async function getOrCreateAssessmentFull(
     }
 
     // Создаем новую оценку с worry tags и возвращаем полный объект
+    console.log('[DEBUG] No existing assessment found, creating new one for profileId:', profileId);
+
     const { data: newAssessment, error: createError } = await supabase
       .from('assessments')
       .insert({
@@ -192,7 +197,12 @@ export async function getOrCreateAssessmentFull(
       .select('*')
       .single();
 
-    if (createError) throw createError;
+    if (createError) {
+      console.error('[DEBUG] Error creating assessment:', createError);
+      throw createError;
+    }
+
+    console.log('[DEBUG] Created new assessment:', { id: newAssessment.id, profileId: newAssessment.profile_id });
 
     return { id: newAssessment.id, assessment: newAssessment };
   } catch (error) {
@@ -209,6 +219,8 @@ export async function getActiveAssessment(
   assessmentType: 'checkup' | 'parent' | 'family'
 ): Promise<Assessment | null> {
   try {
+    console.log('[DEBUG] getActiveAssessment called:', { profileId, assessmentType });
+
     const { data, error } = await supabase
       .from('assessments')
       .select('*')
@@ -219,7 +231,12 @@ export async function getActiveAssessment(
       .limit(1)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[DEBUG] getActiveAssessment error:', error);
+      throw error;
+    }
+
+    console.log('[DEBUG] getActiveAssessment result:', data ? { id: data.id, current_step: data.current_step, status: data.status } : 'null');
 
     return data;
   } catch (error) {
@@ -294,13 +311,20 @@ export async function saveAnswer(
  */
 export async function getAnswers(assessmentId: string): Promise<Answer[]> {
   try {
+    console.log('[DEBUG] getAnswers called for assessmentId:', assessmentId);
+
     const { data, error } = await supabase
       .from('answers')
       .select('*')
       .eq('assessment_id', assessmentId)
       .order('question_id', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('[DEBUG] getAnswers error:', error);
+      throw error;
+    }
+
+    console.log('[DEBUG] getAnswers found:', data?.length || 0, 'answers');
 
     return data || [];
   } catch (error) {
