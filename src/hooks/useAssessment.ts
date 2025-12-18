@@ -13,6 +13,7 @@ import {
   getAnswers,
   completeAssessment,
 } from '@/lib/assessmentStorage';
+import { createFreeConsultationAfterFirstCheckup } from '@/lib/appointmentStorage';
 import type { AnswerData } from '@/lib/assessmentStorage';
 
 interface UseAssessmentOptions {
@@ -194,13 +195,23 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
     try {
       const results = await completeAssessment(assessmentId);
 
+      // Если это checkup, создаём бесплатную консультацию после первого чекапа
+      if (assessmentType === 'checkup') {
+        try {
+          await createFreeConsultationAfterFirstCheckup();
+        } catch (error) {
+          // Не прерываем процесс, если не удалось создать консультацию
+          logger.error('Error creating free consultation:', error);
+        }
+      }
+
       // Инвалидируем кеш React Query для обновления данных в Dashboard и ResultsReportNew
       // invalidateQueries автоматически триггерит refetch для активных запросов
       await queryClient.invalidateQueries({
         predicate: (query) => {
           const key = query.queryKey[0] as string;
-          // Инвалидируем все запросы связанные с assessments и profiles
-          return ['assessments', 'active-assessments', 'profiles'].includes(key) ||
+          // Инвалидируем все запросы связанные с assessments, profiles и appointments
+          return ['assessments', 'active-assessments', 'profiles', 'appointments', 'appointments-with-type', 'active-free-consultation'].includes(key) ||
                  // Также инвалидируем конкретную оценку для этого профиля
                  (key === 'assessment' && query.queryKey[1] === actualProfileId);
         }
