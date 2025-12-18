@@ -104,10 +104,14 @@ export default function CheckupQuestions() {
 
   // Восстанавливаем ответы и позицию при загрузке (только один раз)
   useEffect(() => {
+    // DEBUG: логируем состояние при каждом вызове useEffect
+    console.log('[DEBUG] Restore useEffect:', { loading, profileId, isInitialized, currentStep, savedAnswersCount: savedAnswers.size });
+
     // Ждём пока загрузятся данные и currentStep будет актуальным
     if (!loading && profileId && !isInitialized) {
       // Проверяем, есть ли уже сохраненные ответы
       const hasSavedAnswers = checkupQuestions.some(q => getSavedAnswer(q.id) !== null);
+      console.log('[DEBUG] hasSavedAnswers:', hasSavedAnswers, 'currentStep:', currentStep);
 
       if (hasSavedAnswers) {
         const restoredAnswers = checkupQuestions.map((q) => {
@@ -125,9 +129,7 @@ export default function CheckupQuestions() {
           };
         });
         setAnswers(restoredAnswers);
-
-        // Логируем для отладки
-        logger.log('Restored answers, currentStep from DB:', currentStep);
+        console.log('[DEBUG] Restored answers from DB');
       }
 
       // Восстанавливаем позицию: приоритет URL параметра, затем сохраненного шага
@@ -136,21 +138,23 @@ export default function CheckupQuestions() {
         // Параметр start в URL (возврат с interlude)
         const startIdx = parseInt(urlStartParam) - 1;
         if (startIdx >= 0 && startIdx < checkupQuestions.length) {
-          logger.log('Restoring position from URL param:', startIdx + 1);
+          console.log('[DEBUG] Restoring position from URL param:', startIdx + 1);
           setCurrentQuestionIndex(startIdx);
         }
       } else if (currentStep > 1) {
         // Восстанавливаем из сохранённого шага в БД
         const stepIndex = currentStep - 1;
         if (stepIndex >= 0 && stepIndex < checkupQuestions.length) {
-          logger.log('Restoring position from saved step:', currentStep);
+          console.log('[DEBUG] Restoring position from saved step:', currentStep);
           setCurrentQuestionIndex(stepIndex);
         }
+      } else {
+        console.log('[DEBUG] No position to restore, starting from 0');
       }
 
       setIsInitialized(true);
     }
-  }, [loading, profileId, currentStep, isInitialized, getSavedAnswer, searchParams]);
+  }, [loading, profileId, currentStep, isInitialized, getSavedAnswer, searchParams, savedAnswers.size]);
 
   // Проверка на существование вопроса
   if (!checkupQuestions || checkupQuestions.length === 0) {
