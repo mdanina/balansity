@@ -266,14 +266,22 @@ export async function saveAnswer(
       step_number: answer.stepNumber,
     };
 
+    logger.log('Saving answer to DB:', { assessmentId, questionId: answer.questionId, value: answer.value, stepNumber: answer.stepNumber });
+
     // Используем upsert для обновления существующего ответа или создания нового
-    const { error } = await supabase
+    const { error, data } = await supabase
       .from('answers')
       .upsert(answerData, {
         onConflict: 'assessment_id,question_id',
-      });
+      })
+      .select();
 
-    if (error) throw error;
+    if (error) {
+      logger.error('Supabase error saving answer:', error);
+      throw error;
+    }
+
+    logger.log('Answer saved successfully:', data);
   } catch (error) {
     logger.error('Error saving answer:', error);
     throw error;
