@@ -26,7 +26,8 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
   const { currentProfileId } = useCurrentProfile();
   const queryClient = useQueryClient();
   const [actualProfileId, setActualProfileId] = useState<string | null>(null);
-  
+  const [profileIdDetermined, setProfileIdDetermined] = useState(false); // Флаг: profileId определён
+
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [savedAnswers, setSavedAnswers] = useState<Map<number, number>>(new Map());
@@ -35,19 +36,20 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
   // Определяем правильный profileId: для parent/family используем профиль родителя
   useEffect(() => {
     let cancelled = false;
-    
+
     async function determineProfileId() {
       const inputProfileId = providedProfileId || params.profileId || currentProfileId;
-      
+
       // Для parent и family оценок всегда используем профиль родителя
       if (assessmentType === 'parent' || assessmentType === 'family') {
         try {
           const profiles = await getProfiles();
           if (cancelled) return;
-          
+
           const parent = profiles.find(p => p.type === 'parent');
           if (parent) {
             setActualProfileId(parent.id);
+            setProfileIdDetermined(true);
             return;
           }
         } catch (error) {
@@ -55,19 +57,21 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
           // Если ошибка, используем переданный profileId
           if (!cancelled) {
             setActualProfileId(inputProfileId || null);
+            setProfileIdDetermined(true);
           }
           return;
         }
       }
-      
+
       // Для checkup используем переданный profileId (профиль ребенка)
       if (!cancelled) {
         setActualProfileId(inputProfileId || null);
+        setProfileIdDetermined(true);
       }
     }
-    
+
     determineProfileId();
-    
+
     return () => {
       cancelled = true;
     };
@@ -76,6 +80,12 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
   // Инициализация: получение или создание оценки
   useEffect(() => {
     async function init() {
+      // Ждём пока profileId будет определён
+      if (!profileIdDetermined) {
+        console.log('[DEBUG] useAssessment: waiting for profileId to be determined');
+        return;
+      }
+
       if (!actualProfileId) {
         logger.warn('Profile ID not found');
         setLoading(false);
@@ -113,7 +123,7 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
     }
 
     init();
-  }, [actualProfileId, assessmentType, totalSteps]);
+  }, [actualProfileId, profileIdDetermined, assessmentType, totalSteps]);
 
   // Сохранение ответа с оптимистичным обновлением UI
   const saveAnswerToDb = async (
