@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import "react-quill/dist/quill.snow.css";
 import { initSentry } from "./lib/sentry";
 
 // Initialize Sentry before rendering the app (async, but don't block rendering)

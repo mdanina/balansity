@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
-import 'react-quill/dist/quill.snow.css';
 import { uploadBlogImage } from '@/lib/storage';
 import { toast } from 'sonner';
 import './Blog.css';
