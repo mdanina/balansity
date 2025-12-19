@@ -433,7 +433,7 @@ export default function Landing() {
           <div className="container mx-auto px-4 relative z-10">
             <div className="mb-12 text-center">
               <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">
-                Нам доверяют более 25 000 семей
+                Нам доверяют более 2 000 семей
               </h2>
             </div>
             <TestimonialCarousel testimonials={testimonials} />
