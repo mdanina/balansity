@@ -74,7 +74,7 @@ export default function Profile() {
           // Если пользователь уже прошел онбординг и зашел сюда не из dashboard,
           // значит это ошибочный редирект - отправляем на dashboard
           if (location.state?.from !== 'dashboard') {
-            navigate('/dashboard', { replace: true });
+            navigate('/cabinet', { replace: true });
             return;
           }
         }
@@ -135,7 +135,7 @@ export default function Profile() {
 
         if (isEditing) {
           // Редактирование из меню или пользователь уже прошел онбординг → возвращаемся в Dashboard
-          navigate("/dashboard");
+          navigate("/cabinet");
         } else {
           // Первичная настройка → продолжаем поток
           navigate("/region");

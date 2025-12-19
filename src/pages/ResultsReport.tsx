@@ -320,7 +320,7 @@ export default function ResultsReport() {
           <Button
             size="lg"
             variant="outline"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/cabinet")}
             className="flex-1"
           >
             Вернуться на панель

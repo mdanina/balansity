@@ -74,7 +74,7 @@ export default function ResultsReportNew() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">Результаты не найдены</p>
-          <Button onClick={() => navigate("/dashboard")} className="mt-4">
+          <Button onClick={() => navigate("/cabinet")} className="mt-4">
             Вернуться в кабинет
           </Button>
         </div>
@@ -1484,7 +1484,7 @@ export default function ResultsReportNew() {
         <div className="text-center">
           <Button
             size="lg"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/cabinet")}
             className="w-full max-w-md"
           >
             Вернуться в личный кабинет

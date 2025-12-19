@@ -32,7 +32,7 @@ export default function Login() {
   // Если пользователь уже авторизован, редиректим на dashboard
   useEffect(() => {
     if (!authLoading && user) {
-      navigate('/dashboard', { replace: true });
+      navigate('/cabinet', { replace: true });
     }
   }, [user, authLoading, navigate]);
 
@@ -76,12 +76,12 @@ export default function Login() {
           // Если регион не заполнен, идем на выбор региона
           navigate('/region');
         } else {
-          navigate('/dashboard');
+          navigate('/cabinet');
         }
       } catch (profileError) {
         logger.error('Error loading user profile:', profileError);
         // Продолжаем на dashboard даже если ошибка загрузки профиля
-        navigate('/dashboard');
+        navigate('/cabinet');
       }
     } catch (err) {
       logger.error('Login exception:', err);

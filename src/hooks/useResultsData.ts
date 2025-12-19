@@ -62,7 +62,7 @@ export function useResultsData(
       
       if (!user) {
         if (!cancelled) {
-          navigate("/dashboard");
+          navigate("/cabinet");
         }
         return;
       }
@@ -197,7 +197,7 @@ export function useResultsData(
         // Если нет ни одной завершенной оценки, показываем ошибку
         if (!cancelled && childrenData.length === 0 && !recalculatedParent && !recalculatedFamily) {
           toast.error('Завершенные оценки не найдены');
-          navigate("/dashboard");
+          navigate("/cabinet");
         }
       } catch (error) {
         if (!cancelled) {

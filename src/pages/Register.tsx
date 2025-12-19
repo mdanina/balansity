@@ -36,7 +36,7 @@ export default function Register() {
   // без неё useEffect может сработать раньше navigate('/profile') в onSubmit
   useEffect(() => {
     if (!authLoading && user && !isRegisteringRef.current) {
-      navigate('/dashboard', { replace: true });
+      navigate('/cabinet', { replace: true });
     }
   }, [user, authLoading, navigate]);
 

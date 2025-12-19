@@ -383,7 +383,7 @@ export default function Worries() {
                 toast.success('Беспокойства сохранены');
                 
                 // Всегда возвращаемся в Dashboard (при редактировании из меню или после первоначальной настройки)
-                navigate("/dashboard");
+                navigate("/cabinet");
               } catch (error) {
                 logger.error('Error saving worry tags:', error);
                 toast.error('Ошибка при сохранении беспокойств');
