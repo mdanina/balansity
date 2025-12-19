@@ -18,9 +18,6 @@ export const LandingFooter = () => {
               <a href="/#privacy-notice" className="hover:text-foreground transition-colors">
                 Уведомление о конфиденциальности
               </a>
-              <a href="/#california" className="hover:text-foreground transition-colors">
-                Уведомление для потребителей Калифорнии
-              </a>
               <a href="/#sitemap" className="hover:text-foreground transition-colors">
                 Карта сайта
               </a>
