@@ -1,7 +1,18 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <script>if(location.protocol!=='https:'&&location.hostname!=='localhost')location.replace('https://'+location.host+location.pathname+location.search);</script>
+    <script>
+    (function(){
+      var h = location.hostname;
+      var needsRedirect = false;
+      var newHost = h;
+      // Redirect www to non-www
+      if(h.indexOf('www.') === 0) { newHost = h.substring(4); needsRedirect = true; }
+      // Redirect HTTP to HTTPS
+      if(location.protocol !== 'https:' && h !== 'localhost') needsRedirect = true;
+      if(needsRedirect && h !== 'localhost') location.replace('https://' + newHost + location.pathname + location.search);
+    })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Balansity - Психическое здоровье для семей</title>
