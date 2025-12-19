@@ -53,8 +53,8 @@ export default function Worries() {
   const { currentProfileId, currentProfile, setCurrentProfile } = useCurrentProfile();
   const profileId = params.profileId || currentProfileId;
   
-  // Определяем, откуда пришли - если из Dashboard, то возвращаемся туда
-  const isFromDashboard = location.state?.from === 'dashboard' || !profileId;
+  // Определяем, откуда пришли - если из Cabinet, то возвращаемся туда
+  const isFromDashboard = location.state?.from === 'cabinet' || !profileId;
   
   const [expandedSections, setExpandedSections] = useState({
     child: false,
