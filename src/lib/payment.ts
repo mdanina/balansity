@@ -165,7 +165,10 @@ async function createYooKassaPayment(
   params: CreatePaymentParams
 ): Promise<string | undefined> {
   try {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    // Нормализуем API URL - убираем /api если он есть в конце,
+    // т.к. он будет добавлен в пути запроса
+    let apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    apiUrl = apiUrl.replace(/\/api\/?$/, '');
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
@@ -290,7 +293,10 @@ export async function checkPaymentStatus(paymentId: string): Promise<PaymentStat
  */
 export async function verifyPaymentWithAPI(paymentId: string): Promise<PaymentStatus> {
   try {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    // Нормализуем API URL - убираем /api если он есть в конце,
+    // т.к. он будет добавлен в пути запроса
+    let apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    apiUrl = apiUrl.replace(/\/api\/?$/, '');
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
