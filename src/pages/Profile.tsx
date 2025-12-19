@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
@@ -33,12 +33,14 @@ export default function Profile() {
   const [smsConsent, setSmsConsent] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Флаг для определения, прошел ли пользователь онбординг ранее
+  const hasCompletedOnboardingRef = useRef(false);
 
   // Загружаем существующие данные пользователя и профиля родителя
   useEffect(() => {
     async function loadUserData() {
       if (!user) return;
-      
+
       try {
         const userData = await getCurrentUserData();
         if (userData) {
@@ -57,6 +59,25 @@ export default function Profile() {
           setPronouns(parentProfile.pronouns || "");
           setSeekingCare(parentProfile.seeking_care || "");
         }
+
+        // Проверяем, прошел ли пользователь онбординг полностью:
+        // - Есть профиль родителя с заполненными данными
+        // - Есть телефон
+        // - Есть регион
+        const hasParentProfile = parentProfile && parentProfile.first_name && parentProfile.last_name;
+        const hasPhone = userData?.phone;
+        const hasRegion = userData?.region;
+
+        if (hasParentProfile && hasPhone && hasRegion) {
+          hasCompletedOnboardingRef.current = true;
+
+          // Если пользователь уже прошел онбординг и зашел сюда не из dashboard,
+          // значит это ошибочный редирект - отправляем на dashboard
+          if (location.state?.from !== 'dashboard') {
+            navigate('/dashboard', { replace: true });
+            return;
+          }
+        }
       } catch (error) {
         console.error('Error loading user data:', error);
       } finally {
@@ -64,7 +85,7 @@ export default function Profile() {
       }
     }
     loadUserData();
-  }, [user]);
+  }, [user, location.state, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,10 +130,11 @@ export default function Profile() {
         }
 
         // Определяем, откуда пришли: редактирование из меню или первичная настройка
-        const isEditing = location.state?.from === 'dashboard';
-        
+        // Также проверяем, прошел ли пользователь онбординг ранее
+        const isEditing = location.state?.from === 'dashboard' || hasCompletedOnboardingRef.current;
+
         if (isEditing) {
-          // Редактирование из меню → возвращаемся в Dashboard
+          // Редактирование из меню или пользователь уже прошел онбординг → возвращаемся в Dashboard
           navigate("/dashboard");
         } else {
           // Первичная настройка → продолжаем поток

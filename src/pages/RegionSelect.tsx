@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
@@ -14,6 +14,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { getCurrentUserData, upsertUserData } from "@/lib/userStorage";
+import { getProfiles } from "@/lib/profileStorage";
 
 const regions = [
   "Москва",
@@ -39,10 +40,12 @@ export default function RegionSelect() {
   const { user } = useAuth();
   const [region, setRegion] = useState("");
   const [loading, setLoading] = useState(true);
+  // Флаг для определения, прошел ли пользователь онбординг ранее
+  const hasCompletedOnboardingRef = useRef(false);
 
-  // Загружаем существующий регион
+  // Загружаем существующий регион и проверяем статус онбординга
   useEffect(() => {
-    async function loadRegion() {
+    async function loadData() {
       if (!user) {
         setLoading(false);
         return;
@@ -53,14 +56,30 @@ export default function RegionSelect() {
         if (userData?.region) {
           setRegion(userData.region);
         }
+
+        // Проверяем, прошел ли пользователь онбординг полностью:
+        // Если есть профиль ребенка - значит пользователь уже прошел весь онбординг
+        const profiles = await getProfiles();
+        const hasChildProfile = profiles.some(p => p.type === 'child');
+
+        if (hasChildProfile) {
+          hasCompletedOnboardingRef.current = true;
+
+          // Если пользователь уже прошел онбординг и зашел сюда не из dashboard,
+          // значит это ошибочный редирект - отправляем на dashboard
+          if (location.state?.from !== 'dashboard') {
+            navigate('/dashboard', { replace: true });
+            return;
+          }
+        }
       } catch (error) {
         console.error('Error loading region:', error);
       } finally {
         setLoading(false);
       }
     }
-    loadRegion();
-  }, [user]);
+    loadData();
+  }, [user, location.state, navigate]);
 
   const handleContinue = async () => {
     if (region) {
@@ -71,10 +90,11 @@ export default function RegionSelect() {
         await upsertUserData({ region });
 
         // Определяем, откуда пришли: редактирование из меню или первичная настройка
-        const isEditing = location.state?.from === 'dashboard';
+        // Также проверяем, прошел ли пользователь онбординг ранее
+        const isEditing = location.state?.from === 'dashboard' || hasCompletedOnboardingRef.current;
 
         if (isEditing) {
-          // Редактирование из меню → возвращаемся в Dashboard
+          // Редактирование из меню или пользователь уже прошел онбординг → возвращаемся в Dashboard
           navigate("/dashboard");
         } else {
           // Первичная настройка → продолжаем поток
@@ -132,8 +152,8 @@ export default function RegionSelect() {
                 variant="outline"
                 size="lg"
                 onClick={() => {
-                  // Если это редактирование, возвращаемся в Dashboard, иначе в Profile
-                  const isEditing = location.state?.from === 'dashboard';
+                  // Если это редактирование или пользователь прошел онбординг, возвращаемся в Dashboard
+                  const isEditing = location.state?.from === 'dashboard' || hasCompletedOnboardingRef.current;
                   if (isEditing) {
                     navigate("/dashboard");
                   } else {
