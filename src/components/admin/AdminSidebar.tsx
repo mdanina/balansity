@@ -17,6 +17,7 @@ const navigation = [
   { name: 'Консультации', href: '/admin/appointments', icon: Calendar },
   { name: 'Платежи', href: '/admin/payments', icon: CreditCard },
   { name: 'Контент', href: '/admin/content', icon: Settings },
+  { name: 'Блог', href: '/admin/blog', icon: FileText },
   { name: 'Поддержка', href: '/admin/support', icon: MessageSquare },
 ];
 

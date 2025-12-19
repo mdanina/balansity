@@ -16,7 +16,13 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import "@/components/landing/Landing.css";
 
-export const LandingHeader = () => {
+type LandingHeaderVariant = "default" | "blog";
+
+interface LandingHeaderProps {
+  variant?: LandingHeaderVariant;
+}
+
+export const LandingHeader = ({ variant = "default" }: LandingHeaderProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -39,9 +45,20 @@ export const LandingHeader = () => {
     { label: "Наша экспертиза", href: "/#about" },
   ];
 
+  const blogMenuItem = { label: "Блог", href: "/blog" };
+
+  const isBlog = variant === "blog";
+
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header
+        className={cn(
+          "sticky top-0 z-50 w-full backdrop-blur",
+          isBlog
+            ? "border-b border-[#20212b] bg-[#111118]/95"
+            : "border-b border-border bg-background/95 supports-[backdrop-filter]:bg-background/60",
+        )}
+      >
         <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center space-x-2">
@@ -52,16 +69,27 @@ export const LandingHeader = () => {
           <NavigationMenu className="hidden md:flex">
             <NavigationMenuList>
               <NavigationMenuItem>
-                <NavigationMenuTrigger>Для семей</NavigationMenuTrigger>
+                <NavigationMenuTrigger
+                  className={cn(
+                    "text-sm font-medium",
+                    isBlog &&
+                      "rounded-full bg-[#171821] px-4 py-2 text-xs font-semibold tracking-[0.06em] text-white hover:bg-[#232533]",
+                  )}
+                >
+                  Для семей
+                </NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                     {familiesMenu.map((item) => (
-                      <li key={item.href}>
+                      <li key={item.label}>
                         <NavigationMenuLink asChild>
                           <a
                             href={item.href}
                             className={cn(
-                              "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                              "block select-none space-y-1 rounded-full px-4 py-2 leading-none no-underline outline-none transition-colors text-xs font-medium",
+                              isBlog
+                                ? "bg-[#171821] text-white hover:bg-[#232533]"
+                                : "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
                             )}
                           >
                             <div className="text-sm font-medium leading-none">{item.label}</div>
@@ -73,7 +101,15 @@ export const LandingHeader = () => {
                 </NavigationMenuContent>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <NavigationMenuTrigger>Как работает</NavigationMenuTrigger>
+                <NavigationMenuTrigger
+                  className={cn(
+                    "text-sm font-medium",
+                    isBlog &&
+                      "rounded-full bg-[#171821] px-4 py-2 text-xs font-semibold tracking-[0.06em] text-white hover:bg-[#232533]",
+                  )}
+                >
+                  Как работает
+                </NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px]">
                     {howCareWorksMenu.map((item) => (
@@ -82,7 +118,10 @@ export const LandingHeader = () => {
                           <a
                             href={item.href}
                             className={cn(
-                              "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                              "block select-none space-y-1 rounded-full px-4 py-2 leading-none no-underline outline-none transition-colors text-xs font-medium",
+                              isBlog
+                                ? "bg-[#171821] text-white hover:bg-[#232533]"
+                                : "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
                             )}
                           >
                             <div className="text-sm font-medium leading-none">{item.label}</div>
@@ -96,7 +135,12 @@ export const LandingHeader = () => {
               <NavigationMenuItem>
                 <a
                   href="/#testimonials"
-                  className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                  className={cn(
+                    "group inline-flex h-10 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                    isBlog
+                      ? "rounded-full bg-[#171821] text-white hover:bg-[#232533]"
+                      : "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                  )}
                 >
                   Отзывы
                 </a>
@@ -104,7 +148,12 @@ export const LandingHeader = () => {
               <NavigationMenuItem>
                 <a
                   href="/#faq"
-                  className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                  className={cn(
+                    "group inline-flex h-10 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                    isBlog
+                      ? "rounded-full bg-[#171821] text-white hover:bg-[#232533]"
+                      : "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                  )}
                 >
                   FAQ
                 </a>
@@ -112,10 +161,28 @@ export const LandingHeader = () => {
               <NavigationMenuItem>
                 <a
                   href="/#about"
-                  className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                  className={cn(
+                    "group inline-flex h-10 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                    isBlog
+                      ? "rounded-full bg-[#171821] text-white hover:bg-[#232533]"
+                      : "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                  )}
                 >
                   О нас
                 </a>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link
+                  to={blogMenuItem.href}
+                  className={cn(
+                    "group inline-flex h-10 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                    isBlog
+                      ? "rounded-full bg-[#f5ff7a] text-[#15161a] hover:bg-[#f0f46a]"
+                      : "bg-background hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                  )}
+                >
+                  {blogMenuItem.label}
+                </Link>
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
@@ -198,6 +265,13 @@ export const LandingHeader = () => {
                   className="text-base font-medium text-foreground transition-colors hover:text-primary"
                 >
                   О нас
+                </a>
+                <a
+                  href={blogMenuItem.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-medium text-foreground transition-colors hover:text-primary"
+                >
+                  {blogMenuItem.label}
                 </a>
                 <div className="pt-4 border-t">
                   {user ? (

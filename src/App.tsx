@@ -78,6 +78,9 @@ const AppointmentsManagement = lazy(() => import("./pages/admin/AppointmentsMana
 const PaymentsManagement = lazy(() => import("./pages/admin/PaymentsManagement"));
 const ContentManagement = lazy(() => import("./pages/admin/ContentManagement"));
 const SupportTools = lazy(() => import("./pages/admin/SupportTools"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
+const BlogManagement = lazy(() => import("./pages/admin/BlogManagement"));
 
 // Компонент загрузки
 const PageLoader = () => (
@@ -121,6 +124,8 @@ const App = () => (
                     <Route path="/register" element={<Register />} />
                     <Route path="/welcome" element={<Welcome />} />
                     <Route path="/coming-soon" element={<ComingSoon />} />
+                    <Route path="/blog" element={<Blog />} />
+                    <Route path="/blog/:slug" element={<BlogPost />} />
                     
                     {/* Админ-маршруты */}
                     <Route path="/admin/login" element={<AdminLogin />} />
@@ -139,6 +144,7 @@ const App = () => (
                       <Route path="payments" element={<PaymentsManagement />} />
                       <Route path="content" element={<ContentManagement />} />
                       <Route path="support" element={<SupportTools />} />
+                      <Route path="blog" element={<BlogManagement />} />
                     </Route>
                     
                     {/* Защищенные маршруты (требуют авторизации) */}
