@@ -186,7 +186,7 @@ export default function FamilyMembers() {
               <Button
                 type="button"
                 size="lg"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/cabinet")}
                 className="h-14 w-full text-base font-medium"
               >
                 Вернуться в кабинет

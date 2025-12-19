@@ -47,13 +47,13 @@ export default function AppointmentConfirmation() {
       if (appointmentId || packageId) {
         const timeout = setTimeout(() => {
           if (!appointment && !packagePurchase) {
-            navigate("/dashboard");
+            navigate("/cabinet");
           }
         }, 2000); // Даем 2 секунды на загрузку
         return () => clearTimeout(timeout);
       } else {
         // Если нет ID в URL - сразу перенаправляем
-        navigate("/dashboard");
+        navigate("/cabinet");
       }
     }
   }, [appointment, packagePurchase, isLoading, navigate, appointmentId, packageId]);
@@ -152,7 +152,7 @@ export default function AppointmentConfirmation() {
           <div className="flex gap-4 justify-center">
             <Button
               variant="outline"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/cabinet")}
             >
               Вернуться в кабинет
             </Button>

@@ -65,7 +65,7 @@ export default function CheckupHistory() {
       if (authLoading) return;
       
       if (!user) {
-        navigate("/dashboard");
+        navigate("/cabinet");
         return;
       }
 
@@ -159,7 +159,7 @@ export default function CheckupHistory() {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/cabinet")}
             className="mb-4"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -266,7 +266,7 @@ export default function CheckupHistory() {
                   Сбросить фильтры
                 </Button>
               ) : (
-                <Button onClick={() => navigate("/dashboard")}>
+                <Button onClick={() => navigate("/cabinet")}>
                   Перейти к дашборду
                 </Button>
               )}

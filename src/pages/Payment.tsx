@@ -262,7 +262,7 @@ export default function Payment() {
             <p className="text-muted-foreground mb-4">
               {type === "appointment" ? "Консультация" : "Пакет"} не найден
             </p>
-            <Button onClick={() => navigate("/dashboard")}>
+            <Button onClick={() => navigate("/cabinet")}>
               Вернуться в кабинет
             </Button>
           </Card>

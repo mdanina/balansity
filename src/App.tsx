@@ -167,7 +167,7 @@ const App = () => (
                     <Route path="/checkup-results" element={<ProtectedRoute><CheckupResults /></ProtectedRoute>} />
                     <Route path="/results-report/:profileId?" element={<ProtectedRoute><ResultsReportNew /></ProtectedRoute>} />
                     <Route path="/checkup-history" element={<ProtectedRoute><CheckupHistory /></ProtectedRoute>} />
-                    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                    <Route path="/cabinet" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                     
                     {/* Консультации и оплата */}
                     <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />

@@ -68,7 +68,7 @@ export default function RegionSelect() {
           // Если пользователь уже прошел онбординг и зашел сюда не из dashboard,
           // значит это ошибочный редирект - отправляем на dashboard
           if (location.state?.from !== 'dashboard') {
-            navigate('/dashboard', { replace: true });
+            navigate('/cabinet', { replace: true });
             return;
           }
         }
@@ -95,7 +95,7 @@ export default function RegionSelect() {
 
         if (isEditing) {
           // Редактирование из меню или пользователь уже прошел онбординг → возвращаемся в Dashboard
-          navigate("/dashboard");
+          navigate("/cabinet");
         } else {
           // Первичная настройка → продолжаем поток
           // Simulate some regions being unavailable
@@ -155,7 +155,7 @@ export default function RegionSelect() {
                   // Если это редактирование или пользователь прошел онбординг, возвращаемся в Dashboard
                   const isEditing = location.state?.from === 'dashboard' || hasCompletedOnboardingRef.current;
                   if (isEditing) {
-                    navigate("/dashboard");
+                    navigate("/cabinet");
                   } else {
                     navigate("/profile");
                   }

@@ -21,7 +21,7 @@ export const Header = () => {
           
           {user && (
             <div className="flex items-center gap-4">
-              <Link to="/dashboard">
+              <Link to="/cabinet">
                 <Button variant="ghost" size="sm">
                   <User className="h-4 w-4 mr-2" />
                   Кабинет

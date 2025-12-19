@@ -190,7 +190,7 @@ export const LandingHeader = ({ variant = "default" }: LandingHeaderProps) => {
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
             {user ? (
-              <Button variant="ghost" onClick={() => navigate("/dashboard")}>
+              <Button variant="ghost" onClick={() => navigate("/cabinet")}>
                 Кабинет
               </Button>
             ) : (
@@ -280,7 +280,7 @@ export const LandingHeader = ({ variant = "default" }: LandingHeaderProps) => {
                       className="w-full"
                       onClick={() => {
                         setMobileMenuOpen(false);
-                        navigate("/dashboard");
+                        navigate("/cabinet");
                       }}
                     >
                       Кабинет

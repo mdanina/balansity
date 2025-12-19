@@ -131,7 +131,7 @@ export default function CheckupResults() {
             <Button
               variant="outline"
               size="lg"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/cabinet")}
               className="flex-1 text-base"
             >
               Вернуться на главную
