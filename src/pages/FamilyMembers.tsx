@@ -181,8 +181,8 @@ export default function FamilyMembers() {
 
           <div className="flex gap-4">
             {/* Определяем, откуда пришли: из меню или первичная настройка */}
-            {location.state?.from === 'dashboard' ? (
-              // Редактирование из меню → только кнопка возврата в dashboard
+            {location.state?.from === 'cabinet' ? (
+              // Редактирование из меню → только кнопка возврата в cabinet
               <Button
                 type="button"
                 size="lg"

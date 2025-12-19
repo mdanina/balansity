@@ -71,9 +71,9 @@ export default function Profile() {
         if (hasParentProfile && hasPhone && hasRegion) {
           hasCompletedOnboardingRef.current = true;
 
-          // Если пользователь уже прошел онбординг и зашел сюда не из dashboard,
-          // значит это ошибочный редирект - отправляем на dashboard
-          if (location.state?.from !== 'dashboard') {
+          // Если пользователь уже прошел онбординг и зашел сюда не из cabinet,
+          // значит это ошибочный редирект - отправляем на cabinet
+          if (location.state?.from !== 'cabinet') {
             navigate('/cabinet', { replace: true });
             return;
           }
@@ -131,7 +131,7 @@ export default function Profile() {
 
         // Определяем, откуда пришли: редактирование из меню или первичная настройка
         // Также проверяем, прошел ли пользователь онбординг ранее
-        const isEditing = location.state?.from === 'dashboard' || hasCompletedOnboardingRef.current;
+        const isEditing = location.state?.from === 'cabinet' || hasCompletedOnboardingRef.current;
 
         if (isEditing) {
           // Редактирование из меню или пользователь уже прошел онбординг → возвращаемся в Dashboard
