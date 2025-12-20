@@ -33,7 +33,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    // detectSessionInUrl включена по умолчанию в Supabase v2
+    detectSessionInUrl: true,
   },
 });
 
