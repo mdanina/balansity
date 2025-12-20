@@ -49,24 +49,55 @@ export default function ResetPassword() {
         const tokenFromQuery = searchParams.get('token');
         const typeFromQuery = searchParams.get('type');
 
-        if (type === 'recovery' && accessToken && refreshToken) {
+        if (type === 'recovery' && accessToken) {
           // Устанавливаем сессию с токеном восстановления
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
+          // refresh_token может отсутствовать в некоторых конфигурациях Supabase
+          if (refreshToken) {
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
 
-          if (!mounted) return;
+            if (!mounted) return;
 
-          if (sessionError) {
-            logger.error('Error setting recovery session:', sessionError);
-            setTokenError('Неверная или истекшая ссылка восстановления. Пожалуйста, запросите новую ссылку.');
+            if (sessionError) {
+              logger.error('Error setting recovery session:', sessionError);
+              setTokenError('Неверная или истекшая ссылка восстановления. Пожалуйста, запросите новую ссылку.');
+              setIsValidatingToken(false);
+              return;
+            }
+
+            // Успешно установили сессию
             setIsValidatingToken(false);
-            return;
-          }
+          } else {
+            // Если refresh_token отсутствует, ждем автоматической обработки Supabase
+            // через событие PASSWORD_RECOVERY или проверяем сессию
+            logger.log('No refresh_token in URL, waiting for Supabase to process recovery token');
 
-          // Успешно установили сессию
-          setIsValidatingToken(false);
+            // Даем Supabase время обработать hash автоматически
+            const waitForSession = async (attempts = 0): Promise<void> => {
+              if (!mounted || attempts > 10) {
+                if (mounted) {
+                  setTokenError('Неверная или истекшая ссылка восстановления. Пожалуйста, запросите новую ссылку.');
+                  setIsValidatingToken(false);
+                }
+                return;
+              }
+
+              const { data: { session } } = await supabase.auth.getSession();
+              if (!mounted) return;
+
+              if (session?.user) {
+                setIsValidatingToken(false);
+                setTokenError(null);
+              } else {
+                // Ждем и пробуем снова
+                setTimeout(() => waitForSession(attempts + 1), 300);
+              }
+            };
+
+            waitForSession();
+          }
         } else if (typeFromQuery === 'recovery' && tokenFromQuery) {
           // Токен в query параметрах - преобразуем в hash фрагмент для Supabase
           logger.log('Token found in query parameters, converting to hash fragment');
