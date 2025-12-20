@@ -114,11 +114,11 @@ export function FamilySection({ parentProfile, partnerProfile, familyAssessment,
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-2 rounded-lg bg-white border border-border p-4">
                         <p className="text-foreground">
-                          {familyResults.family_stress.status === 'concerning' 
-                            ? 'Ваша семья в настоящее время <strong>испытывает высокий уровень стресса.</strong> Это может влиять на всех членов семьи и вашу способность справляться с ежедневными задачами.'
+                          {familyResults.family_stress.status === 'concerning'
+                            ? <>Ваша семья в настоящее время <strong>испытывает высокий уровень стресса.</strong> Это может быть связано с финансовыми трудностями, проблемами со здоровьем, конфликтами или другими внешними факторами. Высокий семейный стресс влияет на всех членов семьи, включая детей.</>
                             : familyResults.family_stress.status === 'borderline'
-                            ? 'Ваша семья может <strong>испытывать некоторый уровень стресса.</strong> Важно обратить внимание на то, как это влияет на семейную динамику.'
-                            : 'Ваша семья в настоящее время <strong>справляется с ежедневным жизненным стрессом.</strong> Продолжайте поддерживать открытое общение и заботу друг о друге.'}
+                            ? <>Ваша семья <strong>испытывает умеренный уровень стресса.</strong> Это пограничный результат — периодически семья сталкивается с трудностями, но пока справляется с ними. Важно обратить внимание на эту ситуацию.</>
+                            : <>Ваша семья <strong>справляется с повседневным стрессом.</strong> Уровень семейного стресса находится в пределах нормы. Вы умеете поддерживать друг друга и решать возникающие проблемы.</>}
                         </p>
                       </CollapsibleContent>
                     </Collapsible>
@@ -132,17 +132,43 @@ export function FamilySection({ parentProfile, partnerProfile, familyAssessment,
                         {openSections['family-stress-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-2 rounded-lg bg-white border border-border p-4">
-                        <ul className="list-inside space-y-3 text-foreground">
-                          <li>
-                            <strong>Установите границы.</strong> Определите, что важно для вашей семьи, и научитесь говорить "нет" дополнительным обязательствам.
-                          </li>
-                          <li>
-                            <strong>Проводите время вместе.</strong> Регулярное время для семьи без отвлекающих факторов может помочь укрепить связи.
-                          </li>
-                          <li>
-                            <strong>Обратитесь за поддержкой.</strong> В Balansity мы можем помочь вашей семье найти способы справиться со стрессом и улучшить семейную динамику.
-                          </li>
-                        </ul>
+                        {familyResults.family_stress.status === 'concerning' ? (
+                          <ul className="list-inside space-y-3 text-foreground">
+                            <li>
+                              <strong>Обратитесь за профессиональной помощью.</strong> Семейная терапия или консультация специалиста поможет найти выход из сложной ситуации. В Balansity мы можем помочь.
+                            </li>
+                            <li>
+                              <strong>Определите источники стресса.</strong> Постарайтесь понять, какие факторы создают наибольшее напряжение, и подумайте, что можно изменить.
+                            </li>
+                            <li>
+                              <strong>Защитите детей.</strong> Старайтесь не вовлекать детей во взрослые проблемы и создавайте для них островки стабильности.
+                            </li>
+                          </ul>
+                        ) : familyResults.family_stress.status === 'borderline' ? (
+                          <ul className="list-inside space-y-3 text-foreground">
+                            <li>
+                              <strong>Установите приоритеты.</strong> Определите, что действительно важно для семьи, и научитесь отказываться от второстепенного.
+                            </li>
+                            <li>
+                              <strong>Проводите время вместе.</strong> Регулярное семейное время без гаджетов и отвлечений помогает укрепить связи.
+                            </li>
+                            <li>
+                              <strong>Распределяйте обязанности.</strong> Убедитесь, что домашние дела и ответственность распределены справедливо между членами семьи.
+                            </li>
+                          </ul>
+                        ) : (
+                          <ul className="list-inside space-y-3 text-foreground">
+                            <li>
+                              <strong>Поддерживайте семейные традиции.</strong> Регулярные ритуалы и традиции создают чувство стабильности и укрепляют связи.
+                            </li>
+                            <li>
+                              <strong>Сохраняйте открытое общение.</strong> Пусть каждый член семьи знает, что может поделиться своими переживаниями.
+                            </li>
+                            <li>
+                              <strong>Планируйте отдых.</strong> Совместный отдых и развлечения помогают накапливать позитивные семейные воспоминания.
+                            </li>
+                          </ul>
+                        )}
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
@@ -178,11 +204,11 @@ export function FamilySection({ parentProfile, partnerProfile, familyAssessment,
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-2 rounded-lg bg-white border border-border p-4">
                         <p className="text-foreground">
-                          {familyResults.partner_relationship.status === 'concerning' 
-                            ? 'Вы сообщили, что в настоящее время испытываете <strong>конфликт или трудности в отношениях с вашим партнером.</strong> Это может влиять на всю семью.'
+                          {familyResults.partner_relationship.status === 'concerning'
+                            ? <>Вы сообщили о <strong>значительных трудностях в отношениях с партнером.</strong> Это может проявляться в частых конфликтах, отсутствии взаимопонимания, эмоциональной дистанции или других проблемах. Напряженные отношения между родителями влияют на всю семью, включая детей.</>
                             : familyResults.partner_relationship.status === 'borderline'
-                            ? 'В ваших отношениях с партнером <strong>могут быть некоторые трудности.</strong> Важно обратить внимание на эти аспекты.'
-                            : 'Ваши отношения с партнером <strong>выглядят стабильными.</strong> Продолжайте поддерживать открытое общение и заботу друг о друге.'}
+                            ? <>В ваших отношениях с партнером <strong>есть некоторые трудности.</strong> Это пограничный результат — периодически возникают недопонимания или конфликты, но в целом отношения функционируют. Важно обратить внимание на эти аспекты.</>
+                            : <>Ваши отношения с партнером <strong>выглядят стабильными и здоровыми.</strong> Вы умеете общаться, поддерживать друг друга и справляться с разногласиями конструктивно.</>}
                         </p>
                       </CollapsibleContent>
                     </Collapsible>
@@ -196,17 +222,43 @@ export function FamilySection({ parentProfile, partnerProfile, familyAssessment,
                         {openSections['family-partner-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-2 rounded-lg bg-white border border-border p-4">
-                        <ul className="list-inside space-y-3 text-foreground">
-                          <li>
-                            <strong>Общайтесь открыто.</strong> Выделяйте время для честных разговоров о потребностях и чувствах каждого партнера.
-                          </li>
-                          <li>
-                            <strong>Ищите компромиссы.</strong> Работайте вместе над решениями, которые учитывают потребности обоих партнеров.
-                          </li>
-                          <li>
-                            <strong>Рассмотрите парную терапию.</strong> В Balansity мы можем помочь вам улучшить общение и укрепить ваши отношения.
-                          </li>
-                        </ul>
+                        {familyResults.partner_relationship.status === 'concerning' ? (
+                          <ul className="list-inside space-y-3 text-foreground">
+                            <li>
+                              <strong>Рассмотрите парную терапию.</strong> Работа со специалистом помогает разобраться в проблемах и найти пути их решения. В Balansity мы можем помочь подобрать терапевта.
+                            </li>
+                            <li>
+                              <strong>Защитите детей от конфликтов.</strong> Старайтесь не выяснять отношения при детях и не вовлекать их в разногласия между взрослыми.
+                            </li>
+                            <li>
+                              <strong>Найдите время для диалога.</strong> Выделите время, когда вы можете спокойно обсудить проблемы без отвлечений и обвинений.
+                            </li>
+                          </ul>
+                        ) : familyResults.partner_relationship.status === 'borderline' ? (
+                          <ul className="list-inside space-y-3 text-foreground">
+                            <li>
+                              <strong>Практикуйте активное слушание.</strong> Старайтесь по-настоящему услышать партнера, прежде чем отвечать или защищаться.
+                            </li>
+                            <li>
+                              <strong>Выделяйте время друг для друга.</strong> Регулярные «свидания» помогают поддерживать близость и связь между партнерами.
+                            </li>
+                            <li>
+                              <strong>Ищите компромиссы.</strong> Работайте вместе над решениями, которые учитывают потребности обоих партнеров.
+                            </li>
+                          </ul>
+                        ) : (
+                          <ul className="list-inside space-y-3 text-foreground">
+                            <li>
+                              <strong>Продолжайте инвестировать в отношения.</strong> Даже крепкие отношения требуют внимания и заботы.
+                            </li>
+                            <li>
+                              <strong>Выражайте благодарность.</strong> Регулярно благодарите партнера за то, что он делает для семьи.
+                            </li>
+                            <li>
+                              <strong>Поддерживайте индивидуальность.</strong> Уважайте личное пространство и интересы друг друга — это укрепляет отношения.
+                            </li>
+                          </ul>
+                        )}
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
@@ -242,11 +294,11 @@ export function FamilySection({ parentProfile, partnerProfile, familyAssessment,
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-2 rounded-lg bg-white border border-border p-4">
                         <p className="text-foreground">
-                          {familyResults.coparenting.status === 'concerning' 
-                            ? 'Вы указали, что <strong>сложно работать вместе с вашим со-родителем(ями)</strong> для воспитания вашего ребенка(детей), и это может привести к конфликту.'
+                          {familyResults.coparenting.status === 'concerning'
+                            ? <>Вы указали на <strong>значительные трудности в совместном воспитании.</strong> Это может проявляться в частых разногласиях о воспитании, подрыве авторитета друг друга или конфликтах при детях. Такая ситуация создает стресс для ребенка и затрудняет последовательное воспитание.</>
                             : familyResults.coparenting.status === 'borderline'
-                            ? 'В совместном воспитании <strong>могут быть некоторые трудности.</strong> Важно обратить внимание на эти аспекты.'
-                            : 'Вы <strong>эффективно работаете вместе</strong> с вашим со-родителем(ями) для воспитания вашего ребенка(детей). Продолжайте поддерживать открытое общение и сотрудничество.'}
+                            ? <>В совместном воспитании <strong>есть некоторые трудности.</strong> Это пограничный результат — иногда возникают разногласия о правилах или подходах к воспитанию, но в целом вы находите общий язык. Важно обратить внимание на эти аспекты.</>
+                            : <>Вы <strong>эффективно работаете вместе</strong> в вопросах воспитания. Вы умеете согласовывать правила, поддерживать авторитет друг друга и решать разногласия конструктивно.</>}
                         </p>
                       </CollapsibleContent>
                     </Collapsible>
@@ -260,17 +312,43 @@ export function FamilySection({ parentProfile, partnerProfile, familyAssessment,
                         {openSections['family-coparenting-do'] ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-2 rounded-lg bg-white border border-border p-4">
-                        <ul className="list-inside space-y-3 text-foreground">
-                          <li>
-                            <strong>Установите общие правила.</strong> Работайте вместе над созданием согласованных правил и ожиданий для вашего ребенка.
-                          </li>
-                          <li>
-                            <strong>Поддерживайте открытое общение.</strong> Регулярно обсуждайте вопросы воспитания и стремитесь к компромиссам.
-                          </li>
-                          <li>
-                            <strong>Рассмотрите поддержку специалиста.</strong> В Balansity мы можем помочь вам улучшить совместное воспитание и создать более сплоченную семейную команду.
-                          </li>
-                        </ul>
+                        {familyResults.coparenting.status === 'concerning' ? (
+                          <ul className="list-inside space-y-3 text-foreground">
+                            <li>
+                              <strong>Обратитесь за помощью.</strong> Семейная терапия или консультация по совместному воспитанию может помочь найти общий подход. В Balansity мы можем помочь.
+                            </li>
+                            <li>
+                              <strong>Не критикуйте партнера при ребенке.</strong> Разногласия обсуждайте наедине, а перед ребенком поддерживайте единую позицию.
+                            </li>
+                            <li>
+                              <strong>Сфокусируйтесь на интересах ребенка.</strong> Когда возникают разногласия, спросите себя: что лучше для ребенка?
+                            </li>
+                          </ul>
+                        ) : familyResults.coparenting.status === 'borderline' ? (
+                          <ul className="list-inside space-y-3 text-foreground">
+                            <li>
+                              <strong>Согласуйте базовые правила.</strong> Договоритесь о ключевых правилах и последствиях, чтобы ребенок получал последовательные сигналы.
+                            </li>
+                            <li>
+                              <strong>Регулярно обсуждайте вопросы воспитания.</strong> Выделяйте время для разговоров о ребенке, когда вы оба спокойны и без присутствия детей.
+                            </li>
+                            <li>
+                              <strong>Признавайте разные стили.</strong> У каждого родителя свой стиль — это нормально, если базовые ценности совпадают.
+                            </li>
+                          </ul>
+                        ) : (
+                          <ul className="list-inside space-y-3 text-foreground">
+                            <li>
+                              <strong>Продолжайте сотрудничать.</strong> Регулярно обсуждайте, как развивается ребенок и какие новые вызовы появляются.
+                            </li>
+                            <li>
+                              <strong>Поддерживайте друг друга.</strong> Хвалите партнера за его вклад в воспитание — это укрепляет команду.
+                            </li>
+                            <li>
+                              <strong>Адаптируйтесь вместе.</strong> По мере роста ребенка его потребности меняются — будьте готовы пересматривать подходы.
+                            </li>
+                          </ul>
+                        )}
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
