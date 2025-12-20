@@ -22,6 +22,10 @@ import ResetPassword from "./pages/ResetPassword";
 import Welcome from "./pages/Welcome";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import PrivacyNotice from "./pages/PrivacyNotice";
+import Sitemap from "./pages/Sitemap";
 
 // Тяжелые страницы - lazy loading для оптимизации bundle size
 const RegionSelect = lazy(() => import("./pages/RegionSelect"));
@@ -130,7 +134,11 @@ const App = () => (
                     <Route path="/coming-soon" element={<ComingSoon />} />
                     <Route path="/blog" element={<Blog />} />
                     <Route path="/blog/:slug" element={<BlogPost />} />
-                    
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/privacy-notice" element={<PrivacyNotice />} />
+                    <Route path="/sitemap" element={<Sitemap />} />
+
                     {/* Админ-маршруты */}
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route
