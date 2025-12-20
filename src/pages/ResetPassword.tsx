@@ -68,23 +68,21 @@ export default function ResetPassword() {
           // Успешно установили сессию
           setIsValidatingToken(false);
         } else if (typeFromQuery === 'recovery' && tokenFromQuery) {
-          // Альтернативный вариант: токен в query параметрах
-          // Это менее распространено, но поддерживается
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: tokenFromQuery,
-            refresh_token: '',
-          });
-
-          if (!mounted) return;
-
-          if (sessionError) {
-            logger.error('Error setting recovery session from query:', sessionError);
-            setTokenError('Неверная или истекшая ссылка восстановления. Пожалуйста, запросите новую ссылку.');
-            setIsValidatingToken(false);
-            return;
-          }
-
-          setIsValidatingToken(false);
+          // Токен в query параметрах - преобразуем в hash фрагмент для Supabase
+          logger.log('Token found in query parameters, converting to hash fragment');
+          
+          // Supabase ожидает токен в hash фрагменте как access_token
+          // Преобразуем query параметры в hash и перезагружаем страницу
+          const newHash = `#access_token=${encodeURIComponent(tokenFromQuery)}&type=recovery`;
+          
+          // Обновляем URL: убираем query параметры, добавляем hash
+          const newUrl = window.location.pathname + newHash;
+          window.history.replaceState(null, '', newUrl);
+          
+          // Перезагружаем страницу для обработки hash фрагмента
+          // Это позволит Supabase правильно обработать токен через событие PASSWORD_RECOVERY
+          window.location.reload();
+          return;
         } else {
           // Проверяем, может быть токен уже обработан через onAuthStateChange
           // Ждем немного, чтобы дать время событию сработать
@@ -121,11 +119,31 @@ export default function ResetPassword() {
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
 
+      logger.log('Auth state change:', event);
+      
       if (event === 'PASSWORD_RECOVERY') {
-        logger.log('Password recovery event received');
+        logger.log('Password recovery event received, session:', session?.user?.email);
         if (session) {
           setIsValidatingToken(false);
           setTokenError(null);
+        } else {
+          // Если событие пришло, но сессии нет - токен может быть неверным
+          setTimeout(() => {
+            if (!mounted) return;
+            const checkSession = async () => {
+              const { data: { session: currentSession } } = await supabase.auth.getSession();
+              if (!mounted) return;
+              
+              if (!currentSession?.user) {
+                setTokenError('Неверная или истекшая ссылка восстановления. Пожалуйста, запросите новую ссылку.');
+                setIsValidatingToken(false);
+              } else {
+                setIsValidatingToken(false);
+                setTokenError(null);
+              }
+            };
+            checkSession();
+          }, 1000);
         }
       }
     });

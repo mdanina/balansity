@@ -19,6 +19,9 @@ export default defineConfig(({ mode }) => ({
     exclude: ['@sentry/react'], // Exclude Sentry from pre-bundling (it's optional)
   },
   build: {
+    // Увеличиваем лимит размера чанка
+    chunkSizeWarningLimit: 1000,
+    
     rollupOptions: {
       output: {
         // Разделяем vendor библиотеки на отдельные чанки для лучшего кеширования
@@ -51,5 +54,11 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
+    
+    // Оптимизация: отключаем source maps в проде для ускорения
+    sourcemap: mode === 'development',
+    
+    // Минификация
+    minify: 'esbuild', // esbuild быстрее чем terser
   },
 }));

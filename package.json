@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:prod": "NODE_OPTIONS='--max-old-space-size=4096' vite build",
+    "build:clean": "rm -rf dist node_modules/.vite && npm run build:prod",
     "build:dev": "vite build --mode development",
+    "clean": "rm -rf dist node_modules/.vite",
     "lint": "eslint .",
     "preview": "vite preview"
   },
