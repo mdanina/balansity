@@ -17,6 +17,8 @@ import Landing from "./pages/Landing";
 import ServiceIntro from "./pages/ServiceIntro";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Welcome from "./pages/Welcome";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
@@ -122,6 +124,8 @@ const App = () => (
                     <Route path="/service" element={<ServiceIntro />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/welcome" element={<Welcome />} />
                     <Route path="/coming-soon" element={<ComingSoon />} />
                     <Route path="/blog" element={<Blog />} />

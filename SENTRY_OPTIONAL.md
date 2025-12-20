@@ -46,3 +46,4 @@ npm install @sentry/react
 **Проект работает без Sentry, но для production мониторинга рекомендуется его установить.**
 
 
+

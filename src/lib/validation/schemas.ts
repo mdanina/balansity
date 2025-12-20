@@ -57,11 +57,30 @@ export const familyMemberSchema = z.object({
   pronouns: z.string().max(50).optional(),
 });
 
+// Схема восстановления пароля (запрос)
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+// Схема сброса пароля
+export const resetPasswordSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, 'Подтверждение пароля обязательно'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Пароли не совпадают',
+    path: ['confirmPassword'],
+  });
+
 // Экспорт типов
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ProfileInput = z.infer<typeof profileSchema>;
 export type FamilyMemberInput = z.infer<typeof familyMemberSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
 
 
 

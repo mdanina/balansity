@@ -157,3 +157,4 @@ captureMessage('Something important happened', 'warning');
 **После настройки все ошибки в production будут автоматически отправляться в Sentry!** ✅
 
 
+
