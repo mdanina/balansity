@@ -165,10 +165,10 @@ async function createYooKassaPayment(
   params: CreatePaymentParams
 ): Promise<string | undefined> {
   try {
-    // Нормализуем API URL - убираем /api если он есть в конце,
-    // т.к. он будет добавлен в пути запроса
-    let apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    apiUrl = apiUrl.replace(/\/api\/?$/, '');
+    // VITE_API_URL должен содержать полный путь:
+    // - Продакшен: https://balansity.ru/worker
+    // - Локально: http://localhost:3001/api
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
@@ -178,7 +178,7 @@ async function createYooKassaPayment(
 
     logger.info(`Creating YooKassa payment via API: ${payment.id}`);
 
-    const response = await fetch(`${apiUrl}/api/payments/create`, {
+    const response = await fetch(`${apiUrl}/payments/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -293,10 +293,10 @@ export async function checkPaymentStatus(paymentId: string): Promise<PaymentStat
  */
 export async function verifyPaymentWithAPI(paymentId: string): Promise<PaymentStatus> {
   try {
-    // Нормализуем API URL - убираем /api если он есть в конце,
-    // т.к. он будет добавлен в пути запроса
-    let apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    apiUrl = apiUrl.replace(/\/api\/?$/, '');
+    // VITE_API_URL должен содержать полный путь:
+    // - Продакшен: https://balansity.ru/worker
+    // - Локально: http://localhost:3001/api
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
@@ -306,7 +306,7 @@ export async function verifyPaymentWithAPI(paymentId: string): Promise<PaymentSt
 
     logger.info(`Verifying payment via API: ${paymentId}`);
 
-    const response = await fetch(`${apiUrl}/api/payments/verify`, {
+    const response = await fetch(`${apiUrl}/payments/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
