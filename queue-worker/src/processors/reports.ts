@@ -20,11 +20,16 @@ export async function processReportQueue(maxTasks: number = 5): Promise<number> 
     }
 
     // Convert to QueueTask format
+    // Данные из pgmq приходят как строки, не как Date объекты
     const queueTask: QueueTask = {
       msg_id: task.msg_id,
       read_ct: task.read_ct,
-      enqueued_at: task.enqueued_at.toISOString(),
-      vt: task.vt.toISOString(),
+      enqueued_at: typeof task.enqueued_at === 'string'
+        ? task.enqueued_at
+        : task.enqueued_at?.toISOString?.() || new Date().toISOString(),
+      vt: typeof task.vt === 'string'
+        ? task.vt
+        : task.vt?.toISOString?.() || new Date().toISOString(),
       msg: task.msg,
     };
 
