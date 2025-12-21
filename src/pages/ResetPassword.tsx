@@ -49,10 +49,13 @@ export default function ResetPassword() {
         const tokenFromQuery = searchParams.get('token');
         const typeFromQuery = searchParams.get('type');
 
+        // Также проверяем token_hash для PKCE flow
+        const tokenHash = hashParams.get('token_hash') || searchParams.get('token_hash');
+
         if (type === 'recovery' && accessToken) {
           // Устанавливаем сессию с токеном восстановления
-          // refresh_token может отсутствовать в некоторых конфигурациях Supabase
           if (refreshToken) {
+            // Есть оба токена - используем setSession
             const { error: sessionError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
@@ -70,33 +73,55 @@ export default function ResetPassword() {
             // Успешно установили сессию
             setIsValidatingToken(false);
           } else {
-            // Если refresh_token отсутствует, ждем автоматической обработки Supabase
-            // через событие PASSWORD_RECOVERY или проверяем сессию
-            logger.log('No refresh_token in URL, waiting for Supabase to process recovery token');
+            // Нет refresh_token - пробуем verifyOtp с token_hash
+            logger.log('No refresh_token in URL, trying verifyOtp with access_token as token_hash');
 
-            // Даем Supabase время обработать hash автоматически
-            const waitForSession = async (attempts = 0): Promise<void> => {
-              if (!mounted || attempts > 10) {
-                if (mounted) {
-                  setTokenError('Неверная или истекшая ссылка восстановления. Пожалуйста, запросите новую ссылку.');
-                  setIsValidatingToken(false);
-                }
-                return;
-              }
+            const { data, error: verifyError } = await supabase.auth.verifyOtp({
+              token_hash: accessToken,
+              type: 'recovery',
+            });
 
-              const { data: { session } } = await supabase.auth.getSession();
-              if (!mounted) return;
+            if (!mounted) return;
 
-              if (session?.user) {
-                setIsValidatingToken(false);
-                setTokenError(null);
-              } else {
-                // Ждем и пробуем снова
-                setTimeout(() => waitForSession(attempts + 1), 300);
-              }
-            };
+            if (verifyError) {
+              logger.error('Error verifying recovery token:', verifyError);
+              setTokenError('Неверная или истекшая ссылка восстановления. Пожалуйста, запросите новую ссылку.');
+              setIsValidatingToken(false);
+              return;
+            }
 
-            waitForSession();
+            if (data?.session) {
+              logger.log('Recovery session established via verifyOtp');
+              setIsValidatingToken(false);
+            } else {
+              setTokenError('Неверная или истекшая ссылка восстановления. Пожалуйста, запросите новую ссылку.');
+              setIsValidatingToken(false);
+            }
+          }
+        } else if (tokenHash && type === 'recovery') {
+          // PKCE flow - используем token_hash напрямую
+          logger.log('Using token_hash for PKCE recovery flow');
+
+          const { data, error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'recovery',
+          });
+
+          if (!mounted) return;
+
+          if (verifyError) {
+            logger.error('Error verifying recovery token_hash:', verifyError);
+            setTokenError('Неверная или истекшая ссылка восстановления. Пожалуйста, запросите новую ссылку.');
+            setIsValidatingToken(false);
+            return;
+          }
+
+          if (data?.session) {
+            logger.log('Recovery session established via token_hash');
+            setIsValidatingToken(false);
+          } else {
+            setTokenError('Неверная или истекшая ссылка восстановления. Пожалуйста, запросите новую ссылку.');
+            setIsValidatingToken(false);
           }
         } else if (typeFromQuery === 'recovery' && tokenFromQuery) {
           // Токен в query параметрах - преобразуем в hash фрагмент для Supabase
