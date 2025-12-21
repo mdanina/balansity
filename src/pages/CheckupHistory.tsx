@@ -71,19 +71,30 @@ export default function CheckupHistory() {
 
       try {
         setLoading(true);
-        
-        // Загружаем все профили и чекапы параллельно
-        const [profilesData, assessmentsData] = await Promise.all([
+
+        // Загружаем все профили и чекапы параллельно с graceful degradation
+        const [profilesResult, assessmentsResult] = await Promise.allSettled([
           getProfiles(),
           getAllAssessmentsForUser(),
         ]);
 
+        const profilesData = profilesResult.status === 'fulfilled' ? profilesResult.value : [];
+        const assessmentsData = assessmentsResult.status === 'fulfilled' ? assessmentsResult.value : [];
+
+        if (profilesResult.status === 'rejected') {
+          logger.error('Error loading profiles:', profilesResult.reason);
+        }
+        if (assessmentsResult.status === 'rejected') {
+          logger.error('Error loading assessments:', assessmentsResult.reason);
+          toast.error('Ошибка при загрузке истории чекапов');
+        }
+
         setProfiles(profilesData);
-        
+
         // Объединяем чекапы с профилями
         const assessmentsWithProfiles: AssessmentWithProfile[] = assessmentsData.map(assessment => ({
           ...assessment,
-          profile: assessment.profile_id 
+          profile: assessment.profile_id
             ? profilesData.find(p => p.id === assessment.profile_id) || null
             : null,
         }));

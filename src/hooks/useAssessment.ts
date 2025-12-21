@@ -83,7 +83,6 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
     async function init() {
       // Ждём пока profileId будет определён
       if (!profileIdDetermined) {
-        console.log('[DEBUG] useAssessment: waiting for profileId to be determined');
         return;
       }
 
@@ -97,18 +96,15 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
 
       try {
         setLoading(true);
-        console.log('[DEBUG] useAssessment init for profileId:', profileId, 'type:', assessmentType);
 
         // Получаем или создаем активную оценку (оптимизировано: 1 запрос вместо 2)
         const { id, assessment } = await getOrCreateAssessmentFull(profileId, assessmentType, totalSteps);
-        console.log('[DEBUG] Got assessment:', { id, current_step: assessment.current_step, status: assessment.status, created_at: assessment.created_at });
 
         setAssessmentId(id);
         setCurrentStep(assessment.current_step || 1);
 
         // Загружаем сохраненные ответы
         const answers = await getAnswers(assessment.id);
-        console.log('[DEBUG] Loaded answers count:', answers.length);
 
         const answersMap = new Map<number, number>();
         answers.forEach(answer => {
@@ -135,11 +131,8 @@ export function useAssessment({ assessmentType, totalSteps, profileId: providedP
     answerType: string | undefined,
     stepNumber: number
   ) => {
-    // DEBUG: используем console.log напрямую, т.к. logger отключен в production
-    console.log('[DEBUG] saveAnswerToDb called:', { assessmentId, questionId, value, stepNumber, loading });
-
     if (!assessmentId) {
-      console.warn('[DEBUG] Assessment ID not available - answer will NOT be saved!');
+      logger.warn('Assessment ID not available - answer will NOT be saved!');
       return;
     }
 
