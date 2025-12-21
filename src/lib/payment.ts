@@ -158,6 +158,19 @@ export async function getPayments(): Promise<Payment[]> {
 // ============================================
 
 /**
+ * Нормализует API URL - добавляет /api если отсутствует
+ */
+function normalizeApiUrl(url: string): string {
+  // Убираем trailing slash
+  const cleanUrl = url.replace(/\/$/, '');
+  // Добавляем /api если не заканчивается на /api
+  if (!cleanUrl.endsWith('/api')) {
+    return `${cleanUrl}/api`;
+  }
+  return cleanUrl;
+}
+
+/**
  * Создать платеж в ЮKassa через API сервер
  */
 async function createYooKassaPayment(
@@ -165,10 +178,9 @@ async function createYooKassaPayment(
   params: CreatePaymentParams
 ): Promise<string | undefined> {
   try {
-    // VITE_API_URL должен содержать полный путь:
-    // - Продакшен: https://balansity.ru/worker
-    // - Локально: http://localhost:3001/api
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    // VITE_API_URL - базовый URL API сервера (с или без /api)
+    const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const apiUrl = normalizeApiUrl(rawApiUrl);
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
@@ -293,10 +305,9 @@ export async function checkPaymentStatus(paymentId: string): Promise<PaymentStat
  */
 export async function verifyPaymentWithAPI(paymentId: string): Promise<PaymentStatus> {
   try {
-    // VITE_API_URL должен содержать полный путь:
-    // - Продакшен: https://balansity.ru/worker
-    // - Локально: http://localhost:3001/api
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    // VITE_API_URL - базовый URL API сервера (с или без /api)
+    const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const apiUrl = normalizeApiUrl(rawApiUrl);
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
