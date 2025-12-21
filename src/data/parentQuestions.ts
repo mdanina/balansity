@@ -7,7 +7,7 @@ export interface ParentQuestion {
 }
 
 export const parentQuestions: ParentQuestion[] = [
-  { id: 1, text: "Пол, присвоенный при рождении", category: "О вас", answerType: 'sex' },
+  { id: 1, text: "Выберите свой пол", category: "О вас", answerType: 'sex' },
   { id: 2, text: "Чувство нервозности, тревоги или беспокойства", category: "О вас", answerType: 'frequency' },
   { id: 3, text: "Невозможность остановить или контролировать беспокойство", category: "О вас", answerType: 'frequency' },
   { id: 4, text: "Малый интерес или удовольствие от занятий", category: "О вас", answerType: 'frequency' },
