@@ -58,14 +58,38 @@ router.use(async (req: Request, res: Response, next) => {
   }
 });
 
+// Константы для валидации платежей
+const MIN_PAYMENT_AMOUNT = 1; // Минимум 1 рубль
+const MAX_PAYMENT_AMOUNT = 1000000; // Максимум 1 млн рублей
+const ALLOWED_CURRENCIES = ['RUB'];
+
 // Создание платежа
 router.post('/create', async (req: Request, res: Response) => {
   try {
     const { amount, currency = 'RUB', metadata } = req.body;
     const userId = req.user!.id;
 
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: 'Invalid amount' });
+    // Валидация суммы
+    if (typeof amount !== 'number' || !Number.isFinite(amount)) {
+      return res.status(400).json({ error: 'Amount must be a valid number' });
+    }
+
+    if (amount < MIN_PAYMENT_AMOUNT) {
+      return res.status(400).json({ error: `Amount must be at least ${MIN_PAYMENT_AMOUNT} ${currency}` });
+    }
+
+    if (amount > MAX_PAYMENT_AMOUNT) {
+      return res.status(400).json({ error: `Amount cannot exceed ${MAX_PAYMENT_AMOUNT} ${currency}` });
+    }
+
+    // Проверяем, что сумма имеет не более 2 знаков после запятой
+    if (Math.round(amount * 100) !== amount * 100) {
+      return res.status(400).json({ error: 'Amount can have at most 2 decimal places' });
+    }
+
+    // Валидация валюты
+    if (!ALLOWED_CURRENCIES.includes(currency)) {
+      return res.status(400).json({ error: `Currency must be one of: ${ALLOWED_CURRENCIES.join(', ')}` });
     }
 
     logger.info(`Creating payment for user ${userId}, amount: ${amount} ${currency}`);
