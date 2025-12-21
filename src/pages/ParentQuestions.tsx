@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { parentQuestions, sexOptions, frequencyOptions } from "@/data/parentQuestions";
 import { useAssessment } from "@/hooks/useAssessment";
+import { reverseScore3, unreverseScore3 } from "@/utils/scoring";
 
 interface Answer {
   questionId: number;
@@ -12,18 +13,6 @@ interface Answer {
 }
 
 const TRANSITION_DELAY_MS = 300;
-
-// Функция для reverse scoring для шкалы 0-3: 3->0, 2->1, 1->2, 0->3
-function reverseScore3(value: number): number {
-  if (value < 0 || value > 3) return value; // Для пропущенных (-1) или некорректных значений
-  return 3 - value;
-}
-
-// Обратная функция для восстановления отображения: 0->3, 1->2, 2->1, 3->0
-function unreverseScore3(value: number): number {
-  if (value < 0 || value > 3) return value;
-  return 3 - value;
-}
 
 export default function ParentQuestions() {
   const navigate = useNavigate();

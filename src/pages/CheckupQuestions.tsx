@@ -9,6 +9,7 @@ import { useCurrentProfile } from "@/contexts/ProfileContext";
 import { getProfile } from "@/lib/profileStorage";
 import { findNextChildWithoutCheckup } from "@/lib/assessmentStorage";
 import { logger } from "@/lib/logger";
+import { reverseScore4 as reverseScore, unreverseScore4 as unreverseScore } from "@/utils/scoring";
 import type { Database } from "@/lib/supabase";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -20,18 +21,6 @@ interface Answer {
 
 const INTERLUDE_QUESTION_INDEX = 20;
 const TRANSITION_DELAY_MS = 300;
-
-// Функция для reverse scoring: 4->0, 3->1, 2->2, 1->3, 0->4
-function reverseScore(value: number): number {
-  if (value < 0 || value > 4) return value; // Для пропущенных (-1) или некорректных значений
-  return 4 - value;
-}
-
-// Обратная функция для восстановления отображения: 0->4, 1->3, 2->2, 3->1, 4->0
-function unreverseScore(value: number): number {
-  if (value < 0 || value > 4) return value;
-  return 4 - value;
-}
 
 export default function CheckupQuestions() {
   const navigate = useNavigate();
@@ -104,14 +93,10 @@ export default function CheckupQuestions() {
 
   // Восстанавливаем ответы и позицию при загрузке (только один раз)
   useEffect(() => {
-    // DEBUG: логируем состояние при каждом вызове useEffect
-    console.log('[DEBUG] Restore useEffect:', { loading, profileId, isInitialized, currentStep, savedAnswersCount: savedAnswers.size });
-
     // Ждём пока загрузятся данные и currentStep будет актуальным
     if (!loading && profileId && !isInitialized) {
       // Проверяем, есть ли уже сохраненные ответы
       const hasSavedAnswers = checkupQuestions.some(q => getSavedAnswer(q.id) !== null);
-      console.log('[DEBUG] hasSavedAnswers:', hasSavedAnswers, 'currentStep:', currentStep);
 
       if (hasSavedAnswers) {
         const restoredAnswers = checkupQuestions.map((q) => {
@@ -129,7 +114,6 @@ export default function CheckupQuestions() {
           };
         });
         setAnswers(restoredAnswers);
-        console.log('[DEBUG] Restored answers from DB');
       }
 
       // Восстанавливаем позицию: приоритет URL параметра, затем сохраненного шага
@@ -138,18 +122,14 @@ export default function CheckupQuestions() {
         // Параметр start в URL (возврат с interlude)
         const startIdx = parseInt(urlStartParam) - 1;
         if (startIdx >= 0 && startIdx < checkupQuestions.length) {
-          console.log('[DEBUG] Restoring position from URL param:', startIdx + 1);
           setCurrentQuestionIndex(startIdx);
         }
       } else if (currentStep > 1) {
         // Восстанавливаем из сохранённого шага в БД
         const stepIndex = currentStep - 1;
         if (stepIndex >= 0 && stepIndex < checkupQuestions.length) {
-          console.log('[DEBUG] Restoring position from saved step:', currentStep);
           setCurrentQuestionIndex(stepIndex);
         }
-      } else {
-        console.log('[DEBUG] No position to restore, starting from 0');
       }
 
       setIsInitialized(true);

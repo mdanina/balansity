@@ -34,7 +34,8 @@ export default function SupportTools() {
     queryFn: async () => {
       if (!selectedUserId) return null;
 
-      const [userResult, profilesResult, assessmentsResult, appointmentsResult] = await Promise.all([
+      // Используем Promise.allSettled для graceful degradation
+      const [userResult, profilesResult, assessmentsResult, appointmentsResult] = await Promise.allSettled([
         supabase.from('users').select('*').eq('id', selectedUserId).single(),
         supabase.from('profiles').select('*').eq('user_id', selectedUserId),
         supabase
@@ -46,10 +47,10 @@ export default function SupportTools() {
       ]);
 
       return {
-        user: userResult.data,
-        profiles: profilesResult.data || [],
-        assessments: assessmentsResult.data || [],
-        appointments: appointmentsResult.data || [],
+        user: userResult.status === 'fulfilled' ? userResult.value.data : null,
+        profiles: profilesResult.status === 'fulfilled' ? (profilesResult.value.data || []) : [],
+        assessments: assessmentsResult.status === 'fulfilled' ? (assessmentsResult.value.data || []) : [],
+        appointments: appointmentsResult.status === 'fulfilled' ? (appointmentsResult.value.data || []) : [],
       };
     },
     enabled: !!selectedUserId,

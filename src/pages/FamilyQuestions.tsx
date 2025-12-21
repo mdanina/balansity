@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { familyQuestions, wellbeingOptions, relationshipOptions, frequencyOptions } from "@/data/familyQuestions";
 import { useAssessment } from "@/hooks/useAssessment";
+import { reverseScore5, unreverseScore5 } from "@/utils/scoring";
 
 interface Answer {
   questionId: number;
@@ -12,18 +13,6 @@ interface Answer {
 }
 
 const TRANSITION_DELAY_MS = 300;
-
-// Функция для reverse scoring для шкалы 0-5: 5->0, 4->1, 3->2, 2->3, 1->4, 0->5
-function reverseScore5(value: number): number {
-  if (value < 0 || value > 5) return value; // Для пропущенных (-1), некорректных значений или "Не применимо" (6)
-  return 5 - value;
-}
-
-// Обратная функция для восстановления отображения: 0->5, 1->4, 2->3, 3->2, 4->1, 5->0
-function unreverseScore5(value: number): number {
-  if (value < 0 || value > 5) return value;
-  return 5 - value;
-}
 
 export default function FamilyQuestions() {
   const navigate = useNavigate();
