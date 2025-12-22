@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { User, CheckCircle2, Clock, MapPin, Users, LogOut, Tag, History, Calendar, X } from "lucide-react";
+import { User, CheckCircle2, Clock, MapPin, Users, LogOut, Tag, History, Calendar, X, Video } from "lucide-react";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/profileStorage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -479,7 +479,19 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex flex-col gap-2 ml-4">
+                      {/* Кнопка входа в видеоконсультацию */}
+                      {(appointment as any).video_room_url && (
+                        <Button
+                          variant={appointment.status === 'in_progress' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => window.open((appointment as any).video_room_url, '_blank')}
+                          className={appointment.status === 'in_progress' ? 'bg-green-600 hover:bg-green-700' : ''}
+                        >
+                          <Video className="h-4 w-4 mr-2" />
+                          {appointment.status === 'in_progress' ? 'Войти сейчас' : 'Войти в комнату'}
+                        </Button>
+                      )}
                       <AlertDialog open={cancelDialogOpen === appointment.id} onOpenChange={(open) => setCancelDialogOpen(open ? appointment.id : null)}>
                         <AlertDialogTrigger asChild>
                           <Button variant="destructive" size="sm">
