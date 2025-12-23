@@ -481,17 +481,34 @@ export default function Dashboard() {
                     </div>
                     <div className="flex flex-col gap-2 ml-4">
                       {/* Кнопка входа в видеоконсультацию */}
-                      {(appointment as any).video_room_url && (
-                        <Button
-                          variant={appointment.status === 'in_progress' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => window.open((appointment as any).video_room_url, '_blank')}
-                          className={appointment.status === 'in_progress' ? 'bg-green-600 hover:bg-green-700' : ''}
-                        >
-                          <Video className="h-4 w-4 mr-2" />
-                          {appointment.status === 'in_progress' ? 'Войти сейчас' : 'Войти в комнату'}
-                        </Button>
-                      )}
+                      {(appointment as any).video_room_url && (() => {
+                        const scheduledTime = new Date(appointment.scheduled_at);
+                        const now = new Date();
+                        const minutesUntilStart = (scheduledTime.getTime() - now.getTime()) / 1000 / 60;
+                        const isVideoAvailable = appointment.status === 'in_progress' || minutesUntilStart <= 15;
+
+                        return isVideoAvailable ? (
+                          <Button
+                            variant={appointment.status === 'in_progress' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => window.open((appointment as any).video_room_url, '_blank')}
+                            className={appointment.status === 'in_progress' ? 'bg-green-600 hover:bg-green-700' : ''}
+                          >
+                            <Video className="h-4 w-4 mr-2" />
+                            {appointment.status === 'in_progress' ? 'Войти сейчас' : 'Войти в комнату'}
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="opacity-50"
+                          >
+                            <Video className="h-4 w-4 mr-2" />
+                            Доступно за 15 мин
+                          </Button>
+                        );
+                      })()}
                       <AlertDialog open={cancelDialogOpen === appointment.id} onOpenChange={(open) => setCancelDialogOpen(open ? appointment.id : null)}>
                         <AlertDialogTrigger asChild>
                           <Button variant="destructive" size="sm">
