@@ -148,18 +148,52 @@ https://video.balansity.ru/konsultaciya-DDmon-XXXXXX
 
 ## Настройка вебхуков
 
-Вебхуки отправляют уведомления в Balansity о событиях в комнатах (кто зашёл, сессия началась/завершилась).
+Вебхуки отправляют уведомления в Telegram о событиях в комнатах:
+- **Специалист начал сессию** — когда модератор входит в комнату
+- **Клиент подключился** — когда гость входит в комнату
+- **Сессия завершена** — когда комната закрывается
+
+### Архитектура
+
+```
+Jitsi (Prosody) → HTTP POST → Queue Worker (api.balansity.ru) → Telegram Bot
+```
+
+### Эндпоинты вебхуков
+
+| URL | Событие | Описание |
+|-----|---------|----------|
+| `POST /api/webhook/jitsi` | Общий | Принимает все события с полем `event` |
+| `POST /api/webhook/jitsi/participant-joined` | participant_joined | Участник вошёл |
+| `POST /api/webhook/jitsi/room-created` | room_created | Комната создана |
+| `POST /api/webhook/jitsi/room-destroyed` | room_destroyed | Комната закрыта |
+| `POST /api/webhook/jitsi/participant-left` | participant_left | Участник вышел |
+
+### Формат данных
+
+```json
+{
+  "event": "participant_joined",
+  "room_name": "konsultaciya-23dec-abc123",
+  "participant_name": "Иван",
+  "participant_id": "user@meet.jitsi/abc123",
+  "is_host": true,
+  "duration": 1800
+}
+```
+
+---
 
 ### Шаг 1: Создать модуль для Prosody
 
 На сервере Jitsi создайте файл модуля:
 
 ```bash
-# Создаём директорию для модулей
-mkdir -p /opt/beget/jitsi/jitsi-meet-cfg/prosody/prosody-plugins-custom
+# ВАЖНО: Правильный путь для плагинов
+mkdir -p /opt/beget/jitsi/prosody/prosody-plugins-custom
 
 # Создаём файл модуля
-cat > /opt/beget/jitsi/jitsi-meet-cfg/prosody/prosody-plugins-custom/mod_muc_webhook.lua << 'EOF'
+cat > /opt/beget/jitsi/prosody/prosody-plugins-custom/mod_muc_webhook.lua << 'EOF'
 -- Модуль вебхуков для Balansity
 local http = require "net.http";
 local json = require "util.json";
@@ -248,17 +282,30 @@ BALANSITY_WEBHOOK_URL=https://api.balansity.ru/api/webhook/jitsi
 
 ### Шаг 3: Подключить модуль в конфиге Prosody
 
-Отредактируйте `/opt/beget/jitsi/jitsi-meet-cfg/prosody/conf.d/jitsi-meet.cfg.lua`:
+Отредактируйте конфиг Prosody:
 
-Найдите секцию `Component "conference.meet.jitsi" "muc"` и добавьте модуль:
+```bash
+# ВАЖНО: Правильный путь к конфигу
+nano /opt/beget/jitsi/prosody/config/conf.d/jitsi-meet.cfg.lua
+```
+
+Найдите секцию `Component "muc.meet.jitsi" "muc"` и добавьте модуль в `modules_enabled`:
 
 ```lua
-Component "conference.meet.jitsi" "muc"
+Component "muc.meet.jitsi" "muc"
+    storage = "memory"
     modules_enabled = {
+        "muc_webhook";         -- <-- добавить эту строку
         "muc_meeting_id";
+        "polls";
         "muc_domain_mapper";
-        "muc_webhook";  -- <-- добавить эту строку
+        "muc_password_whitelist";
     }
+```
+
+Или одной командой:
+```bash
+docker exec jitsi-prosody-1 sed -i '/modules_enabled = {/a\        "muc_webhook";' /config/conf.d/jitsi-meet.cfg.lua
 ```
 
 ### Шаг 4: Перезапустить Jitsi
@@ -274,6 +321,26 @@ cd /opt/beget/jitsi && docker-compose down && docker-compose up -d
 Логи можно посмотреть:
 ```bash
 docker logs jitsi-prosody-1 2>&1 | grep -i webhook
+```
+
+---
+
+## Структура директорий на сервере Jitsi
+
+```
+/opt/beget/jitsi/
+├── .env                              # Основные настройки
+├── docker-compose.yml
+├── prosody/
+│   ├── config/                       # Конфиги Prosody (монтируется в /config)
+│   │   ├── prosody.cfg.lua           # Главный конфиг
+│   │   └── conf.d/
+│   │       └── jitsi-meet.cfg.lua    # Конфиг MUC
+│   └── prosody-plugins-custom/       # Кастомные плагины (монтируется в /prosody-plugins-custom)
+│       └── mod_muc_webhook.lua       # Модуль вебхуков
+├── web/                              # Конфиги web-интерфейса
+├── jvb/                              # Конфиги JVB
+└── jicofo/                           # Конфиги Jicofo
 ```
 
 ---
@@ -298,4 +365,45 @@ docker-compose logs -f  # смотрим логи
 ENABLE_LETSENCRYPT=1
 LETSENCRYPT_DOMAIN=video.balansity.ru
 LETSENCRYPT_EMAIL=your-email@example.com
+```
+
+### Вебхуки не работают
+
+1. **Проверить, что модуль загружен:**
+```bash
+docker logs jitsi-prosody-1 2>&1 | grep -i webhook
+```
+
+2. **Проверить путь к плагинам в главном конфиге:**
+```bash
+docker exec jitsi-prosody-1 cat /config/prosody.cfg.lua | grep plugin_paths
+```
+
+Если `/prosody-plugins-custom` не указан, добавьте:
+```bash
+# На хосте отредактировать /opt/beget/jitsi/prosody/config/prosody.cfg.lua
+# Добавить строку:
+plugin_paths = { "/prosody-plugins-custom" }
+```
+
+3. **Проверить, что файл модуля существует:**
+```bash
+docker exec jitsi-prosody-1 ls -la /prosody-plugins-custom/
+```
+
+4. **Проверить, что модуль включён в конфиге MUC:**
+```bash
+docker exec jitsi-prosody-1 cat /config/conf.d/jitsi-meet.cfg.lua | grep muc_webhook
+```
+
+5. **Тестовый запрос на вебхук:**
+```bash
+curl -X POST https://api.balansity.ru/api/webhook/jitsi \
+  -H "Content-Type: application/json" \
+  -d '{"event":"participant_joined","room_name":"test-room","participant_name":"Test","is_host":true}'
+```
+
+6. **Перезапустить Prosody:**
+```bash
+cd /opt/beget/jitsi && docker-compose restart prosody
 ```
