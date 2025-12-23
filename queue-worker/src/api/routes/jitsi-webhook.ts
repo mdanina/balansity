@@ -122,19 +122,37 @@ router.post('/participant-joined', async (req: Request, res: Response) => {
     const appointmentType = appointment.appointment_type?.name || 'Консультация';
     const scheduledTime = formatTime(appointment.scheduled_at);
 
-    // Определяем, кто зашёл (специалист или клиент)
-    // Если isHost = true, это модератор (специалист)
-    const whoJoined = isHost ? 'Специалист' : 'Клиент';
+    let message: string;
 
-    const message = `
-<b>👤 ${whoJoined} подключился к консультации</b>
+    if (isHost) {
+      // Специалист зашёл (модератор)
+      message = `
+<b>👨‍⚕️ Специалист начал сессию</b>
 
 📋 <b>Тип:</b> ${appointmentType}
 👤 <b>Клиент:</b> ${clientName}
 🕐 <b>Запланировано:</b> ${scheduledTime}
-🚪 <b>Комната:</b> ${roomName}
-👋 <b>Подключился:</b> ${participantName || 'Участник'}
+👨‍⚕️ <b>Специалист:</b> ${participantName || 'Не указано'}
 `.trim();
+
+      // Обновляем статус консультации на in_progress когда специалист зашёл
+      await supabase
+        .from('appointments')
+        .update({ status: 'in_progress' })
+        .eq('id', appointment.id)
+        .eq('status', 'scheduled');
+
+    } else {
+      // Клиент зашёл (гость)
+      message = `
+<b>👤 Клиент подключился к сессии</b>
+
+📋 <b>Тип:</b> ${appointmentType}
+👤 <b>Клиент:</b> ${clientName}
+🕐 <b>Запланировано:</b> ${scheduledTime}
+👋 <b>Имя в комнате:</b> ${participantName || 'Не указано'}
+`.trim();
+    }
 
     await sendTelegramNotification(message);
 
@@ -146,46 +164,13 @@ router.post('/participant-joined', async (req: Request, res: Response) => {
 });
 
 // ============================================
-// Webhook: Комната создана (первый участник зашёл)
+// Webhook: Комната создана (просто логируем, не отправляем в Telegram)
 // ============================================
 router.post('/room-created', async (req: Request, res: Response) => {
   try {
-    const { roomName, createdAt } = req.body;
-
+    const { roomName } = req.body;
     logger.info(`Jitsi room created: ${roomName}`);
-
-    const appointment = await findAppointmentByRoom(roomName);
-
-    if (!appointment) {
-      logger.warn(`No appointment found for room: ${roomName}`);
-      return res.status(200).json({ received: true, warning: 'Room not found' });
-    }
-
-    const clientName = appointment.profile
-      ? `${appointment.profile.first_name} ${appointment.profile.last_name || ''}`.trim()
-      : 'Клиент';
-
-    const appointmentType = appointment.appointment_type?.name || 'Консультация';
-    const scheduledTime = formatTime(appointment.scheduled_at);
-
-    const message = `
-<b>🟢 Сессия началась</b>
-
-📋 <b>Тип:</b> ${appointmentType}
-👤 <b>Клиент:</b> ${clientName}
-🕐 <b>Запланировано:</b> ${scheduledTime}
-🚪 <b>Комната:</b> ${roomName}
-`.trim();
-
-    await sendTelegramNotification(message);
-
-    // Обновляем статус консультации на in_progress
-    await supabase
-      .from('appointments')
-      .update({ status: 'in_progress' })
-      .eq('id', appointment.id)
-      .eq('status', 'scheduled');
-
+    // Не отправляем уведомление - ждём participant_joined с информацией кто зашёл
     return res.status(200).json({ received: true, success: true });
   } catch (error) {
     logger.error('Error processing room-created webhook:', error);
