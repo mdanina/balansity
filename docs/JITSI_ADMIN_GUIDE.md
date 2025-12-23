@@ -146,6 +146,138 @@ https://video.balansity.ru/konsultaciya-DDmon-XXXXXX
 
 ---
 
+## Настройка вебхуков
+
+Вебхуки отправляют уведомления в Balansity о событиях в комнатах (кто зашёл, сессия началась/завершилась).
+
+### Шаг 1: Создать модуль для Prosody
+
+На сервере Jitsi создайте файл модуля:
+
+```bash
+# Создаём директорию для модулей
+mkdir -p /opt/beget/jitsi/jitsi-meet-cfg/prosody/prosody-plugins-custom
+
+# Создаём файл модуля
+cat > /opt/beget/jitsi/jitsi-meet-cfg/prosody/prosody-plugins-custom/mod_muc_webhook.lua << 'EOF'
+-- Модуль вебхуков для Balansity
+local http = require "net.http";
+local json = require "util.json";
+local timer = require "util.timer";
+
+local webhook_url = os.getenv("BALANSITY_WEBHOOK_URL") or "https://api.balansity.ru/api/webhook/jitsi";
+
+local function send_webhook(event_type, data)
+    local payload = json.encode({
+        event = event_type,
+        roomName = data.room_name,
+        participantName = data.participant_name,
+        participantId = data.participant_id,
+        isHost = data.is_host,
+        duration = data.duration,
+        createdAt = os.date("!%Y-%m-%dT%H:%M:%SZ")
+    });
+
+    http.request(webhook_url, {
+        method = "POST",
+        headers = {
+            ["Content-Type"] = "application/json",
+        },
+        body = payload,
+    }, function(response, code)
+        if code ~= 200 then
+            module:log("warn", "Webhook failed: %s", tostring(code));
+        end
+    end);
+end
+
+-- Комната создана
+module:hook("muc-room-created", function(event)
+    local room = event.room;
+    send_webhook("room_created", {
+        room_name = room.jid:match("^(.+)@"),
+    });
+end);
+
+-- Комната уничтожена
+module:hook("muc-room-destroyed", function(event)
+    local room = event.room;
+    send_webhook("room_destroyed", {
+        room_name = room.jid:match("^(.+)@"),
+    });
+end);
+
+-- Участник присоединился
+module:hook("muc-occupant-joined", function(event)
+    local room = event.room;
+    local occupant = event.occupant;
+    local is_host = occupant.role == "moderator";
+
+    send_webhook("participant_joined", {
+        room_name = room.jid:match("^(.+)@"),
+        participant_name = occupant.nick,
+        participant_id = occupant.jid,
+        is_host = is_host,
+    });
+end);
+
+-- Участник вышел
+module:hook("muc-occupant-left", function(event)
+    local room = event.room;
+    local occupant = event.occupant;
+
+    send_webhook("participant_left", {
+        room_name = room.jid:match("^(.+)@"),
+        participant_name = occupant.nick,
+        participant_id = occupant.jid,
+    });
+end);
+
+module:log("info", "Balansity webhook module loaded");
+EOF
+```
+
+### Шаг 2: Настроить переменные окружения
+
+В файле `/opt/beget/jitsi/.env` добавьте:
+
+```bash
+# URL вебхука Balansity
+BALANSITY_WEBHOOK_URL=https://api.balansity.ru/api/webhook/jitsi
+```
+
+### Шаг 3: Подключить модуль в конфиге Prosody
+
+Отредактируйте `/opt/beget/jitsi/jitsi-meet-cfg/prosody/conf.d/jitsi-meet.cfg.lua`:
+
+Найдите секцию `Component "conference.meet.jitsi" "muc"` и добавьте модуль:
+
+```lua
+Component "conference.meet.jitsi" "muc"
+    modules_enabled = {
+        "muc_meeting_id";
+        "muc_domain_mapper";
+        "muc_webhook";  -- <-- добавить эту строку
+    }
+```
+
+### Шаг 4: Перезапустить Jitsi
+
+```bash
+cd /opt/beget/jitsi && docker-compose down && docker-compose up -d
+```
+
+### Проверка работы вебхуков
+
+После настройки при входе в комнату в Telegram должно приходить уведомление.
+
+Логи можно посмотреть:
+```bash
+docker logs jitsi-prosody-1 2>&1 | grep -i webhook
+```
+
+---
+
 ## Troubleshooting
 
 ### Не могу войти как организатор
