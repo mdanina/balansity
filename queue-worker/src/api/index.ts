@@ -32,6 +32,12 @@ export function createApiServer() {
     res.json({ status: 'ok', service: 'balansity-api' });
   });
 
+  // Test endpoint
+  app.post('/test-jitsi', (req: Request, res: Response) => {
+    logger.info('TEST-JITSI endpoint hit!');
+    res.json({ test: 'ok', body: req.body });
+  });
+
   // API роуты
   logger.info('Registering routes...');
   logger.info(`paymentsRouter type: ${typeof paymentsRouter}`);
