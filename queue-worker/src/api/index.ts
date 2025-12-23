@@ -28,8 +28,8 @@ export function createApiServer() {
 
   // API роуты
   app.use('/api/payments', paymentsRouter);
+  app.use('/api/webhook/jitsi', jitsiWebhookRouter);  // Более специфичный роут первым!
   app.use('/api/webhook', webhookRouter);
-  app.use('/api/webhook/jitsi', jitsiWebhookRouter);
 
   // Обработка 404
   app.use((req: Request, res: Response) => {
