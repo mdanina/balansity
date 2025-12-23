@@ -156,8 +156,18 @@ https://video.balansity.ru/konsultaciya-DDmon-XXXXXX
 ### Архитектура
 
 ```
-Jitsi (Prosody) → HTTP POST → Queue Worker (api.balansity.ru) → Telegram Bot
+Jitsi (Prosody) → HTTP POST → https://balansity.ru/worker/webhook/jitsi → Queue Worker → Telegram Bot
 ```
+
+### ВАЖНО: Правильный URL вебхука
+
+```
+https://balansity.ru/worker/webhook/jitsi
+```
+
+**НЕ** `https://api.balansity.ru/...` — такого домена нет!
+
+**НЕ** `https://balansity.ru/worker/api/webhook/jitsi` — будет двойной `/api/api/` из-за nginx!
 
 ### Эндпоинты вебхуков
 
@@ -199,7 +209,7 @@ local http = require "net.http";
 local json = require "util.json";
 local timer = require "util.timer";
 
-local webhook_url = os.getenv("BALANSITY_WEBHOOK_URL") or "https://api.balansity.ru/api/webhook/jitsi";
+local webhook_url = os.getenv("BALANSITY_WEBHOOK_URL") or "https://balansity.ru/worker/webhook/jitsi";
 
 local function send_webhook(event_type, data)
     local payload = json.encode({
@@ -271,14 +281,19 @@ module:log("info", "Balansity webhook module loaded");
 EOF
 ```
 
-### Шаг 2: Настроить переменные окружения
+### Шаг 2: Включить модуль через переменные окружения
 
 В файле `/opt/beget/jitsi/.env` добавьте:
 
 ```bash
-# URL вебхука Balansity
-BALANSITY_WEBHOOK_URL=https://api.balansity.ru/api/webhook/jitsi
+# Модули для MUC (через запятую без пробелов)
+XMPP_MUC_MODULES=muc_webhook
+
+# URL вебхука Balansity (опционально, есть default в модуле)
+BALANSITY_WEBHOOK_URL=https://balansity.ru/worker/webhook/jitsi
 ```
+
+**ВАЖНО**: Используйте `XMPP_MUC_MODULES` — это официальный способ добавить модуль в Jitsi Docker!
 
 ### Шаг 3: Подключить модуль в конфиге Prosody
 
@@ -369,41 +384,157 @@ LETSENCRYPT_EMAIL=your-email@example.com
 
 ### Вебхуки не работают
 
-1. **Проверить, что модуль загружен:**
+#### 1. Проверить, что модуль загружен:
 ```bash
 docker logs jitsi-prosody-1 2>&1 | grep -i webhook
 ```
 
-2. **Проверить путь к плагинам в главном конфиге:**
-```bash
-docker exec jitsi-prosody-1 cat /config/prosody.cfg.lua | grep plugin_paths
-```
+Должно быть: `Balansity webhook module loaded`
 
-Если `/prosody-plugins-custom` не указан, добавьте:
-```bash
-# На хосте отредактировать /opt/beget/jitsi/prosody/config/prosody.cfg.lua
-# Добавить строку:
+#### 2. Проверить путь к плагинам:
+
+Создайте файл `/opt/beget/jitsi/prosody/config/conf.d/99-balansity.cfg.lua`:
+```lua
 plugin_paths = { "/prosody-plugins-custom" }
 ```
 
-3. **Проверить, что файл модуля существует:**
+#### 3. Проверить переменную XMPP_MUC_MODULES:
+```bash
+grep XMPP_MUC_MODULES /opt/beget/jitsi/.env
+```
+
+Должно быть: `XMPP_MUC_MODULES=muc_webhook`
+
+#### 4. Проверить, что файл модуля существует:
 ```bash
 docker exec jitsi-prosody-1 ls -la /prosody-plugins-custom/
 ```
 
-4. **Проверить, что модуль включён в конфиге MUC:**
+#### 5. Тестовый запрос на вебхук:
 ```bash
-docker exec jitsi-prosody-1 cat /config/conf.d/jitsi-meet.cfg.lua | grep muc_webhook
-```
-
-5. **Тестовый запрос на вебхук:**
-```bash
-curl -X POST https://api.balansity.ru/api/webhook/jitsi \
+curl -X POST https://balansity.ru/worker/webhook/jitsi \
   -H "Content-Type: application/json" \
-  -d '{"event":"participant_joined","room_name":"test-room","participant_name":"Test","is_host":true}'
+  -d '{"event":"participant_joined","roomName":"test-room","participantName":"Test","isHost":true}'
 ```
 
-6. **Перезапустить Prosody:**
+#### 6. Перезапустить Prosody:
 ```bash
-cd /opt/beget/jitsi && docker-compose restart prosody
+cd /opt/beget/jitsi
+docker-compose stop prosody && docker-compose up -d prosody
 ```
+
+**НЕ** используйте `docker-compose restart` — он может зависнуть!
+
+---
+
+## Troubleshooting Queue-Worker
+
+### Queue-worker не получает вебхуки
+
+#### 1. Проверить, что Docker контейнер запущен:
+```bash
+docker ps | grep queue-worker
+```
+
+#### 2. Проверить порты в docker-compose.yml:
+
+Файл `/var/www/balansity/queue-worker/docker-compose.yml` должен содержать:
+```yaml
+services:
+  queue-worker:
+    ...
+    ports:
+      - "3001:3001"
+```
+
+**ВАЖНО**: Без этой строки контейнер не будет доступен снаружи!
+
+#### 3. Убедиться, что нет старых процессов:
+```bash
+# Проверить, что на порту 3001 слушает только Docker
+netstat -tlnp | grep 3001
+
+# Убедиться, что нет PM2 процессов
+pm2 list
+
+# Если есть — удалить:
+pm2 delete balansity-queue-worker
+```
+
+#### 4. Проверить логи queue-worker:
+```bash
+docker logs balansity-queue-worker 2>&1 | tail -30
+```
+
+Должны быть:
+- `[REQUEST] POST /api/webhook/jitsi` — при получении вебхука
+- `Jitsi webhook received: event=...` — при обработке
+
+#### 5. Тест прямым запросом:
+```bash
+curl -s http://localhost:3001/api/webhook/jitsi \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"event":"participant_joined","roomName":"test","isHost":true}'
+```
+
+Должен вернуть: `{"received":true,"success":true,...}`
+
+---
+
+## История проблем и решений (23.12.2025)
+
+### Проблема 1: PM2 блокирует порт 3001
+
+**Симптом**: Docker контейнер запущен, но вебхуки возвращают 404 или пустой ответ.
+
+**Причина**: Старый Node.js процесс, запущенный через PM2, слушает порт 3001 на хосте и перехватывает все запросы.
+
+**Решение**:
+```bash
+pm2 stop balansity-queue-worker
+pm2 delete balansity-queue-worker
+docker-compose restart
+```
+
+### Проблема 2: Docker не публикует порты
+
+**Симптом**: `netstat -tlnp | grep 3001` показывает пустой результат.
+
+**Причина**: В docker-compose.yml нет секции `ports`.
+
+**Решение**: Добавить в docker-compose.yml:
+```yaml
+ports:
+  - "3001:3001"
+```
+
+### Проблема 3: Двойной /api в пути
+
+**Симптом**: В логах видно `/api/api/webhook/jitsi`
+
+**Причина**: Nginx добавляет `/api` к пути, а URL вебхука тоже содержит `/api`.
+
+**Решение**: Использовать URL без `/api`:
+```
+https://balansity.ru/worker/webhook/jitsi
+```
+
+### Проблема 4: Prosody зависает при restart
+
+**Симптом**: `docker-compose restart prosody` зависает на "Restarting".
+
+**Решение**: Использовать stop + up вместо restart:
+```bash
+docker-compose stop prosody
+docker-compose up -d prosody
+```
+
+### Проблема 5: Конфиги перезаписываются при перезапуске
+
+**Симптом**: Изменения в prosody.cfg.lua или jitsi-meet.cfg.lua исчезают после перезапуска.
+
+**Причина**: Jitsi Docker генерирует конфиги из шаблонов и переменных окружения.
+
+**Решение**:
+1. Использовать `XMPP_MUC_MODULES` для добавления модулей
+2. Создавать отдельные файлы в `conf.d/` (например, `99-balansity.cfg.lua`)
