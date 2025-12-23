@@ -18,12 +18,6 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   },
 });
 
-// IP сервера Jitsi для проверки (опционально)
-const JITSI_SERVER_IP = process.env.JITSI_SERVER_IP || '155.212.186.130';
-
-// Секретный ключ для верификации вебхуков (настраивается в Jitsi)
-const JITSI_WEBHOOK_SECRET = process.env.JITSI_WEBHOOK_SECRET || '';
-
 /**
  * Отправить сообщение в Telegram
  */
@@ -62,8 +56,7 @@ async function sendTelegramNotification(message: string): Promise<void> {
 }
 
 /**
- * Извлечь appointment_id из названия комнаты
- * Формат комнаты: konsultaciya-DDmon-XXXXXX
+ * Извлечь appointment по названию комнаты
  */
 async function findAppointmentByRoom(roomName: string): Promise<any | null> {
   try {
@@ -99,34 +92,37 @@ function formatTime(dateString: string): string {
 }
 
 // ============================================
-// Webhook: Участник присоединился к комнате
+// Обработчик: Участник присоединился к комнате
 // ============================================
-router.post('/participant-joined', async (req: Request, res: Response) => {
-  try {
-    const { roomName, participantName, participantId, isHost } = req.body;
+async function handleParticipantJoined(data: {
+  roomName: string;
+  participantName?: string;
+  participantId?: string;
+  isHost?: boolean;
+}): Promise<{ success: boolean; warning?: string }> {
+  const { roomName, participantName, isHost } = data;
 
-    logger.info(`Jitsi participant joined: room=${roomName}, name=${participantName}, isHost=${isHost}`);
+  logger.info(`Jitsi participant joined: room=${roomName}, name=${participantName}, isHost=${isHost}`);
 
-    // Находим консультацию по комнате
-    const appointment = await findAppointmentByRoom(roomName);
+  const appointment = await findAppointmentByRoom(roomName);
 
-    if (!appointment) {
-      logger.warn(`No appointment found for room: ${roomName}`);
-      return res.status(200).json({ received: true, warning: 'Room not found' });
-    }
+  if (!appointment) {
+    logger.warn(`No appointment found for room: ${roomName}`);
+    return { success: true, warning: 'Room not found' };
+  }
 
-    const clientName = appointment.profile
-      ? `${appointment.profile.first_name} ${appointment.profile.last_name || ''}`.trim()
-      : 'Клиент';
+  const clientName = appointment.profile
+    ? `${appointment.profile.first_name} ${appointment.profile.last_name || ''}`.trim()
+    : 'Клиент';
 
-    const appointmentType = appointment.appointment_type?.name || 'Консультация';
-    const scheduledTime = formatTime(appointment.scheduled_at);
+  const appointmentType = appointment.appointment_type?.name || 'Консультация';
+  const scheduledTime = formatTime(appointment.scheduled_at);
 
-    let message: string;
+  let message: string;
 
-    if (isHost) {
-      // Специалист зашёл (модератор)
-      message = `
+  if (isHost) {
+    // Специалист зашёл (модератор)
+    message = `
 <b>👨‍⚕️ Специалист начал сессию</b>
 
 📋 <b>Тип:</b> ${appointmentType}
@@ -135,16 +131,16 @@ router.post('/participant-joined', async (req: Request, res: Response) => {
 👨‍⚕️ <b>Специалист:</b> ${participantName || 'Не указано'}
 `.trim();
 
-      // Обновляем статус консультации на in_progress когда специалист зашёл
-      await supabase
-        .from('appointments')
-        .update({ status: 'in_progress' })
-        .eq('id', appointment.id)
-        .eq('status', 'scheduled');
+    // Обновляем статус консультации на in_progress когда специалист зашёл
+    await supabase
+      .from('appointments')
+      .update({ status: 'in_progress' })
+      .eq('id', appointment.id)
+      .eq('status', 'scheduled');
 
-    } else {
-      // Клиент зашёл (гость)
-      message = `
+  } else {
+    // Клиент зашёл (гость)
+    message = `
 <b>👤 Клиент подключился к сессии</b>
 
 📋 <b>Тип:</b> ${appointmentType}
@@ -152,59 +148,51 @@ router.post('/participant-joined', async (req: Request, res: Response) => {
 🕐 <b>Запланировано:</b> ${scheduledTime}
 👋 <b>Имя в комнате:</b> ${participantName || 'Не указано'}
 `.trim();
-    }
-
-    await sendTelegramNotification(message);
-
-    return res.status(200).json({ received: true, success: true });
-  } catch (error) {
-    logger.error('Error processing participant-joined webhook:', error);
-    return res.status(200).json({ received: true, warning: 'Error logged' });
   }
-});
+
+  await sendTelegramNotification(message);
+
+  return { success: true };
+}
 
 // ============================================
-// Webhook: Комната создана (просто логируем, не отправляем в Telegram)
+// Обработчик: Комната создана
 // ============================================
-router.post('/room-created', async (req: Request, res: Response) => {
-  try {
-    const { roomName } = req.body;
-    logger.info(`Jitsi room created: ${roomName}`);
-    // Не отправляем уведомление - ждём participant_joined с информацией кто зашёл
-    return res.status(200).json({ received: true, success: true });
-  } catch (error) {
-    logger.error('Error processing room-created webhook:', error);
-    return res.status(200).json({ received: true, warning: 'Error logged' });
+async function handleRoomCreated(data: { roomName: string }): Promise<{ success: boolean }> {
+  logger.info(`Jitsi room created: ${data.roomName}`);
+  // Не отправляем уведомление - ждём participant_joined с информацией кто зашёл
+  return { success: true };
+}
+
+// ============================================
+// Обработчик: Комната закрыта
+// ============================================
+async function handleRoomDestroyed(data: {
+  roomName: string;
+  duration?: number;
+}): Promise<{ success: boolean; warning?: string }> {
+  const { roomName, duration } = data;
+
+  logger.info(`Jitsi room destroyed: ${roomName}, duration=${duration}`);
+
+  const appointment = await findAppointmentByRoom(roomName);
+
+  if (!appointment) {
+    logger.warn(`No appointment found for room: ${roomName}`);
+    return { success: true, warning: 'Room not found' };
   }
-});
 
-// ============================================
-// Webhook: Комната закрыта (все вышли)
-// ============================================
-router.post('/room-destroyed', async (req: Request, res: Response) => {
-  try {
-    const { roomName, duration } = req.body;
+  const clientName = appointment.profile
+    ? `${appointment.profile.first_name} ${appointment.profile.last_name || ''}`.trim()
+    : 'Клиент';
 
-    logger.info(`Jitsi room destroyed: ${roomName}, duration=${duration}`);
+  const appointmentType = appointment.appointment_type?.name || 'Консультация';
 
-    const appointment = await findAppointmentByRoom(roomName);
+  // Форматируем длительность
+  const durationMinutes = duration ? Math.round(duration / 60) : null;
+  const durationText = durationMinutes ? `${durationMinutes} мин` : 'неизвестно';
 
-    if (!appointment) {
-      logger.warn(`No appointment found for room: ${roomName}`);
-      return res.status(200).json({ received: true, warning: 'Room not found' });
-    }
-
-    const clientName = appointment.profile
-      ? `${appointment.profile.first_name} ${appointment.profile.last_name || ''}`.trim()
-      : 'Клиент';
-
-    const appointmentType = appointment.appointment_type?.name || 'Консультация';
-
-    // Форматируем длительность
-    const durationMinutes = duration ? Math.round(duration / 60) : null;
-    const durationText = durationMinutes ? `${durationMinutes} мин` : 'неизвестно';
-
-    const message = `
+  const message = `
 <b>🔴 Сессия завершена</b>
 
 📋 <b>Тип:</b> ${appointmentType}
@@ -213,26 +201,61 @@ router.post('/room-destroyed', async (req: Request, res: Response) => {
 🚪 <b>Комната:</b> ${roomName}
 `.trim();
 
-    await sendTelegramNotification(message);
+  await sendTelegramNotification(message);
 
-    return res.status(200).json({ received: true, success: true });
+  return { success: true };
+}
+
+// ============================================
+// Обработчик: Участник покинул комнату
+// ============================================
+async function handleParticipantLeft(data: {
+  roomName: string;
+  participantName?: string;
+}): Promise<{ success: boolean }> {
+  logger.info(`Jitsi participant left: room=${data.roomName}, name=${data.participantName}`);
+  // Просто логируем, не отправляем в Telegram (чтобы не спамить)
+  return { success: true };
+}
+
+// ============================================
+// HTTP Routes
+// ============================================
+
+router.post('/participant-joined', async (req: Request, res: Response) => {
+  try {
+    const result = await handleParticipantJoined(req.body);
+    return res.status(200).json({ received: true, ...result });
+  } catch (error) {
+    logger.error('Error processing participant-joined webhook:', error);
+    return res.status(200).json({ received: true, warning: 'Error logged' });
+  }
+});
+
+router.post('/room-created', async (req: Request, res: Response) => {
+  try {
+    const result = await handleRoomCreated(req.body);
+    return res.status(200).json({ received: true, ...result });
+  } catch (error) {
+    logger.error('Error processing room-created webhook:', error);
+    return res.status(200).json({ received: true, warning: 'Error logged' });
+  }
+});
+
+router.post('/room-destroyed', async (req: Request, res: Response) => {
+  try {
+    const result = await handleRoomDestroyed(req.body);
+    return res.status(200).json({ received: true, ...result });
   } catch (error) {
     logger.error('Error processing room-destroyed webhook:', error);
     return res.status(200).json({ received: true, warning: 'Error logged' });
   }
 });
 
-// ============================================
-// Webhook: Участник покинул комнату
-// ============================================
 router.post('/participant-left', async (req: Request, res: Response) => {
   try {
-    const { roomName, participantName, participantId } = req.body;
-
-    logger.info(`Jitsi participant left: room=${roomName}, name=${participantName}`);
-
-    // Просто логируем, не отправляем в Telegram (чтобы не спамить)
-    return res.status(200).json({ received: true, success: true });
+    const result = await handleParticipantLeft(req.body);
+    return res.status(200).json({ received: true, ...result });
   } catch (error) {
     logger.error('Error processing participant-left webhook:', error);
     return res.status(200).json({ received: true, warning: 'Error logged' });
@@ -240,27 +263,44 @@ router.post('/participant-left', async (req: Request, res: Response) => {
 });
 
 // ============================================
-// Общий endpoint для всех событий (если Jitsi шлёт одним URL)
+// Общий endpoint для всех событий
 // ============================================
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { event, ...data } = req.body;
+    const { event, room_name, roomName, participant_name, participantName, participant_id, participantId, is_host, isHost, duration } = req.body;
 
-    logger.info(`Jitsi webhook received: event=${event}`, data);
+    // Нормализуем данные (snake_case -> camelCase)
+    const normalizedData = {
+      roomName: room_name || roomName,
+      participantName: participant_name || participantName,
+      participantId: participant_id || participantId,
+      isHost: is_host || isHost,
+      duration,
+    };
+
+    logger.info(`Jitsi webhook received: event=${event}`, normalizedData);
+
+    let result: { success: boolean; warning?: string };
 
     switch (event) {
       case 'participant_joined':
-        return router.handle({ ...req, url: '/participant-joined', body: data } as any, res, () => {});
+        result = await handleParticipantJoined(normalizedData);
+        break;
       case 'room_created':
-        return router.handle({ ...req, url: '/room-created', body: data } as any, res, () => {});
+        result = await handleRoomCreated(normalizedData);
+        break;
       case 'room_destroyed':
-        return router.handle({ ...req, url: '/room-destroyed', body: data } as any, res, () => {});
+        result = await handleRoomDestroyed(normalizedData);
+        break;
       case 'participant_left':
-        return router.handle({ ...req, url: '/participant-left', body: data } as any, res, () => {});
+        result = await handleParticipantLeft(normalizedData);
+        break;
       default:
         logger.debug(`Unknown Jitsi event: ${event}`);
         return res.status(200).json({ received: true, unknown_event: event });
     }
+
+    return res.status(200).json({ received: true, ...result });
   } catch (error) {
     logger.error('Error processing Jitsi webhook:', error);
     return res.status(200).json({ received: true, warning: 'Error logged' });
