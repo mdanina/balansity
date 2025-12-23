@@ -2,6 +2,49 @@
 
 Все значимые изменения в проекте документируются в этом файле.
 
+## [2025-12-23] - Jitsi Webhooks & Notifications
+
+### Добавлено
+
+#### Вебхуки для Jitsi
+- **queue-worker/src/api/routes/jitsi-webhook.ts** — новый роутер для обработки вебхуков от Jitsi
+  - `POST /api/webhook/jitsi` — общий эндпоинт для всех событий
+  - `POST /api/webhook/jitsi/participant-joined` — участник вошёл в комнату
+  - `POST /api/webhook/jitsi/room-created` — комната создана
+  - `POST /api/webhook/jitsi/room-destroyed` — комната закрыта
+  - `POST /api/webhook/jitsi/participant-left` — участник вышел
+
+#### Telegram-уведомления о видеоконсультациях
+- **"Специалист начал сессию"** — когда модератор входит в комнату
+- **"Клиент подключился к сессии"** — когда гость входит в комнату
+- **"Сессия завершена"** — когда комната закрывается (с длительностью)
+
+#### Продление времени консультации
+- **supabase/migrations/045_extend_consultation_grace_period.sql** — статус `completed` устанавливается через 15 минут после окончания консультации (было сразу)
+
+### Изменено
+
+#### queue-worker
+- **queue-worker/src/api/index.ts** — подключён новый роутер `jitsiWebhookRouter`
+- **queue-worker/Dockerfile** — исправлена сборка (устанавливаются devDependencies для TypeScript, затем удаляются)
+
+### Документация
+
+- **docs/JITSI_ADMIN_GUIDE.md** — обновлено:
+  - Добавлена архитектура вебхуков
+  - Добавлена таблица эндпоинтов
+  - Исправлены пути к файлам (prosody/config, prosody/prosody-plugins-custom)
+  - Добавлена структура директорий на сервере Jitsi
+  - Добавлен раздел troubleshooting для вебхуков
+
+### Следующие шаги
+
+- [ ] Настроить модуль Prosody `mod_muc_webhook.lua` на сервере Jitsi
+- [ ] Добавить `plugin_paths` в главный конфиг Prosody
+- [ ] Протестировать отправку вебхуков при входе в комнату
+
+---
+
 ## [2025-01-27] - Code Review Fixes - Завершен рефакторинг ResultsReportNew.tsx
 
 ### Резюме изменений
