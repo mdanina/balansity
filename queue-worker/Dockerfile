@@ -6,14 +6,17 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Устанавливаем зависимости
-RUN npm ci --only=production
+# Устанавливаем ВСЕ зависимости (включая devDependencies для сборки)
+RUN npm ci
 
 # Копируем исходный код
 COPY src ./src
 
 # Собираем проект
 RUN npm run build
+
+# Удаляем devDependencies после сборки для уменьшения размера образа
+RUN npm prune --production
 
 # Создаем папку для логов
 RUN mkdir -p logs
