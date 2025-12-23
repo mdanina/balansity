@@ -21,6 +21,12 @@ export function createApiServer() {
   // Body parser
   app.use(express.json());
 
+  // Debug: логируем ВСЕ запросы
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    logger.info(`[REQUEST] ${req.method} ${req.path}`);
+    next();
+  });
+
   // Health check
   app.get('/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', service: 'balansity-api' });
