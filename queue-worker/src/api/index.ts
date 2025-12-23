@@ -27,9 +27,16 @@ export function createApiServer() {
   });
 
   // API роуты
+  logger.info('Registering routes...');
+  logger.info(`paymentsRouter type: ${typeof paymentsRouter}`);
+  logger.info(`jitsiWebhookRouter type: ${typeof jitsiWebhookRouter}`);
+  logger.info(`webhookRouter type: ${typeof webhookRouter}`);
+
   app.use('/api/payments', paymentsRouter);
-  app.use('/api/webhook/jitsi', jitsiWebhookRouter);  // Более специфичный роут первым!
+  app.use('/api/webhook/jitsi', jitsiWebhookRouter);
   app.use('/api/webhook', webhookRouter);
+
+  logger.info('Routes registered successfully');
 
   // Обработка 404
   app.use((req: Request, res: Response) => {
