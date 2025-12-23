@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { paymentsRouter } from './routes/payments.js';
 import { webhookRouter } from './routes/webhook.js';
+import { jitsiWebhookRouter } from './routes/jitsi-webhook.js';
 import { logger } from '../utils/logger.js';
 
 export function createApiServer() {
@@ -28,6 +29,7 @@ export function createApiServer() {
   // API роуты
   app.use('/api/payments', paymentsRouter);
   app.use('/api/webhook', webhookRouter);
+  app.use('/api/webhook/jitsi', jitsiWebhookRouter);
 
   // Обработка 404
   app.use((req: Request, res: Response) => {
