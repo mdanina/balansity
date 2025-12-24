@@ -107,7 +107,9 @@ export default function Register() {
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-6">
-              <img src={logo} alt="Balansity" className="h-10 w-auto" />
+              <Link to="/">
+                <img src={logo} alt="Balansity" className="h-10 w-auto" />
+              </Link>
             </div>
             <h1 className="text-3xl font-bold text-foreground">Регистрация</h1>
             <p className="mt-2 text-muted-foreground">
