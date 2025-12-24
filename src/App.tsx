@@ -7,9 +7,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProfileProvider } from "@/contexts/ProfileContext";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
+import { SpecialistAuthProvider } from "@/contexts/SpecialistAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { SpecialistProtectedRoute } from "@/components/specialist/SpecialistProtectedRoute";
+import { SpecialistLayout } from "@/components/specialist/SpecialistLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Loader2 } from "lucide-react";
 // Легкие страницы загружаем сразу
@@ -88,6 +91,14 @@ const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const BlogManagement = lazy(() => import("./pages/admin/BlogManagement"));
 
+// Страницы специалиста
+const SpecialistLogin = lazy(() => import("./pages/specialist/SpecialistLogin"));
+const SpecialistDashboard = lazy(() => import("./pages/specialist/SpecialistDashboard"));
+const SpecialistClients = lazy(() => import("./pages/specialist/SpecialistClients"));
+const SpecialistCalendar = lazy(() => import("./pages/specialist/SpecialistCalendar"));
+const SpecialistSessions = lazy(() => import("./pages/specialist/SpecialistSessions"));
+const SpecialistAIAnalysis = lazy(() => import("./pages/specialist/SpecialistAIAnalysis"));
+
 // Компонент загрузки
 const PageLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
@@ -117,6 +128,7 @@ const App = () => (
       <AuthProvider>
         <ProfileProvider>
           <AdminAuthProvider>
+          <SpecialistAuthProvider>
             <TooltipProvider>
               <Toaster />
               <Sonner />
@@ -187,13 +199,31 @@ const App = () => (
                     <Route path="/appointments/confirmation" element={<ProtectedRoute><AppointmentConfirmation /></ProtectedRoute>} />
                     <Route path="/packages" element={<ProtectedRoute><Packages /></ProtectedRoute>} />
                     <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
-                    
+
+                    {/* Маршруты специалиста */}
+                    <Route path="/specialist/login" element={<SpecialistLogin />} />
+                    <Route
+                      path="/specialist/*"
+                      element={
+                        <SpecialistProtectedRoute>
+                          <SpecialistLayout />
+                        </SpecialistProtectedRoute>
+                      }
+                    >
+                      <Route index element={<SpecialistDashboard />} />
+                      <Route path="clients" element={<SpecialistClients />} />
+                      <Route path="calendar" element={<SpecialistCalendar />} />
+                      <Route path="sessions" element={<SpecialistSessions />} />
+                      <Route path="ai-analysis" element={<SpecialistAIAnalysis />} />
+                    </Route>
+
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>
               </BrowserRouter>
             </TooltipProvider>
+          </SpecialistAuthProvider>
           </AdminAuthProvider>
         </ProfileProvider>
       </AuthProvider>
