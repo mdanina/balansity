@@ -8,6 +8,7 @@ import {
   FileText,
   Settings,
   Video,
+  Brain,
 } from 'lucide-react';
 
 const navigation = [
@@ -31,6 +32,11 @@ const navigation = [
     name: 'Сессии',
     href: '/specialist/sessions',
     icon: Video,
+  },
+  {
+    name: 'AI-анализ',
+    href: '/specialist/ai-analysis',
+    icon: Brain,
   },
   {
     name: 'Сообщения',
