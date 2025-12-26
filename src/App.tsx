@@ -100,6 +100,7 @@ const SpecialistSessions = lazy(() => import("./pages/specialist/SpecialistSessi
 const SpecialistAIAnalysis = lazy(() => import("./pages/specialist/SpecialistAIAnalysis"));
 const SpecialistSessionAnalysis = lazy(() => import("./pages/specialist/SpecialistSessionAnalysis"));
 const SpecialistClientDetail = lazy(() => import("./pages/specialist/SpecialistClientDetail"));
+const CoordinatorAssignments = lazy(() => import("./pages/specialist/CoordinatorAssignments"));
 
 // Компонент загрузки
 const PageLoader = () => (
@@ -219,6 +220,7 @@ const App = () => (
                       <Route path="sessions" element={<SpecialistSessions />} />
                       <Route path="sessions/:appointmentId" element={<SpecialistSessionAnalysis />} />
                       <Route path="ai-analysis" element={<SpecialistAIAnalysis />} />
+                      <Route path="assignments" element={<CoordinatorAssignments />} />
                     </Route>
 
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
