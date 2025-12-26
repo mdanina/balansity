@@ -14,6 +14,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { SpecialistProtectedRoute } from "@/components/specialist/SpecialistProtectedRoute";
 import { SpecialistLayout } from "@/components/specialist/SpecialistLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { RouteTracker } from "@/components/RouteTracker";
 import { Loader2 } from "lucide-react";
 // Легкие страницы загружаем сразу
 import Landing from "./pages/Landing";
@@ -136,6 +137,7 @@ const App = () => (
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <RouteTracker />
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                     {/* Публичные маршруты */}
