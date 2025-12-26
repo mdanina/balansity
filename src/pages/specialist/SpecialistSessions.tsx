@@ -78,7 +78,8 @@ interface AppointmentWithDetails {
 }
 
 export default function SpecialistSessions() {
-  const { specialist } = useSpecialistAuth();
+  const { specialistUser } = useSpecialistAuth();
+  const specialist = specialistUser?.specialist;
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
