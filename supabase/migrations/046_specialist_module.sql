@@ -242,30 +242,37 @@ ALTER TABLE public.specialists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.client_assignments ENABLE ROW LEVEL SECURITY;
 
 -- SPECIALIZATIONS: все могут читать
+DROP POLICY IF EXISTS "specializations_select_all" ON public.specializations;
 CREATE POLICY "specializations_select_all" ON public.specializations
     FOR SELECT USING (true);
 
 -- SPECIALIZATIONS: только админы могут изменять
+DROP POLICY IF EXISTS "specializations_admin_all" ON public.specializations;
 CREATE POLICY "specializations_admin_all" ON public.specializations
     FOR ALL USING (public.is_admin());
 
 -- SPECIALISTS: специалист видит свой профиль
+DROP POLICY IF EXISTS "specialists_select_own" ON public.specialists;
 CREATE POLICY "specialists_select_own" ON public.specialists
     FOR SELECT USING (user_id = auth.uid());
 
 -- SPECIALISTS: специалист может редактировать свой профиль
+DROP POLICY IF EXISTS "specialists_update_own" ON public.specialists;
 CREATE POLICY "specialists_update_own" ON public.specialists
     FOR UPDATE USING (user_id = auth.uid());
 
 -- SPECIALISTS: админы и координаторы видят всех специалистов
+DROP POLICY IF EXISTS "specialists_select_staff" ON public.specialists;
 CREATE POLICY "specialists_select_staff" ON public.specialists
     FOR SELECT USING (public.is_admin() OR public.is_coordinator());
 
 -- SPECIALISTS: админы могут всё
+DROP POLICY IF EXISTS "specialists_admin_all" ON public.specialists;
 CREATE POLICY "specialists_admin_all" ON public.specialists
     FOR ALL USING (public.is_admin());
 
 -- SPECIALISTS: клиенты видят своих назначенных специалистов
+DROP POLICY IF EXISTS "specialists_select_assigned" ON public.specialists;
 CREATE POLICY "specialists_select_assigned" ON public.specialists
     FOR SELECT USING (
         EXISTS (
@@ -277,20 +284,24 @@ CREATE POLICY "specialists_select_assigned" ON public.specialists
     );
 
 -- CLIENT_ASSIGNMENTS: специалист видит свои назначения
+DROP POLICY IF EXISTS "client_assignments_select_specialist" ON public.client_assignments;
 CREATE POLICY "client_assignments_select_specialist" ON public.client_assignments
     FOR SELECT USING (
         specialist_id = public.get_current_specialist_id()
     );
 
 -- CLIENT_ASSIGNMENTS: клиент видит свои назначения
+DROP POLICY IF EXISTS "client_assignments_select_client" ON public.client_assignments;
 CREATE POLICY "client_assignments_select_client" ON public.client_assignments
     FOR SELECT USING (client_user_id = auth.uid());
 
 -- CLIENT_ASSIGNMENTS: координаторы и админы видят всё
+DROP POLICY IF EXISTS "client_assignments_select_staff" ON public.client_assignments;
 CREATE POLICY "client_assignments_select_staff" ON public.client_assignments
     FOR SELECT USING (public.is_admin() OR public.is_coordinator());
 
 -- CLIENT_ASSIGNMENTS: координаторы и админы могут создавать/изменять
+DROP POLICY IF EXISTS "client_assignments_manage_staff" ON public.client_assignments;
 CREATE POLICY "client_assignments_manage_staff" ON public.client_assignments
     FOR ALL USING (public.is_admin() OR public.is_coordinator());
 
