@@ -33,6 +33,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSpecialistAuth } from '@/contexts/SpecialistAuthContext';
 import { getClinicalNotesForClient } from '@/lib/supabase-ai';
 import { ClientDocuments } from '@/components/specialist/ClientDocuments';
+import { CaseSummaryCard } from '@/components/specialist/CaseSummaryCard';
 import type { GeneratedClinicalNote } from '@/types/ai.types';
 
 interface ClientProfile {
@@ -398,6 +399,11 @@ export default function SpecialistClientDetail() {
               </Card>
             )}
           </div>
+
+          {/* Обзор кейса */}
+          {clientId && (
+            <CaseSummaryCard clientUserId={clientId} />
+          )}
         </TabsContent>
 
         {/* Вкладка "Консультации" */}
