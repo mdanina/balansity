@@ -32,6 +32,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useSpecialistAuth } from '@/contexts/SpecialistAuthContext';
 import { getClinicalNotesForClient } from '@/lib/supabase-ai';
+import { ClientDocuments } from '@/components/specialist/ClientDocuments';
 import type { GeneratedClinicalNote } from '@/types/ai.types';
 
 interface ClientProfile {
@@ -532,15 +533,19 @@ export default function SpecialistClientDetail() {
 
         {/* Вкладка "Документы" */}
         <TabsContent value="documents">
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <FolderOpen className="mx-auto h-12 w-12 mb-4 opacity-50" />
-              <p className="text-lg font-medium">Скоро</p>
-              <p className="text-sm mt-1">
-                Функционал обмена документами с клиентом будет добавлен в следующих версиях
-              </p>
-            </CardContent>
-          </Card>
+          {specialistUser?.id ? (
+            <ClientDocuments
+              clientUserId={clientId!}
+              currentUserId={specialistUser.id}
+            />
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <FolderOpen className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                <p className="text-lg font-medium">Загрузка...</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
