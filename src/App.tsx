@@ -99,6 +99,7 @@ const SpecialistCalendar = lazy(() => import("./pages/specialist/SpecialistCalen
 const SpecialistSessions = lazy(() => import("./pages/specialist/SpecialistSessions"));
 const SpecialistAIAnalysis = lazy(() => import("./pages/specialist/SpecialistAIAnalysis"));
 const SpecialistSessionAnalysis = lazy(() => import("./pages/specialist/SpecialistSessionAnalysis"));
+const SpecialistClientDetail = lazy(() => import("./pages/specialist/SpecialistClientDetail"));
 
 // Компонент загрузки
 const PageLoader = () => (
@@ -213,6 +214,7 @@ const App = () => (
                     >
                       <Route index element={<SpecialistDashboard />} />
                       <Route path="clients" element={<SpecialistClients />} />
+                      <Route path="clients/:clientId" element={<SpecialistClientDetail />} />
                       <Route path="calendar" element={<SpecialistCalendar />} />
                       <Route path="sessions" element={<SpecialistSessions />} />
                       <Route path="sessions/:appointmentId" element={<SpecialistSessionAnalysis />} />
