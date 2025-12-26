@@ -105,35 +105,31 @@ export async function getSpecialistClients(specialistId: string): Promise<Client
   // Получаем уникальные user_id
   const uniqueUserIds = [...new Set(appointmentData.map(a => a.user_id))];
 
-  // Загружаем данные клиентов
-  const { data: usersData, error: usersError } = await supabase
-    .from('users')
-    .select(`
-      id,
-      email,
-      phone
-    `)
-    .in('id', uniqueUserIds);
+  // Загружаем данные клиентов и профили параллельно
+  const [usersResult, profilesResult] = await Promise.all([
+    supabase
+      .from('users')
+      .select('id, email, phone')
+      .in('id', uniqueUserIds),
+    supabase
+      .from('profiles')
+      .select('id, user_id, first_name, last_name')
+      .in('user_id', uniqueUserIds),
+  ]);
 
-  if (usersError) {
-    console.error('Error loading users:', usersError);
-    throw usersError;
+  if (usersResult.error) {
+    console.error('Error loading users:', usersResult.error);
+    throw usersResult.error;
   }
 
-  // Загружаем профили клиентов
-  const { data: profilesData, error: profilesError } = await supabase
-    .from('profiles')
-    .select('id, user_id, first_name, last_name')
-    .in('user_id', uniqueUserIds);
-
-  if (profilesError) {
-    console.error('Error loading profiles:', profilesError);
+  if (profilesResult.error) {
+    console.error('Error loading profiles:', profilesResult.error);
     // Не бросаем ошибку, профили могут отсутствовать
   }
 
   // Объединяем данные
-  return (usersData || []).map(user => {
-    const profile = profilesData?.find(p => p.user_id === user.id);
+  return (usersResult.data || []).map(user => {
+    const profile = profilesResult.data?.find(p => p.user_id === user.id);
     return {
       id: user.id,
       email: user.email,
