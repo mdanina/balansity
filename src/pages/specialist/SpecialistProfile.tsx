@@ -3,7 +3,7 @@
  * Редактирование личной информации и публичного профиля
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +49,8 @@ export default function SpecialistProfile() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Форма профиля
   const [displayName, setDisplayName] = useState('');
@@ -57,6 +59,7 @@ export default function SpecialistProfile() {
   const [selectedSpecializations, setSelectedSpecializations] = useState<string[]>([]);
   const [isAvailable, setIsAvailable] = useState(true);
   const [acceptsNewClients, setAcceptsNewClients] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   // Загрузка данных профиля
   useEffect(() => {
@@ -67,8 +70,91 @@ export default function SpecialistProfile() {
       setSelectedSpecializations(specialist.specialization_codes || []);
       setIsAvailable(specialist.is_available);
       setAcceptsNewClients(specialist.accepts_new_clients);
+      setAvatarUrl(specialist.avatar_url || null);
     }
   }, [specialist]);
+
+  // Загрузка аватара
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !specialistUser) return;
+
+    // Проверка типа файла
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Ошибка',
+        description: 'Пожалуйста, выберите изображение',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Проверка размера (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Ошибка',
+        description: 'Файл слишком большой. Максимум 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+
+      // Генерируем уникальное имя файла
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${specialistUser.id}/${Date.now()}.${fileExt}`;
+
+      // Загружаем файл
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Получаем публичный URL
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      const newAvatarUrl = urlData.publicUrl;
+
+      // Обновляем в базе
+      const { error: updateError } = await supabase
+        .from('specialists')
+        .update({
+          avatar_url: newAvatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', specialist!.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(newAvatarUrl);
+      await refreshSpecialistProfile();
+
+      toast({
+        title: 'Аватар обновлён',
+        description: 'Новое фото успешно загружено',
+      });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить фото',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+      // Сбрасываем input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   // Переключение специализации
   const toggleSpecialization = (code: string) => {
@@ -153,16 +239,28 @@ export default function SpecialistProfile() {
             <div className="flex flex-col items-center text-center">
               <div className="relative">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={specialist.avatar_url || undefined} />
+                  <AvatarImage src={avatarUrl || undefined} />
                   <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
                 </Avatar>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
                 <Button
                   variant="outline"
                   size="icon"
                   className="absolute bottom-0 right-0 h-8 w-8 rounded-full"
-                  disabled
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
                 >
-                  <Camera className="h-4 w-4" />
+                  {isUploadingAvatar ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
 

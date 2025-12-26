@@ -4,15 +4,15 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Mic, MicOff, Pause, Play, Square, Upload, Loader2, AlertCircle, Check } from 'lucide-react';
+import { Mic, MicOff, Pause, Play, Square, Upload, Loader2, AlertCircle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useAudioRecorder, RecordingState } from '@/hooks/useAudioRecorder';
+import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { LocalRecording, deleteLocalRecording } from '@/lib/local-recording-storage';
 import { uploadAudioFile, createRecording } from '@/lib/supabase-recordings';
+import { decryptBlob, base64ToKey, base64ToIv } from '@/lib/recording-encryption';
 import { cn } from '@/lib/utils';
 
 interface RecordingCardProps {
@@ -64,11 +64,11 @@ export function RecordingCard({
   } = useAudioRecorder({
     appointmentId,
     specialistId,
-    enableEncryption: false, // Пока без шифрования
+    enableEncryption: true, // Шифрование включено
     onRecordingComplete: (recording) => {
       toast({
         title: 'Запись сохранена',
-        description: `Длительность: ${formatDuration(recording.durationSeconds)}`,
+        description: `Длительность: ${formatDuration(recording.durationSeconds)}. Зашифровано локально.`,
       });
     },
     onError: (err) => {
@@ -82,13 +82,28 @@ export function RecordingCard({
 
   // Загрузка записи на сервер
   const uploadRecording = useCallback(async (recording: LocalRecording) => {
-    if (!recording.blob || uploadingIds.has(recording.id)) return;
+    // Проверяем наличие данных (либо blob, либо encryptedBlob)
+    const hasData = recording.blob || recording.encryptedBlob;
+    if (!hasData || uploadingIds.has(recording.id)) return;
 
     setUploadingIds(prev => new Set(prev).add(recording.id));
 
     try {
+      let uploadBlob: Blob;
+
+      // Если запись зашифрована, расшифровываем перед загрузкой
+      if (recording.encryptedBlob && recording.encryptionKey && recording.iv) {
+        const key = await base64ToKey(recording.encryptionKey);
+        const iv = base64ToIv(recording.iv);
+        uploadBlob = await decryptBlob(recording.encryptedBlob, key, iv, recording.mimeType);
+      } else if (recording.blob) {
+        uploadBlob = recording.blob;
+      } else {
+        throw new Error('No audio data available');
+      }
+
       // Создаём File из Blob
-      const file = new File([recording.blob], `recording_${recording.id}.webm`, {
+      const file = new File([uploadBlob], `recording_${recording.id}.webm`, {
         type: recording.mimeType,
       });
 
@@ -101,7 +116,7 @@ export function RecordingCard({
         userId,
         filePath,
         fileName: file.name,
-        fileSizeBytes: recording.fileSizeBytes,
+        fileSizeBytes: file.size,
         mimeType: recording.mimeType,
         durationSeconds: recording.durationSeconds,
       });
@@ -161,6 +176,10 @@ export function RecordingCard({
         <CardTitle className="text-base flex items-center gap-2">
           <Mic className="h-4 w-4" />
           Аудиозапись
+          <Badge variant="outline" className="ml-auto text-xs font-normal gap-1">
+            <Lock className="h-3 w-3" />
+            E2E
+          </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -269,11 +288,18 @@ export function RecordingCard({
                 <div className="flex items-center gap-2">
                   {recording.status === 'failed' ? (
                     <AlertCircle className="h-4 w-4 text-destructive" />
+                  ) : recording.encryptedBlob ? (
+                    <Lock className="h-4 w-4 text-green-600" />
                   ) : (
                     <Mic className="h-4 w-4 text-muted-foreground" />
                   )}
                   <div className="text-sm">
-                    <div>{formatDuration(recording.durationSeconds)}</div>
+                    <div className="flex items-center gap-1">
+                      {formatDuration(recording.durationSeconds)}
+                      {recording.encryptedBlob && (
+                        <span className="text-xs text-green-600">(зашифровано)</span>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {formatFileSize(recording.fileSizeBytes)}
                     </div>

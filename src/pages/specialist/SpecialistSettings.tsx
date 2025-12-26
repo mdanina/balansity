@@ -2,7 +2,7 @@
  * Страница настроек специалиста
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,13 +15,15 @@ import {
   Shield,
   Clock,
   Monitor,
-  Globe,
   Mail,
   Loader2,
+  Save,
+  Coffee,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSpecialistAuth } from '@/contexts/SpecialistAuthContext';
 import { supabase } from '@/lib/supabase';
+import { getMySchedule, saveSchedule } from '@/lib/supabase-specialist-schedule';
 
 export default function SpecialistSettings() {
   const { toast } = useToast();
@@ -42,6 +44,77 @@ export default function SpecialistSettings() {
   const [workStartTime, setWorkStartTime] = useState('09:00');
   const [workEndTime, setWorkEndTime] = useState('18:00');
   const [workDays, setWorkDays] = useState(['mon', 'tue', 'wed', 'thu', 'fri']);
+  const [breakStartTime, setBreakStartTime] = useState('');
+  const [breakEndTime, setBreakEndTime] = useState('');
+  const [slotDuration, setSlotDuration] = useState(60);
+  const [bufferTime, setBufferTime] = useState(15);
+  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
+
+  // Загрузка расписания при монтировании
+  useEffect(() => {
+    loadSchedule();
+  }, []);
+
+  const loadSchedule = async () => {
+    try {
+      setIsLoadingSchedule(true);
+      const schedule = await getMySchedule();
+
+      if (schedule) {
+        setWorkStartTime(schedule.work_start_time.slice(0, 5));
+        setWorkEndTime(schedule.work_end_time.slice(0, 5));
+        setWorkDays(schedule.work_days);
+        setBreakStartTime(schedule.break_start_time?.slice(0, 5) || '');
+        setBreakEndTime(schedule.break_end_time?.slice(0, 5) || '');
+        setSlotDuration(schedule.default_slot_duration);
+        setBufferTime(schedule.buffer_between_appointments);
+      }
+    } catch (error) {
+      console.error('Error loading schedule:', error);
+    } finally {
+      setIsLoadingSchedule(false);
+    }
+  };
+
+  const handleSaveSchedule = async () => {
+    if (workDays.length === 0) {
+      toast({
+        title: 'Ошибка',
+        description: 'Выберите хотя бы один рабочий день',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsSavingSchedule(true);
+
+      await saveSchedule({
+        workStartTime,
+        workEndTime,
+        workDays,
+        breakStartTime: breakStartTime || null,
+        breakEndTime: breakEndTime || null,
+        defaultSlotDuration: slotDuration,
+        bufferBetweenAppointments: bufferTime,
+      });
+
+      toast({
+        title: 'Расписание сохранено',
+        description: 'Ваше рабочее расписание успешно обновлено',
+      });
+    } catch (error) {
+      console.error('Error saving schedule:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось сохранить расписание',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingSchedule(false);
+    }
+  };
 
   const handlePasswordChange = async () => {
     if (newPassword !== confirmPassword) {
@@ -202,49 +275,127 @@ export default function SpecialistSettings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="start-time">Начало рабочего дня</Label>
-                  <Input
-                    id="start-time"
-                    type="time"
-                    value={workStartTime}
-                    onChange={(e) => setWorkStartTime(e.target.value)}
-                  />
+              {isLoadingSchedule ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="end-time">Конец рабочего дня</Label>
-                  <Input
-                    id="end-time"
-                    type="time"
-                    value={workEndTime}
-                    onChange={(e) => setWorkEndTime(e.target.value)}
-                  />
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="start-time">Начало рабочего дня</Label>
+                      <Input
+                        id="start-time"
+                        type="time"
+                        value={workStartTime}
+                        onChange={(e) => setWorkStartTime(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="end-time">Конец рабочего дня</Label>
+                      <Input
+                        id="end-time"
+                        type="time"
+                        value={workEndTime}
+                        onChange={(e) => setWorkEndTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label>Рабочие дни</Label>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(dayLabels).map(([key, label]) => (
-                    <Button
-                      key={key}
-                      variant={workDays.includes(key) ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => toggleWorkDay(key)}
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
+                  <div className="space-y-2">
+                    <Label>Рабочие дни</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(dayLabels).map(([key, label]) => (
+                        <Button
+                          key={key}
+                          variant={workDays.includes(key) ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => toggleWorkDay(key)}
+                        >
+                          {label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
 
-              <Button disabled>
-                Сохранить расписание
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Функционал сохранения расписания будет доступен в следующих версиях
-              </p>
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Coffee className="h-4 w-4 text-muted-foreground" />
+                      <Label>Перерыв (опционально)</Label>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="break-start">Начало перерыва</Label>
+                        <Input
+                          id="break-start"
+                          type="time"
+                          value={breakStartTime}
+                          onChange={(e) => setBreakStartTime(e.target.value)}
+                          placeholder="Например, 13:00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="break-end">Конец перерыва</Label>
+                        <Input
+                          id="break-end"
+                          type="time"
+                          value={breakEndTime}
+                          onChange={(e) => setBreakEndTime(e.target.value)}
+                          placeholder="Например, 14:00"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="slot-duration">Длительность консультации (мин)</Label>
+                      <Input
+                        id="slot-duration"
+                        type="number"
+                        min={15}
+                        max={180}
+                        step={15}
+                        value={slotDuration}
+                        onChange={(e) => setSlotDuration(Number(e.target.value))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="buffer-time">Перерыв между консультациями (мин)</Label>
+                      <Input
+                        id="buffer-time"
+                        type="number"
+                        min={0}
+                        max={60}
+                        step={5}
+                        value={bufferTime}
+                        onChange={(e) => setBufferTime(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleSaveSchedule}
+                    disabled={isSavingSchedule}
+                  >
+                    {isSavingSchedule ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Сохранение...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Сохранить расписание
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
