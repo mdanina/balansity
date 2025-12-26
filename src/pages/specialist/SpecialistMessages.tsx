@@ -3,115 +3,97 @@
  * Чат с клиентами
  */
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import {
   MessageSquare,
   Search,
-  User,
   Send,
-  Clock,
   Check,
   CheckCheck,
+  Loader2,
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useSpecialistAuth } from '@/contexts/SpecialistAuthContext';
-
-interface ClientConversation {
-  id: string;
-  clientUserId: string;
-  clientName: string;
-  clientAvatar: string | null;
-  lastMessage: string | null;
-  lastMessageAt: string | null;
-  unreadCount: number;
-}
-
-interface Message {
-  id: string;
-  content: string;
-  sender_id: string;
-  sender_type: 'specialist' | 'client';
-  created_at: string;
-  is_read: boolean;
-}
+import {
+  Message,
+  Conversation,
+  getConversations,
+  getMessages,
+  sendMessage,
+  markMessagesAsRead,
+  subscribeToMessages,
+} from '@/lib/supabase-messages';
 
 export default function SpecialistMessages() {
   const { toast } = useToast();
   const { specialistUser } = useSpecialistAuth();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const [conversations, setConversations] = useState<ClientConversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<ClientConversation | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Загрузка бесед
   useEffect(() => {
-    if (specialistUser?.specialist?.id) {
+    if (specialistUser?.id) {
       loadConversations();
     }
-  }, [specialistUser?.specialist?.id]);
+  }, [specialistUser?.id]);
 
-  const loadConversations = async () => {
-    if (!specialistUser?.specialist?.id) return;
+  // Подписка на новые сообщения
+  useEffect(() => {
+    if (!specialistUser?.id) return;
 
-    try {
-      setIsLoading(true);
+    const unsubscribe = subscribeToMessages((newMsg) => {
+      // Обновляем сообщения если это текущая беседа
+      if (selectedConversation &&
+          (newMsg.sender_id === selectedConversation.recipientId ||
+           newMsg.recipient_id === selectedConversation.recipientId)) {
+        setMessages(prev => [...prev, newMsg]);
+        scrollToBottom();
 
-      // Получаем всех клиентов специалиста
-      const { data: assignments, error } = await supabase
-        .from('client_assignments')
-        .select('client_user_id')
-        .eq('specialist_id', specialistUser.specialist.id)
-        .eq('status', 'active');
-
-      if (error) throw error;
-
-      if (!assignments || assignments.length === 0) {
-        setConversations([]);
-        return;
+        // Помечаем как прочитанное если мы получатель
+        if (newMsg.recipient_id === specialistUser.id) {
+          markMessagesAsRead(newMsg.sender_id);
+        }
       }
 
-      const clientIds = assignments.map(a => a.client_user_id);
+      // Обновляем список бесед
+      loadConversations();
+    });
 
-      // Получаем данные о клиентах
-      const { data: clients } = await supabase
-        .from('users')
-        .select('id, email')
-        .in('id', clientIds);
+    return () => unsubscribe();
+  }, [specialistUser?.id, selectedConversation?.recipientId]);
 
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, first_name, last_name, avatar_url')
-        .in('user_id', clientIds);
+  // Скролл к последнему сообщению
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }, []);
 
-      const conversationsList: ClientConversation[] = (clients || []).map(client => {
-        const profile = profiles?.find(p => p.user_id === client.id);
-        const name = profile
-          ? `${profile.first_name}${profile.last_name ? ' ' + profile.last_name : ''}`
-          : client.email || 'Клиент';
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages, scrollToBottom]);
 
-        return {
-          id: client.id,
-          clientUserId: client.id,
-          clientName: name,
-          clientAvatar: profile?.avatar_url || null,
-          lastMessage: null, // Будет загружаться отдельно когда будет таблица messages
-          lastMessageAt: null,
-          unreadCount: 0,
-        };
-      });
-
-      setConversations(conversationsList);
+  const loadConversations = async () => {
+    try {
+      setIsLoading(true);
+      const convs = await getConversations();
+      setConversations(convs);
     } catch (error) {
       console.error('Error loading conversations:', error);
       toast({
@@ -124,36 +106,90 @@ export default function SpecialistMessages() {
     }
   };
 
-  const loadMessages = async (clientUserId: string) => {
-    setIsLoadingMessages(true);
-    // Сообщения пока не реализованы - нужна таблица messages
-    // Здесь будет загрузка сообщений из Supabase
-    setMessages([]);
-    setIsLoadingMessages(false);
+  const loadMessages = async (recipientId: string) => {
+    try {
+      setIsLoadingMessages(true);
+      const msgs = await getMessages(recipientId);
+      setMessages(msgs);
+
+      // Помечаем как прочитанные
+      await markMessagesAsRead(recipientId);
+
+      // Обновляем счётчик в списке бесед
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.recipientId === recipientId
+            ? { ...conv, unreadCount: 0 }
+            : conv
+        )
+      );
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить сообщения',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingMessages(false);
+    }
   };
 
-  const handleSelectConversation = (conversation: ClientConversation) => {
+  const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation);
-    loadMessages(conversation.clientUserId);
+    loadMessages(conversation.recipientId);
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) return;
+    if (!newMessage.trim() || !selectedConversation || isSending) return;
 
-    // Отправка сообщений пока не реализована
-    toast({
-      title: 'В разработке',
-      description: 'Функция сообщений находится в разработке',
-    });
+    try {
+      setIsSending(true);
+      const sent = await sendMessage(selectedConversation.recipientId, newMessage);
+      setMessages(prev => [...prev, sent]);
+      setNewMessage('');
+      scrollToBottom();
 
-    setNewMessage('');
+      // Обновляем последнее сообщение в беседе
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.recipientId === selectedConversation.recipientId
+            ? { ...conv, lastMessage: sent }
+            : conv
+        )
+      );
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить сообщение',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('ru-RU', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return date.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } else if (diffDays === 1) {
+      return 'Вчера';
+    } else if (diffDays < 7) {
+      return date.toLocaleDateString('ru-RU', { weekday: 'short' });
+    } else {
+      return date.toLocaleDateString('ru-RU', {
+        day: 'numeric',
+        month: 'short',
+      });
+    }
   };
 
   const getInitials = (name: string) => {
@@ -167,7 +203,7 @@ export default function SpecialistMessages() {
 
   // Фильтрация бесед по поиску
   const filteredConversations = conversations.filter((conv) =>
-    conv.clientName.toLowerCase().includes(searchQuery.toLowerCase())
+    conv.recipientName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (isLoading) {
@@ -223,38 +259,39 @@ export default function SpecialistMessages() {
                 <div className="p-2">
                   {filteredConversations.map((conv) => (
                     <button
-                      key={conv.id}
+                      key={conv.recipientId}
                       onClick={() => handleSelectConversation(conv)}
                       className={`w-full p-3 rounded-lg text-left transition-colors ${
-                        selectedConversation?.id === conv.id
+                        selectedConversation?.recipientId === conv.recipientId
                           ? 'bg-primary/10'
                           : 'hover:bg-muted'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        {conv.clientAvatar ? (
+                        {conv.recipientAvatar ? (
                           <img
-                            src={conv.clientAvatar}
-                            alt={conv.clientName}
+                            src={conv.recipientAvatar}
+                            alt={conv.recipientName}
                             className="w-10 h-10 rounded-full object-cover"
                           />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                            {getInitials(conv.clientName)}
+                            {getInitials(conv.recipientName)}
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <p className="font-medium truncate">{conv.clientName}</p>
-                            {conv.lastMessageAt && (
+                            <p className="font-medium truncate">{conv.recipientName}</p>
+                            {conv.lastMessage && (
                               <span className="text-xs text-muted-foreground">
-                                {formatTime(conv.lastMessageAt)}
+                                {formatTime(conv.lastMessage.created_at)}
                               </span>
                             )}
                           </div>
                           {conv.lastMessage && (
                             <p className="text-sm text-muted-foreground truncate">
-                              {conv.lastMessage}
+                              {conv.lastMessage.sender_id === specialistUser?.id ? 'Вы: ' : ''}
+                              {conv.lastMessage.content}
                             </p>
                           )}
                         </div>
@@ -275,20 +312,20 @@ export default function SpecialistMessages() {
               <>
                 {/* Заголовок чата */}
                 <div className="p-4 border-b flex items-center gap-3">
-                  {selectedConversation.clientAvatar ? (
+                  {selectedConversation.recipientAvatar ? (
                     <img
-                      src={selectedConversation.clientAvatar}
-                      alt={selectedConversation.clientName}
+                      src={selectedConversation.recipientAvatar}
+                      alt={selectedConversation.recipientName}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                      {getInitials(selectedConversation.clientName)}
+                      {getInitials(selectedConversation.recipientName)}
                     </div>
                   )}
                   <div>
-                    <p className="font-medium">{selectedConversation.clientName}</p>
-                    <p className="text-sm text-muted-foreground">Онлайн</p>
+                    <p className="font-medium">{selectedConversation.recipientName}</p>
+                    <p className="text-sm text-muted-foreground">Клиент</p>
                   </div>
                 </div>
 
@@ -296,52 +333,48 @@ export default function SpecialistMessages() {
                 <ScrollArea className="flex-1 p-4">
                   {isLoadingMessages ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-muted-foreground">Загрузка...</p>
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                       <MessageSquare className="h-12 w-12 mb-4 opacity-50" />
                       <p className="text-lg font-medium">Нет сообщений</p>
                       <p className="text-sm mt-1">Начните беседу с клиентом</p>
-                      <p className="text-xs mt-4 text-center max-w-sm">
-                        Функция обмена сообщениями находится в разработке.
-                        Скоро вы сможете общаться с клиентами в реальном времени.
-                      </p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={`flex ${
-                            message.sender_type === 'specialist'
-                              ? 'justify-end'
-                              : 'justify-start'
-                          }`}
-                        >
+                      {messages.map((message) => {
+                        const isOwn = message.sender_id === specialistUser?.id;
+                        return (
                           <div
-                            className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                              message.sender_type === 'specialist'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
-                            }`}
+                            key={message.id}
+                            className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                           >
-                            <p className="text-sm">{message.content}</p>
-                            <div className="flex items-center justify-end gap-1 mt-1">
-                              <span className="text-xs opacity-70">
-                                {formatTime(message.created_at)}
-                              </span>
-                              {message.sender_type === 'specialist' && (
-                                message.is_read ? (
-                                  <CheckCheck className="h-3 w-3" />
-                                ) : (
-                                  <Check className="h-3 w-3" />
-                                )
-                              )}
+                            <div
+                              className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                                isOwn
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted'
+                              }`}
+                            >
+                              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                              <div className="flex items-center justify-end gap-1 mt-1">
+                                <span className="text-xs opacity-70">
+                                  {formatTime(message.created_at)}
+                                </span>
+                                {isOwn && (
+                                  message.is_read ? (
+                                    <CheckCheck className="h-3 w-3" />
+                                  ) : (
+                                    <Check className="h-3 w-3" />
+                                  )
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
+                      <div ref={messagesEndRef} />
                     </div>
                   )}
                 </ScrollArea>
@@ -354,11 +387,22 @@ export default function SpecialistMessages() {
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => {
-                        if (e.key === 'Enter') handleSendMessage();
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
                       }}
+                      disabled={isSending}
                     />
-                    <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
-                      <Send className="h-4 w-4" />
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim() || isSending}
+                    >
+                      {isSending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
