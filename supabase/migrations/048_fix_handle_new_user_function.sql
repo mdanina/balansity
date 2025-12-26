@@ -28,3 +28,17 @@ $$;
 
 -- Комментарий для документации
 COMMENT ON FUNCTION public.handle_new_user() IS 'Триггерная функция для автоматического создания записи в public.users при регистрации нового пользователя в auth.users';
+
+-- ============================================
+-- Восстановление "осиротевших" пользователей
+-- ============================================
+-- Пользователи, которые зарегистрировались пока баг был активен,
+-- имеют записи в auth.users, но не в public.users.
+-- Создаём для них записи в public.users.
+
+INSERT INTO public.users (id, email)
+SELECT au.id, au.email
+FROM auth.users au
+LEFT JOIN public.users pu ON pu.id = au.id
+WHERE pu.id IS NULL
+ON CONFLICT (id) DO NOTHING;
