@@ -1,6 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useSpecialistAuth } from '@/contexts/SpecialistAuthContext';
 import {
   LayoutDashboard,
   Users,
@@ -10,19 +9,9 @@ import {
   Settings,
   Video,
   Brain,
-  UserPlus,
 } from 'lucide-react';
 
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  end?: boolean;
-  badge?: number;
-  coordinatorOnly?: boolean;
-}
-
-const navigation: NavItem[] = [
+const navigation = [
   {
     name: 'Обзор',
     href: '/specialist',
@@ -50,12 +39,6 @@ const navigation: NavItem[] = [
     icon: Brain,
   },
   {
-    name: 'Назначения',
-    href: '/specialist/assignments',
-    icon: UserPlus,
-    coordinatorOnly: true,
-  },
-  {
     name: 'Сообщения',
     href: '/specialist/messages',
     icon: MessageSquare,
@@ -78,12 +61,6 @@ const bottomNavigation = [
 
 export function SpecialistSidebar() {
   const location = useLocation();
-  const { isCoordinator } = useSpecialistAuth();
-
-  // Фильтруем навигацию: показываем coordinatorOnly только координаторам
-  const filteredNavigation = navigation.filter(
-    (item) => !item.coordinatorOnly || isCoordinator
-  );
 
   const isActive = (href: string, end?: boolean) => {
     if (end) {
@@ -95,7 +72,7 @@ export function SpecialistSidebar() {
   return (
     <aside className="hidden md:flex w-64 flex-col border-r bg-white">
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {filteredNavigation.map((item) => (
+        {navigation.map((item) => (
           <NavLink
             key={item.name}
             to={item.href}

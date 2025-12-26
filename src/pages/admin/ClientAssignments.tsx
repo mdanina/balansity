@@ -1,11 +1,10 @@
 /**
- * Страница координатора для назначения клиентов специалистам
+ * Страница админки для назначения клиентов специалистам
  * - Показывает записи без назначенного специалиста
  * - Позволяет выбрать специалиста и назначить клиента
  */
 
 import { useState } from 'react';
-import { useSpecialistAuth } from '@/contexts/SpecialistAuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +42,6 @@ import {
   RefreshCw,
   CheckCircle2,
   Clock,
-  AlertCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -55,10 +53,9 @@ import {
   useAllClientAssignments,
   UnassignedAppointment,
   AvailableSpecialist,
-} from '@/hooks/specialist/useCoordinatorAssignments';
+} from '@/hooks/admin/useCoordinatorAssignments';
 
-export default function CoordinatorAssignments() {
-  const { isCoordinator } = useSpecialistAuth();
+export default function ClientAssignments() {
   const [selectedAppointment, setSelectedAppointment] = useState<UnassignedAppointment | null>(null);
   const [selectedSpecialist, setSelectedSpecialist] = useState<string>('');
   const [assignmentType, setAssignmentType] = useState<'primary' | 'consultant' | 'temporary'>('primary');
@@ -83,25 +80,6 @@ export default function CoordinatorAssignments() {
   } = useAllClientAssignments();
 
   const assignMutation = useAssignClientToSpecialist();
-
-  // Если пользователь не координатор, показываем сообщение
-  if (!isCoordinator) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-5 w-5" />
-              Доступ запрещён
-            </CardTitle>
-            <CardDescription>
-              Эта страница доступна только для координаторов
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
 
   // Открыть диалог назначения
   const handleAssignClick = (appointment: UnassignedAppointment) => {
@@ -173,8 +151,8 @@ export default function CoordinatorAssignments() {
       {/* Заголовок */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Назначение клиентов</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold">Назначение клиентов</h1>
+          <p className="text-muted-foreground mt-1">
             Привязка клиентов к специалистам
           </p>
         </div>

@@ -90,6 +90,7 @@ const SupportTools = lazy(() => import("./pages/admin/SupportTools"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const BlogManagement = lazy(() => import("./pages/admin/BlogManagement"));
+const ClientAssignments = lazy(() => import("./pages/admin/ClientAssignments"));
 
 // Страницы специалиста
 const SpecialistLogin = lazy(() => import("./pages/specialist/SpecialistLogin"));
@@ -100,7 +101,6 @@ const SpecialistSessions = lazy(() => import("./pages/specialist/SpecialistSessi
 const SpecialistAIAnalysis = lazy(() => import("./pages/specialist/SpecialistAIAnalysis"));
 const SpecialistSessionAnalysis = lazy(() => import("./pages/specialist/SpecialistSessionAnalysis"));
 const SpecialistClientDetail = lazy(() => import("./pages/specialist/SpecialistClientDetail"));
-const CoordinatorAssignments = lazy(() => import("./pages/specialist/CoordinatorAssignments"));
 
 // Компонент загрузки
 const PageLoader = () => (
@@ -172,6 +172,7 @@ const App = () => (
                       <Route path="content" element={<ContentManagement />} />
                       <Route path="support" element={<SupportTools />} />
                       <Route path="blog" element={<BlogManagement />} />
+                      <Route path="assignments" element={<ClientAssignments />} />
                     </Route>
                     
                     {/* Защищенные маршруты (требуют авторизации) */}
@@ -220,7 +221,6 @@ const App = () => (
                       <Route path="sessions" element={<SpecialistSessions />} />
                       <Route path="sessions/:appointmentId" element={<SpecialistSessionAnalysis />} />
                       <Route path="ai-analysis" element={<SpecialistAIAnalysis />} />
-                      <Route path="assignments" element={<CoordinatorAssignments />} />
                     </Route>
 
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
