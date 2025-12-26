@@ -97,3 +97,4 @@ export const ResultIcon: React.FC<ResultIconProps> = ({ type }) => {
 
 
 
+

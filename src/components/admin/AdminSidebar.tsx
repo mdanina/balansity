@@ -8,6 +8,7 @@ import {
   CreditCard,
   Settings,
   MessageSquare,
+  UserPlus,
 } from 'lucide-react';
 
 const navigation = [
@@ -15,6 +16,7 @@ const navigation = [
   { name: 'Пользователи', href: '/admin/users', icon: Users },
   { name: 'Оценки', href: '/admin/assessments', icon: FileText },
   { name: 'Консультации', href: '/admin/appointments', icon: Calendar },
+  { name: 'Назначения', href: '/admin/assignments', icon: UserPlus },
   { name: 'Платежи', href: '/admin/payments', icon: CreditCard },
   { name: 'Контент', href: '/admin/content', icon: Settings },
   { name: 'Блог', href: '/admin/blog', icon: FileText },

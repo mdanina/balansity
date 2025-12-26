@@ -14,6 +14,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { SpecialistProtectedRoute } from "@/components/specialist/SpecialistProtectedRoute";
 import { SpecialistLayout } from "@/components/specialist/SpecialistLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { RouteTracker } from "@/components/RouteTracker";
 import { Loader2 } from "lucide-react";
 // Легкие страницы загружаем сразу
 import Landing from "./pages/Landing";
@@ -90,6 +91,7 @@ const SupportTools = lazy(() => import("./pages/admin/SupportTools"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const BlogManagement = lazy(() => import("./pages/admin/BlogManagement"));
+const ClientAssignments = lazy(() => import("./pages/admin/ClientAssignments"));
 
 // Страницы специалиста
 const SpecialistLogin = lazy(() => import("./pages/specialist/SpecialistLogin"));
@@ -98,6 +100,10 @@ const SpecialistClients = lazy(() => import("./pages/specialist/SpecialistClient
 const SpecialistCalendar = lazy(() => import("./pages/specialist/SpecialistCalendar"));
 const SpecialistSessions = lazy(() => import("./pages/specialist/SpecialistSessions"));
 const SpecialistAIAnalysis = lazy(() => import("./pages/specialist/SpecialistAIAnalysis"));
+const SpecialistSessionAnalysis = lazy(() => import("./pages/specialist/SpecialistSessionAnalysis"));
+const SpecialistClientDetail = lazy(() => import("./pages/specialist/SpecialistClientDetail"));
+const SpecialistProfile = lazy(() => import("./pages/specialist/SpecialistProfile"));
+const SpecialistSettings = lazy(() => import("./pages/specialist/SpecialistSettings"));
 
 // Компонент загрузки
 const PageLoader = () => (
@@ -133,6 +139,7 @@ const App = () => (
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <RouteTracker />
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                     {/* Публичные маршруты */}
@@ -169,6 +176,7 @@ const App = () => (
                       <Route path="content" element={<ContentManagement />} />
                       <Route path="support" element={<SupportTools />} />
                       <Route path="blog" element={<BlogManagement />} />
+                      <Route path="assignments" element={<ClientAssignments />} />
                     </Route>
                     
                     {/* Защищенные маршруты (требуют авторизации) */}
@@ -212,9 +220,13 @@ const App = () => (
                     >
                       <Route index element={<SpecialistDashboard />} />
                       <Route path="clients" element={<SpecialistClients />} />
+                      <Route path="clients/:clientId" element={<SpecialistClientDetail />} />
                       <Route path="calendar" element={<SpecialistCalendar />} />
                       <Route path="sessions" element={<SpecialistSessions />} />
+                      <Route path="sessions/:appointmentId" element={<SpecialistSessionAnalysis />} />
                       <Route path="ai-analysis" element={<SpecialistAIAnalysis />} />
+                      <Route path="profile" element={<SpecialistProfile />} />
+                      <Route path="settings" element={<SpecialistSettings />} />
                     </Route>
 
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
