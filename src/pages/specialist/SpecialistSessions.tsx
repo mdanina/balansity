@@ -78,7 +78,8 @@ interface AppointmentWithDetails {
 }
 
 export default function SpecialistSessions() {
-  const { specialist } = useSpecialistAuth();
+  const { specialistUser } = useSpecialistAuth();
+  const specialist = specialistUser?.specialist;
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -121,18 +122,39 @@ export default function SpecialistSessions() {
 
       if (error) throw error;
 
-      // Загружаем количество записей и заметок для каждой консультации
+      // Пытаемся загрузить количество записей и заметок для каждой консультации
+      // Если функция не существует, продолжаем без этих данных
       const appointmentsWithCounts = await Promise.all(
         (data || []).map(async (apt) => {
-          const { data: counts } = await supabase
-            .rpc('get_appointment_content_counts', { p_appointment_id: apt.id });
+          try {
+            const { data: counts, error: countsError } = await supabase
+              .rpc('get_appointment_content_counts', { p_appointment_id: apt.id });
 
-          return {
-            ...apt,
-            recordings_count: counts?.[0]?.recordings_count || 0,
-            notes_count: counts?.[0]?.notes_count || 0,
-            clinical_notes_count: counts?.[0]?.clinical_notes_count || 0,
-          };
+            if (countsError) {
+              // Функция может не существовать - это нормально
+              return {
+                ...apt,
+                recordings_count: 0,
+                notes_count: 0,
+                clinical_notes_count: 0,
+              };
+            }
+
+            return {
+              ...apt,
+              recordings_count: counts?.[0]?.recordings_count || 0,
+              notes_count: counts?.[0]?.notes_count || 0,
+              clinical_notes_count: counts?.[0]?.clinical_notes_count || 0,
+            };
+          } catch {
+            // Игнорируем ошибки RPC
+            return {
+              ...apt,
+              recordings_count: 0,
+              notes_count: 0,
+              clinical_notes_count: 0,
+            };
+          }
         })
       );
 
