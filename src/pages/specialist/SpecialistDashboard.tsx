@@ -64,9 +64,12 @@ export default function SpecialistDashboard() {
     try {
       setIsLoading(true);
 
-      // Загружаем количество клиентов
-      const { data: clientsData } = await supabase.rpc('get_specialist_clients');
-      const activeClients = clientsData?.length || 0;
+      const specialistId = specialistUser?.specialist?.id;
+      if (!specialistId) {
+        console.warn('No specialist ID found');
+        setIsLoading(false);
+        return;
+      }
 
       // Даты для фильтрации
       const now = new Date();
@@ -79,59 +82,108 @@ export default function SpecialistDashboard() {
 
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      // Загружаем консультации на сегодня
-      const { data: todayData } = await supabase.rpc('get_specialist_appointments', {
-        p_from_date: todayStart.toISOString(),
-        p_to_date: todayEnd.toISOString(),
-      });
+      // Выполняем все запросы параллельно для ускорения загрузки
+      const [
+        clientsResult,
+        todayResult,
+        weekResult,
+        completedResult,
+      ] = await Promise.all([
+        // Количество клиентов через client_assignments
+        supabase
+          .from('client_assignments')
+          .select('client_user_id', { count: 'exact', head: true })
+          .eq('specialist_id', specialistId)
+          .eq('status', 'active'),
 
-      // Загружаем профили клиентов для сегодняшних консультаций
+        // Консультации на сегодня
+        supabase
+          .from('appointments')
+          .select(`
+            id,
+            scheduled_at,
+            status,
+            video_room_url,
+            user_id,
+            appointment_type_id
+          `)
+          .eq('specialist_id', specialistId)
+          .gte('scheduled_at', todayStart.toISOString())
+          .lt('scheduled_at', todayEnd.toISOString())
+          .order('scheduled_at', { ascending: true }),
+
+        // Консультации на неделю (только количество)
+        supabase
+          .from('appointments')
+          .select('id', { count: 'exact', head: true })
+          .eq('specialist_id', specialistId)
+          .gte('scheduled_at', todayStart.toISOString())
+          .lt('scheduled_at', weekEnd.toISOString()),
+
+        // Завершённые за месяц
+        supabase
+          .from('appointments')
+          .select('id', { count: 'exact', head: true })
+          .eq('specialist_id', specialistId)
+          .eq('status', 'completed')
+          .gte('scheduled_at', monthStart.toISOString()),
+      ]);
+
+      const activeClients = clientsResult.count || 0;
+
+      // Обрабатываем сегодняшние консультации
       let todayWithProfiles: TodayAppointment[] = [];
-      if (todayData && todayData.length > 0) {
-        const clientIds = todayData.map((a: any) => a.client_user_id);
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('user_id, first_name, last_name')
-          .in('user_id', clientIds);
+      const todayData = todayResult.data || [];
 
-        todayWithProfiles = todayData.map((appointment: any) => {
-          const profile = profilesData?.find(p => p.user_id === appointment.client_user_id);
+      if (todayData.length > 0) {
+        // Загружаем профили и типы консультаций параллельно
+        const clientIds = todayData.map((a) => a.user_id);
+        const typeIds = todayData.map((a) => a.appointment_type_id).filter(Boolean);
+
+        const [profilesResult, typesResult] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('user_id, first_name, last_name')
+            .in('user_id', clientIds),
+          typeIds.length > 0
+            ? supabase
+                .from('appointment_types')
+                .select('id, name')
+                .in('id', typeIds)
+            : Promise.resolve({ data: [] }),
+        ]);
+
+        const profilesData = profilesResult.data || [];
+        const typesData = typesResult.data || [];
+
+        todayWithProfiles = todayData.map((appointment) => {
+          const profile = profilesData.find((p) => p.user_id === appointment.user_id);
+          const appointmentType = typesData.find((t) => t.id === appointment.appointment_type_id);
           return {
-            ...appointment,
-            profile: profile ? {
-              first_name: profile.first_name,
-              last_name: profile.last_name,
-            } : undefined,
+            id: appointment.id,
+            scheduled_at: appointment.scheduled_at,
+            status: appointment.status,
+            video_room_url: appointment.video_room_url,
+            client_email: null,
+            client_phone: null,
+            appointment_type_name: appointmentType?.name || null,
+            profile: profile
+              ? {
+                  first_name: profile.first_name,
+                  last_name: profile.last_name,
+                }
+              : undefined,
           };
         });
       }
 
       setTodayAppointments(todayWithProfiles);
 
-      // Загружаем консультации на неделю
-      const { data: weekData } = await supabase.rpc('get_specialist_appointments', {
-        p_from_date: todayStart.toISOString(),
-        p_to_date: weekEnd.toISOString(),
-      });
-
-      // Загружаем завершённые за месяц (через прямой запрос)
-      const specialistId = specialistUser?.specialist?.id;
-      let completedThisMonth = 0;
-      if (specialistId) {
-        const { count } = await supabase
-          .from('appointments')
-          .select('*', { count: 'exact', head: true })
-          .eq('specialist_id', specialistId)
-          .eq('status', 'completed')
-          .gte('scheduled_at', monthStart.toISOString());
-        completedThisMonth = count || 0;
-      }
-
       setStats({
         activeClients,
-        todayAppointments: todayData?.length || 0,
-        weekAppointments: weekData?.length || 0,
-        completedThisMonth,
+        todayAppointments: todayData.length,
+        weekAppointments: weekResult.count || 0,
+        completedThisMonth: completedResult.count || 0,
       });
     } catch (error) {
       console.error('Error loading dashboard:', error);
