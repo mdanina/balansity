@@ -1,11 +1,15 @@
 /**
- * 2-колоночный layout для AI-анализа сессии
- * Перенесено из PsiPilot для Balansity
+ * 3-колоночный layout для анализа сессии
+ * Структура как в PsiPilot:
+ * - Левая колонка (35%): Транскрипт, записи, заметки, элементы управления записью
+ * - Центральная колонка (30%): Шаблоны, генерация
+ * - Правая колонка (35%): Результат AI заметок
  */
 
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { SourcePanel } from './source-panel/SourcePanel';
-import { OutputPanel } from './output-panel/OutputPanel';
+import { TemplatesPanel } from './templates-panel/TemplatesPanel';
+import { ResultPanel } from './result-panel/ResultPanel';
 import type { GeneratedClinicalNote } from '@/types/ai.types';
 
 export interface Appointment {
@@ -35,9 +39,7 @@ interface AnalysisLayoutProps {
 }
 
 /**
- * 2-колоночный layout для AI-анализа сессии
- * Левая колонка: источники (транскрипт, заметки, файлы)
- * Правая колонка: результат (секции, редактор)
+ * 3-колоночный layout для анализа сессии
  */
 export function AnalysisLayout({
   appointmentId,
@@ -49,17 +51,26 @@ export function AnalysisLayout({
     <div className="flex-1 overflow-hidden h-full">
       <ResizablePanelGroup direction="horizontal" className="h-full">
         {/* Левая колонка - Источники */}
-        <ResizablePanel defaultSize={40} minSize={30} maxSize={60}>
+        <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
           <SourcePanel appointmentId={appointmentId} appointment={appointment} />
         </ResizablePanel>
 
         <ResizableHandle withHandle />
 
-        {/* Правая колонка - Результат */}
-        <ResizablePanel defaultSize={60} minSize={40}>
-          <OutputPanel
+        {/* Центральная колонка - Шаблоны и генерация */}
+        <ResizablePanel defaultSize={30} minSize={20} maxSize={40}>
+          <TemplatesPanel
             appointmentId={appointmentId}
             appointment={appointment}
+            onNotesUpdate={onNotesUpdate}
+          />
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        {/* Правая колонка - Результат */}
+        <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
+          <ResultPanel
             clinicalNotes={clinicalNotes}
             onNotesUpdate={onNotesUpdate}
           />
