@@ -55,19 +55,38 @@ export default function SpecialistCalendar() {
   // Получаем ID специалиста
   const specialistId = specialistUser?.specialist?.id || user?.id;
 
-  // Загружаем клиентов
-  const loadClients = useCallback(async () => {
+  // Загружаем все данные (клиенты + консультации) параллельно
+  const loadData = useCallback(async (showRefreshing = false) => {
     if (!specialistId) return;
 
     try {
-      const data = await getSpecialistClients(specialistId);
-      setClients(data);
-    } catch (error) {
-      console.error('Error loading clients:', error);
-    }
-  }, [specialistId]);
+      if (showRefreshing) setIsRefreshing(true);
 
-  // Загружаем консультации за месяц
+      const monthStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+      const monthEnd = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0, 23, 59, 59);
+
+      // Загружаем клиентов и консультации параллельно
+      const [clientsData, appointmentsData] = await Promise.all([
+        getSpecialistClients(specialistId),
+        getSpecialistAppointments(specialistId, monthStart, monthEnd),
+      ]);
+
+      setClients(clientsData);
+      setAppointments(appointmentsData);
+    } catch (error) {
+      console.error('Error loading calendar data:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить данные календаря',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [specialistId, calendarMonth, toast]);
+
+  // Загружаем только консультации при смене месяца (клиенты уже загружены)
   const loadAppointments = useCallback(async () => {
     if (!specialistId) return;
 
@@ -86,18 +105,21 @@ export default function SpecialistCalendar() {
         variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
       setIsRefreshing(false);
     }
   }, [specialistId, calendarMonth, toast]);
 
+  // Первоначальная загрузка
   useEffect(() => {
-    loadClients();
-  }, [loadClients]);
+    loadData();
+  }, [specialistId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // При смене месяца загружаем только консультации
   useEffect(() => {
-    loadAppointments();
-  }, [loadAppointments]);
+    if (!isLoading) {
+      loadAppointments();
+    }
+  }, [calendarMonth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreateAppointment = async (params: {
     userId: string;
@@ -244,7 +266,7 @@ export default function SpecialistCalendar() {
             <Button
               variant="outline"
               size="icon"
-              onClick={loadAppointments}
+              onClick={() => loadData(true)}
               disabled={isRefreshing}
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
