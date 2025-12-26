@@ -90,6 +90,7 @@ const SupportTools = lazy(() => import("./pages/admin/SupportTools"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const BlogManagement = lazy(() => import("./pages/admin/BlogManagement"));
+const ClientAssignments = lazy(() => import("./pages/admin/ClientAssignments"));
 
 // Страницы специалиста
 const SpecialistLogin = lazy(() => import("./pages/specialist/SpecialistLogin"));
@@ -99,6 +100,7 @@ const SpecialistCalendar = lazy(() => import("./pages/specialist/SpecialistCalen
 const SpecialistSessions = lazy(() => import("./pages/specialist/SpecialistSessions"));
 const SpecialistAIAnalysis = lazy(() => import("./pages/specialist/SpecialistAIAnalysis"));
 const SpecialistSessionAnalysis = lazy(() => import("./pages/specialist/SpecialistSessionAnalysis"));
+const SpecialistClientDetail = lazy(() => import("./pages/specialist/SpecialistClientDetail"));
 
 // Компонент загрузки
 const PageLoader = () => (
@@ -170,6 +172,7 @@ const App = () => (
                       <Route path="content" element={<ContentManagement />} />
                       <Route path="support" element={<SupportTools />} />
                       <Route path="blog" element={<BlogManagement />} />
+                      <Route path="assignments" element={<ClientAssignments />} />
                     </Route>
                     
                     {/* Защищенные маршруты (требуют авторизации) */}
@@ -213,6 +216,7 @@ const App = () => (
                     >
                       <Route index element={<SpecialistDashboard />} />
                       <Route path="clients" element={<SpecialistClients />} />
+                      <Route path="clients/:clientId" element={<SpecialistClientDetail />} />
                       <Route path="calendar" element={<SpecialistCalendar />} />
                       <Route path="sessions" element={<SpecialistSessions />} />
                       <Route path="sessions/:appointmentId" element={<SpecialistSessionAnalysis />} />
