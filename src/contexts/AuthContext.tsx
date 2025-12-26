@@ -1,6 +1,7 @@
 // Контекст для управления авторизацией
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { isSessionExpired, isSessionValid } from '@/lib/authUtils';
 import { logger } from '@/lib/logger';
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     let mounted = true;
@@ -196,13 +198,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { data, error };
   };
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
+    // Очищаем кеш React Query перед выходом
+    queryClient.clear();
+
     await supabase.auth.signOut();
+
     // Clear Sentry user context on logout (async)
     import('@/lib/sentry').then(({ setSentryUser }) => {
       setSentryUser(null).catch(() => {});
     }).catch(() => {});
-  };
+
+    logger.log('User signed out, cache cleared');
+  }, [queryClient]);
 
   const resetPassword = async (email: string) => {
     // Получаем текущий URL для redirect
