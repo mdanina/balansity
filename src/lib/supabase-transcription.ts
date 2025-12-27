@@ -6,7 +6,7 @@
 import { supabase } from './supabase';
 
 // URL backend сервиса
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_AI_API_URL || '';
 
 /**
  * Получить заголовки для аутентификации
