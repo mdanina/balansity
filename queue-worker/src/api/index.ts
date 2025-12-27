@@ -3,6 +3,8 @@ import cors from 'cors';
 import { paymentsRouter } from './routes/payments.js';
 import { webhookRouter } from './routes/webhook.js';
 import { jitsiWebhookRouter } from './routes/jitsi-webhook.js';
+import { transcribeRouter, assemblyAIWebhookRouter } from './routes/transcribe.js';
+import { aiRouter } from './routes/ai.js';
 import { logger } from '../utils/logger.js';
 
 export function createApiServer() {
@@ -46,7 +48,10 @@ export function createApiServer() {
 
   app.use('/api/payments', paymentsRouter);
   app.use('/api/webhook/jitsi', jitsiWebhookRouter);
+  app.use('/api/webhook/assemblyai', assemblyAIWebhookRouter);
   app.use('/api/webhook', webhookRouter);
+  app.use('/api/transcribe', transcribeRouter);
+  app.use('/api/ai', aiRouter);
 
   logger.info('Routes registered successfully');
 
