@@ -13,8 +13,8 @@ import type {
   GenerateRequest,
 } from '@/types/ai.types';
 
-// URL backend сервиса для AI endpoints (опционально)
-const AI_API_URL = import.meta.env.VITE_AI_API_URL || '';
+// URL backend сервиса для AI endpoints
+const AI_API_URL = import.meta.env.VITE_API_URL || '';
 
 /**
  * Получить заголовки для аутентификации
